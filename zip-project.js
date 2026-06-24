@@ -51,12 +51,14 @@ async function run() {
   });
   
   fs.writeFileSync('./public/app-source.zip', content);
-  console.log("Successfully created ./public/app-source.zip");
+  fs.writeFileSync('./public/app-source_share.zip', content);
+  console.log("Successfully created ./public/app-source.zip and ./public/app-source_share.zip");
 
   // Also write to dist if it exists
   if (fs.existsSync('./dist')) {
     fs.writeFileSync('./dist/app-source.zip', content);
-    console.log("Successfully created ./dist/app-source.zip");
+    fs.writeFileSync('./dist/app-source_share.zip', content);
+    console.log("Successfully created ./dist/app-source.zip and ./dist/app-source_share.zip");
   }
 }
 
