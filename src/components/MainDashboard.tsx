@@ -19,6 +19,7 @@ interface MainDashboardProps {
   teamDirectMaxShots?: number;
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
+  tournamentType?: "individual" | "team" | "combined";
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ 
@@ -34,12 +35,49 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   directMaxShots,
   teamDirectMaxShots,
   directMaxPoints,
-  teamDirectMaxPoints
+  teamDirectMaxPoints,
+  tournamentType = "combined"
 }) => {
-  const isDirectMode = shotsCount === 1;
+  // Resolve active source variables based on tournamentType
+  const activeAthletesList = useMemo(() => {
+    if (tournamentType === "team") {
+      return leaderboardTeamAthletes || teamAthletes || athletes;
+    }
+    return athletes;
+  }, [tournamentType, athletes, teamAthletes, leaderboardTeamAthletes]);
+
+  const activeDistances = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDistances || distances;
+    }
+    return distances;
+  }, [tournamentType, distances, teamDistances]);
+
+  const activeShotsCountVal = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamShotsCount !== undefined ? teamShotsCount : shotsCount;
+    }
+    return shotsCount;
+  }, [tournamentType, shotsCount, teamShotsCount]);
+
+  const activeDirectMaxShots = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDirectMaxShots !== undefined ? teamDirectMaxShots : (directMaxShots || 10);
+    }
+    return directMaxShots || 10;
+  }, [tournamentType, directMaxShots, teamDirectMaxShots]);
+
+  const activeDirectMaxPoints = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDirectMaxPoints;
+    }
+    return directMaxPoints;
+  }, [tournamentType, directMaxPoints, teamDirectMaxPoints]);
+
+  const isDirectMode = activeShotsCountVal === 1;
   const isTeamDirectMode = teamShotsCount === 1;
 
-  const effectiveShotsCount = isDirectMode ? (directMaxShots || 10) : shotsCount;
+  const effectiveShotsCount = isDirectMode ? activeDirectMaxShots : activeShotsCountVal;
   const effectiveTeamShotsCount = isTeamDirectMode ? (teamDirectMaxShots || 10) : (teamShotsCount !== undefined ? teamShotsCount : shotsCount);
 
   const [topXCount, setTopXCount] = useState<number>(10);
@@ -53,14 +91,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Keep overall preprocessed stats for highlight counts
   const processedAthletes = useMemo(() => {
-    const hasMaxRoundScoreConf = distances.some(d => d.isMaxRoundScore);
+    const hasMaxRoundScoreConf = activeDistances.some(d => d.isMaxRoundScore);
 
-    return athletes.map((athlete) => {
+    return activeAthletesList.map((athlete) => {
       let totalScore = 0;
       let totalHits = 0;
       let maxScore = -1;
 
-      distances.forEach((dist) => {
+      activeDistances.forEach((dist) => {
         const hits = athlete.scores[dist.id] || [];
         const hitCount = getHitCount(hits);
         const score = hitCount * dist.multiplier;
@@ -73,7 +111,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
       let totalMultiplierOfShotRounds = 0;
       let countShotRounds = 0;
-      distances.forEach((d) => {
+      activeDistances.forEach((d) => {
         const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
         if (wasShot) {
           totalMultiplierOfShotRounds += d.multiplier;
@@ -81,23 +119,23 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         }
       });
 
-      if (countShotRounds === 0 && distances.length > 0) {
-        totalMultiplierOfShotRounds = distances[0].multiplier;
+      if (countShotRounds === 0 && activeDistances.length > 0) {
+        totalMultiplierOfShotRounds = activeDistances[0].multiplier;
         countShotRounds = 1;
       }
 
       const totalPossShots = countShotRounds * effectiveShotsCount;
       let accuracy = 0;
-      if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-        const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
+      if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
+        const totalPossiblePoints = activeDirectMaxPoints * totalMultiplierOfShotRounds;
         accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
       } else {
         accuracy = totalPossShots > 0 ? (totalHits / totalPossShots) * 100 : 0;
       }
 
       const finalScore = hasMaxRoundScoreConf ? (maxScore >= 0 ? maxScore : 0) : totalScore;
-      const finalPossibleShots = isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0
-        ? directMaxPoints * totalMultiplierOfShotRounds
+      const finalPossibleShots = isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0
+        ? activeDirectMaxPoints * totalMultiplierOfShotRounds
         : totalPossShots;
 
       return {
@@ -108,7 +146,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         accuracy,
       };
     });
-  }, [athletes, distances, effectiveShotsCount]);
+  }, [activeAthletesList, activeDistances, effectiveShotsCount, isDirectMode, activeDirectMaxPoints]);
 
   const teamStats = useMemo(() => {
     const teamsMap: Record<string, {
@@ -145,9 +183,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Compute round by round results to establish survival indices
   const athleteSurvivalInfo = useMemo(() => {
-    const roundResults = calculateRounds(athletes, distances, effectiveShotsCount, directMaxPoints);
+    const roundResults = calculateRounds(activeAthletesList, activeDistances, effectiveShotsCount, activeDirectMaxPoints);
     
-    return athletes.map((athlete) => {
+    return activeAthletesList.map((athlete) => {
       let eliminatedInRoundIdx: number | null = null;
       for (let i = 0; i < roundResults.length; i++) {
         if (roundResults[i].eliminatedIds.includes(athlete.id)) {
@@ -165,17 +203,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         }
       }
 
-      const survivalVal = eliminatedInRoundIdx === null ? distances.length : eliminatedInRoundIdx;
-      const lastActiveRoundIdx = eliminatedInRoundIdx === null ? (distances.length - 1) : eliminatedInRoundIdx;
+      const survivalVal = eliminatedInRoundIdx === null ? activeDistances.length : eliminatedInRoundIdx;
+      const lastActiveRoundIdx = eliminatedInRoundIdx === null ? (activeDistances.length - 1) : eliminatedInRoundIdx;
 
       let survivalScore = 0;
       let survivalHits = 0;
       let survivalAccuracy = 0;
       let survivalSoloHits = 0;
 
-      const hasMaxRoundScoreConf = distances.some(d => d.isMaxRoundScore);
+      const hasMaxRoundScoreConf = activeDistances.some(d => d.isMaxRoundScore);
 
-      if (distances.length > 0 && lastActiveRoundIdx >= 0) {
+      if (activeDistances.length > 0 && lastActiveRoundIdx >= 0) {
         if (hasMaxRoundScoreConf) {
           let maxScore = -1;
           let maxHits = 0;
@@ -189,7 +227,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           for (let i = 0; i <= lastActiveRoundIdx; i++) {
             const isQualifiedForRound = i === 0 || roundResults[i]?.qualifiedIds.includes(athlete.id);
             if (isQualifiedForRound) {
-              const dist = distances[i];
+              const dist = activeDistances[i];
               const hits = athlete.scores[dist.id] || [];
               const hitCount = getHitCount(hits);
               const score = hitCount * dist.multiplier;
@@ -215,11 +253,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           survivalScore = maxScore >= 0 ? maxScore : 0;
           survivalHits = cumulativeHitsSumInShotRounds;
 
-          if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-            if (cumulativeMultiplierSumInShotRounds === 0 && distances[lastActiveRoundIdx]) {
-              cumulativeMultiplierSumInShotRounds = distances[lastActiveRoundIdx].multiplier;
+          if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
+            if (cumulativeMultiplierSumInShotRounds === 0 && activeDistances[lastActiveRoundIdx]) {
+              cumulativeMultiplierSumInShotRounds = activeDistances[lastActiveRoundIdx].multiplier;
             }
-            const totalPossPoints = directMaxPoints * cumulativeMultiplierSumInShotRounds;
+            const totalPossPoints = activeDirectMaxPoints * cumulativeMultiplierSumInShotRounds;
             survivalAccuracy = totalPossPoints > 0 ? (cumulativeScoreSumInShotRounds / totalPossPoints) * 100 : 0;
           } else {
             if (cumulativeCountInShotRounds === 0) {
@@ -234,24 +272,24 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           if (statsAtLastRound) {
             survivalScore = statsAtLastRound.cumulativeScore;
             survivalHits = statsAtLastRound.cumulativeHits;
-            if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
+            if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
               let totalMultiplier = 0;
               for (let i = 0; i <= lastActiveRoundIdx; i++) {
-                const d = distances[i];
+                const d = activeDistances[i];
                 const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
                 if (wasShot) {
                   totalMultiplier += d.multiplier;
                 }
               }
-              if (totalMultiplier === 0 && distances[lastActiveRoundIdx]) {
-                totalMultiplier = distances[lastActiveRoundIdx].multiplier;
+              if (totalMultiplier === 0 && activeDistances[lastActiveRoundIdx]) {
+                totalMultiplier = activeDistances[lastActiveRoundIdx].multiplier;
               }
-              const totalPossPoints = directMaxPoints * totalMultiplier;
+              const totalPossPoints = activeDirectMaxPoints * totalMultiplier;
               survivalAccuracy = totalPossPoints > 0 ? (survivalScore / totalPossPoints) * 100 : 0;
             } else {
               let shotRoundsCount = 0;
               for (let i = 0; i <= lastActiveRoundIdx; i++) {
-                const d = distances[i];
+                const d = activeDistances[i];
                 const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
                 if (wasShot) {
                   shotRoundsCount++;
@@ -264,7 +302,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               survivalAccuracy = totalPossShots > 0 ? (survivalHits / totalPossShots) * 100 : 0;
             }
           }
-          const lastActiveDist = distances[lastActiveRoundIdx];
+          const lastActiveDist = activeDistances[lastActiveRoundIdx];
           if (lastActiveDist && lastActiveDist.isSolo) {
             survivalSoloHits = athlete.soloHits?.[lastActiveDist.id] || 0;
           }
@@ -273,7 +311,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
       let totalScore = 0;
       let totalHits = 0;
-      distances.forEach((dist) => {
+      activeDistances.forEach((dist) => {
         const hits = athlete.scores[dist.id] || [];
         const hitCount = getHitCount(hits);
         totalScore += hitCount * dist.multiplier;
@@ -283,19 +321,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       let accuracy = 0;
       let totalMultiplierOfShotRounds = 0;
       let countShotRounds = 0;
-      distances.forEach((d) => {
+      activeDistances.forEach((d) => {
         const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
         if (wasShot) {
           totalMultiplierOfShotRounds += d.multiplier;
           countShotRounds++;
         }
       });
-      if (countShotRounds === 0 && distances.length > 0) {
-        totalMultiplierOfShotRounds = distances[0].multiplier;
+      if (countShotRounds === 0 && activeDistances.length > 0) {
+        totalMultiplierOfShotRounds = activeDistances[0].multiplier;
         countShotRounds = 1;
       }
-      if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-        const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
+      if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
+        const totalPossiblePoints = activeDirectMaxPoints * totalMultiplierOfShotRounds;
         accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
       } else {
         const totalPossShots = countShotRounds * effectiveShotsCount;
@@ -315,7 +353,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         eliminatedInRoundIdx,
       };
     });
-  }, [athletes, distances, effectiveShotsCount]);
+  }, [activeAthletesList, activeDistances, effectiveShotsCount, isDirectMode, activeDirectMaxPoints]);
 
   // Sort by survival length first, then score, then shootout soloHits, then accuracy
   const sortedSurvivalAthletes = useMemo(() => {
@@ -529,12 +567,26 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // 1. Resolve source athletes for team calculation based on team environment props
   const resolvedTeamAthletes = useMemo(() => {
+    if (tournamentType === "individual") {
+      return activeAthletesList; // use individual list, no isPrimaryTeam filter
+    }
     const source = leaderboardTeamAthletes || teamAthletes || athletes;
     return source.filter((a) => a.isPrimaryTeam);
-  }, [leaderboardTeamAthletes, teamAthletes, athletes]);
+  }, [leaderboardTeamAthletes, teamAthletes, athletes, activeAthletesList, tournamentType]);
 
-  const activeTeamDistances = teamDistances || distances;
-  const activeTeamShotsCount = effectiveTeamShotsCount;
+  const activeTeamDistances = useMemo(() => {
+    if (tournamentType === "individual") {
+      return activeDistances;
+    }
+    return teamDistances || distances;
+  }, [tournamentType, activeDistances, teamDistances, distances]);
+
+  const activeTeamShotsCount = useMemo(() => {
+    if (tournamentType === "individual") {
+      return effectiveShotsCount;
+    }
+    return effectiveTeamShotsCount;
+  }, [tournamentType, effectiveShotsCount, effectiveTeamShotsCount]);
 
   // 2. Compute qualifications and rounds results matching the Team competition mode
   const teamRoundResults = useMemo(() => {
@@ -1092,7 +1144,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
   // Dynamically resolve target data based on actual select
   const currentTop3Athletes = dashboardTab === "survival" ? top3SurvivalAthletes : top3AllRoundAthletes;
-  const currentTop3Teams = top3SurvivalTeams; // Luôn hiển thị Đồng Đội Top 3 Trụ Lại Cuối Cùng
+  const currentTop3Teams = dashboardTab === "survival" ? top3SurvivalTeams : top3AllRoundTeams;
 
   const currentRankedList = dashboardTab === "survival" ? rankedSurvivalAthletes : rankedAllRoundAthletes;
 
@@ -1308,14 +1360,28 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500 fill-amber-100 animate-pulse" />
-              {dashboardTab === "survival" 
-                ? "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng" 
-                : "Bảng Vàng Cá Nhân - Toàn Giải"}
+              {tournamentType === "individual" ? (
+                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng (môi trường Cá Nhân)" : "Bảng Vàng Cá Nhân - Toàn Giải (môi trường Cá Nhân)"
+              ) : tournamentType === "team" ? (
+                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân Team - Trụ Lại Cuối Cùng (môi trường Đồng Đội)" : "Bảng Vàng Cá Nhân Team - Toàn Giải (môi trường Đồng Đội)"
+              ) : (
+                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng" : "Bảng Vàng Cá Nhân - Toàn Giải"
+              )}
             </h2>
             <p className="text-xs text-gray-400 mt-1">
-              {dashboardTab === "survival"
-                ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại của giải."
-                : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của cả giải đấu."}
+              {tournamentType === "individual" ? (
+                dashboardTab === "survival"
+                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại cá nhân."
+                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải cá nhân."
+              ) : tournamentType === "team" ? (
+                dashboardTab === "survival"
+                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại đồng đội."
+                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải đồng đội."
+              ) : (
+                dashboardTab === "survival"
+                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại của giải."
+                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của cả giải đấu."
+              )}
             </p>
           </div>
 
@@ -1435,10 +1501,28 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-indigo-600" />
-              Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng
+              {tournamentType === "individual" ? (
+                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Cá Nhân)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Cá Nhân)"
+              ) : tournamentType === "team" ? (
+                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Đồng Đội)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Đồng Đội)"
+              ) : (
+                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng" : "Bảng Vàng Đồng Đội - Toàn Giải"
+              )}
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-sans">
-              Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng của đội hình Bắn chính.
+              {tournamentType === "individual" ? (
+                dashboardTab === "survival"
+                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng cá nhân."
+                  : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải cá nhân."
+              ) : tournamentType === "team" ? (
+                dashboardTab === "survival"
+                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng đồng đội."
+                  : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải đồng đội."
+              ) : (
+                dashboardTab === "survival"
+                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng của đội hình Bắn chính."
+                  : "Top 3 Tập Thể sở hữu tổng điểm tích lũy thành viên cao nhất toàn giải."
+              )}
             </p>
           </div>
 
@@ -1468,7 +1552,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               {/* Cup & Team details */}
               <div className="text-center mb-3 px-1 w-full flex flex-col items-center">
                 <Trophy className="w-10 h-10 text-amber-500 fill-amber-100 mx-auto drop-shadow-md animate-bounce" />
-                <span className="text-sm font-black text-slate-900 dark:text-slate-100 block truncate leading-tight tracking-tight mt-1.5 w-full text-center" title={currentTop3Teams[0].teamName}>
+                <span className="text-sm font-black text-slate-900 dark:text-slate-101 block truncate leading-tight tracking-tight mt-1.5 w-full text-center" title={currentTop3Teams[0].teamName}>
                   {currentTop3Teams[0].teamName}
                 </span>
                 <span className="font-mono text-sm font-extrabold text-amber-600 block leading-tight mt-1">
@@ -1506,7 +1590,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
 
           <div className="mt-4 text-center">
             <span className="text-[10px] text-gray-400 italic block">
-              Thành tích chỉ cộng tích luỹ điểm từ các đấu thủ được tick bắn chính thức thuộc mỗi đội hình Trụ Lại Cuối Cùng.
+              {tournamentType === "individual"
+                ? "Thành tích cộng tích luỹ điểm từ tất cả vận động viên cá nhân thuộc mỗi đội hình/câu lạc bộ."
+                : "Thành tích chỉ cộng tích luỹ điểm từ các đấu thủ được tick bắn chính thức thuộc mỗi đội hình Trụ Lại Cuối Cùng."}
             </span>
           </div>
         </div>

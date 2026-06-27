@@ -4,7 +4,7 @@ import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList } from "..
 import { Settings, Plus, Edit2, Trash2, Calendar, FileDown, FileUp, RefreshCw, Trophy, Bolt, PlusCircle, Smartphone, CheckCircle, Users, Lock, Unlock, X, AlertTriangle, Shield } from "lucide-react";
 import { getHitCount } from "../utils/qualification";
 import { auth } from "../firebase";
-import { createOnlineTournament } from "../lib/firebaseService";
+import { createOnlineTournament, updateOnlineTournament } from "../lib/firebaseService";
 
 interface SettingsPanelProps {
   matchName: string;
@@ -55,6 +55,8 @@ interface SettingsPanelProps {
   setInputAthletes?: (athletes: Athlete[]) => void;
   setTeamInputAthletes?: (athletes: Athlete[]) => void;
   setClubs?: React.Dispatch<React.SetStateAction<any[]>>;
+  tournamentType?: "individual" | "team" | "combined";
+  setTournamentType?: (type: "individual" | "team" | "combined") => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -104,6 +106,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setIsNewTournamentModalOpen: externalSetIsNewTournamentModalOpen,
   setInputAthletes,
   setTeamInputAthletes,
+  tournamentType = "combined",
+  setTournamentType,
 }) => {
   const [tempMatchName, setTempMatchName] = useState(matchName);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,6 +206,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [modalLaneCapacity, setModalLaneCapacity] = useState(10);
   const [modalShotsCount, setModalShotsCount] = useState(5);
   const [modalTeamShotsCount, setModalTeamShotsCount] = useState(5);
+  const [modalTournamentType, setModalTournamentType] = useState<"individual" | "team" | "combined">("combined");
 
   useEffect(() => {
     if (isNewTournamentModalOpen && !modalTournamentId) {
@@ -217,6 +222,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       setModalLaneCapacity(laneCapacity);
       setModalShotsCount(shotsCount);
       setModalTeamShotsCount(teamShotsCount);
+      setModalTournamentType("combined");
       setTournamentError("");
     } else if (!isNewTournamentModalOpen) {
       setModalTournamentId("");
@@ -470,7 +476,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className={`grid grid-cols-1 ${
+      tournamentType === "combined" ? "lg:grid-cols-3" : "lg:grid-cols-2"
+    } gap-6`}>
       
       {/* 1. General Setup & Integrated Backup/Export (Gộp chung theo yêu cầu) */}
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
@@ -502,23 +510,38 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               <div>
+                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">CƠ CHẾ GIẢI ĐẤU:</span>
+                <span className="text-xs font-black text-amber-600 dark:text-amber-400 block mt-0.5">
+                  {tournamentType === "individual" && "Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)"}
+                  {tournamentType === "team" && "Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)"}
+                  {tournamentType === "combined" && "Cá Nhân + Đồng Đội (Kết Hợp)"}
+                </span>
+              </div>
+
+              <div>
                 <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">CHI TIẾT & LUẬT BẮN:</span>
                 <div className="text-xs text-slate-650 dark:text-gray-300 italic mt-0.5 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed pr-1 font-medium">{tournamentDesc || "Chưa có diễn giải chi tiết."}</div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 dark:border-slate-800/80">
+              <div className={`grid ${
+                tournamentType === "combined" ? "grid-cols-3" : "grid-cols-2"
+              } gap-2 pt-1 border-t border-gray-100 dark:border-slate-800/80`}>
                 <div>
                   <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">VĐV / LANE (X)</span>
                   <span className="text-xs font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 block">{laneCapacity}</span>
                 </div>
-                <div>
-                  <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT CÁ NHÂN</span>
-                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5 block">{shotsCount} lượt</span>
-                </div>
-                <div>
-                  <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT ĐỒNG ĐỘI</span>
-                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 block">{teamShotsCount} lượt</span>
-                </div>
+                {tournamentType !== "team" && (
+                  <div>
+                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT CÁ NHÂN</span>
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5 block">{shotsCount} lượt</span>
+                  </div>
+                )}
+                {tournamentType !== "individual" && (
+                  <div>
+                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT ĐỒNG ĐỘI</span>
+                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 block">{teamShotsCount} lượt</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -587,6 +610,30 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
             </div>
 
+            {/* Tournament Type Select */}
+            <div>
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Cơ Chế Giải Đấu</label>
+              <select
+                value={tournamentType}
+                onChange={(e) => {
+                  const val = e.target.value as "individual" | "team" | "combined";
+                  if (setTournamentType) {
+                    setTournamentType(val);
+                    localStorage.setItem("slingshot_tournament_type", val);
+                    if (activeHistoryId && activeHistoryId.startsWith("tour-") && auth.currentUser) {
+                      updateOnlineTournament(activeHistoryId, { tournamentType: val })
+                        .catch(err => console.error("Cloud update tournamentType failed:", err));
+                    }
+                  }
+                }}
+                className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+              >
+                <option value="individual">Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)</option>
+                <option value="team">Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)</option>
+                <option value="combined">Cá Nhân + Đồng Đội (Kết Hợp)</option>
+              </select>
+            </div>
+
             {/* Match Dates Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -635,139 +682,142 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => {
                   const val = Math.max(2, Math.min(50, Number(e.target.value) || 10));
                   setLaneCapacityValue(val);
-                  localStorage.setItem("slingshot_active_tournament_lane_capacity", val.toString());
                 }}
-                className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-505 font-bold"
               />
             </div>
 
             {/* Individual Shot Count */}
-            <div className={`grid grid-cols-1 ${shotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
-              <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
-                  <span>Số lượt Cá Nhân:</span>
-                  <span className="text-blue-600 font-black font-mono">{shotsCount} lượt</span>
-                </label>
-                <div className="w-full">
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={shotsCount}
-                    onChange={(e) => {
-                      const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
-                      handleShotsCountChange(val);
-                    }}
-                    className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
-                  />
-                </div>
-              </div>
-
-              {shotsCount === 1 && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                      Số viên MAX (Lượt Cá Nhân):
-                    </label>
+            {tournamentType !== "team" && (
+              <div className={`grid grid-cols-1 ${shotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
+                    <span>Số lượt Cá Nhân:</span>
+                    <span className="text-blue-600 font-black font-mono">{shotsCount} lượt</span>
+                  </label>
+                  <div className="w-full">
                     <input
                       type="number"
                       min="1"
-                      max="1000"
-                      value={directMaxShots}
-                      onChange={(e) => setDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
-                      className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                      placeholder="Ví dụ: 10, 15, 20..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                      Số điểm MAX (Cá Nhân):
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10000"
-                      value={directMaxPoints !== undefined ? directMaxPoints : ""}
+                      max="30"
+                      value={shotsCount}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "") {
-                          setDirectMaxPoints(undefined);
-                        } else {
-                          setDirectMaxPoints(Math.max(1, Number(val)));
-                        }
+                        const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
+                        handleShotsCountChange(val);
                       }}
-                      className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                      placeholder="Trống (Tính theo số viên)"
+                      className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
                     />
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+
+                {shotsCount === 1 && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                        Số viên MAX (Lượt Cá Nhân):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={directMaxShots}
+                        onChange={(e) => setDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
+                        className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
+                        placeholder="Ví dụ: 10, 15, 20..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                        Số điểm MAX (Cá Nhân):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000"
+                        value={directMaxPoints !== undefined ? directMaxPoints : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            setDirectMaxPoints(undefined);
+                          } else {
+                            setDirectMaxPoints(Math.max(1, Number(val)));
+                          }
+                        }}
+                        className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
+                        placeholder="Trống (Tính theo số viên)"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Team Shot Count */}
-            <div className={`grid grid-cols-1 ${teamShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
-              <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
-                  <span>Số lượt Đồng Đội:</span>
-                  <span className="text-indigo-600 font-black font-mono">{teamShotsCount} lượt</span>
-                </label>
-                <div className="w-full">
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={teamShotsCount}
-                    onChange={(e) => {
-                      const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
-                      handleTeamShotsCountChange(val);
-                    }}
-                    className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
-                  />
-                </div>
-              </div>
-
-              {teamShotsCount === 1 && (
-                <>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                      Số viên MAX (Lượt Đồng Đội):
-                    </label>
+            {tournamentType !== "individual" && (
+              <div className={`grid grid-cols-1 ${teamShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
+                    <span>Số lượt Đồng Đội:</span>
+                    <span className="text-indigo-600 font-black font-mono">{teamShotsCount} lượt</span>
+                  </label>
+                  <div className="w-full">
                     <input
                       type="number"
                       min="1"
-                      max="1000"
-                      value={teamDirectMaxShots}
-                      onChange={(e) => setTeamDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
-                      className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                      placeholder="Ví dụ: 10, 15, 20..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                      Số điểm MAX (Đồng Đội):
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10000"
-                      value={teamDirectMaxPoints !== undefined ? teamDirectMaxPoints : ""}
+                      max="30"
+                      value={teamShotsCount}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "") {
-                          setTeamDirectMaxPoints(undefined);
-                        } else {
-                          setTeamDirectMaxPoints(Math.max(1, Number(val)));
-                        }
+                        const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
+                        handleTeamShotsCountChange(val);
                       }}
-                      className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                      placeholder="Trống (Tính theo số viên)"
+                      className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
                     />
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+
+                {teamShotsCount === 1 && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                        Số viên MAX (Lượt Đồng Đội):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={teamDirectMaxShots}
+                        onChange={(e) => setTeamDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
+                        className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
+                        placeholder="Ví dụ: 10, 15, 20..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                        Số điểm MAX (Đồng Đội):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000"
+                        value={teamDirectMaxPoints !== undefined ? teamDirectMaxPoints : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            setTeamDirectMaxPoints(undefined);
+                          } else {
+                            setTeamDirectMaxPoints(Math.max(1, Number(val)));
+                          }
+                        }}
+                        className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
+                        placeholder="Trống (Tính theo số viên)"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <button
               type="button"
@@ -1095,7 +1145,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       </div>
 
       {/* 2. Individual Distance & Scopes Management */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+      {tournamentType !== "team" && (
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-950 dark:text-white flex items-center gap-2 border-b pb-2 mb-1 uppercase tracking-wide">
           <Bolt className="w-4.5 h-4.5 text-blue-600" />
           Cự Ly Cá Nhân
@@ -1454,9 +1505,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* 3. New Team Distance & Scopes Management (Placed to the right as requested) */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+      {tournamentType !== "individual" && (
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-950 dark:text-white flex items-center gap-2 border-b pb-2 mb-1 uppercase tracking-wide">
           <Users className="w-4.5 h-4.5 text-blue-600" />
           Cự Ly Đồng Đội
@@ -1809,9 +1862,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* 4. Android APK Packaging & Code ZIP Section */}
-      <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-950/45 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row gap-6 mt-2 relative overflow-hidden text-left">
+      <div className={`${
+        tournamentType === "combined" ? "lg:col-span-3" : "lg:col-span-2"
+      } bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-950/45 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row gap-6 mt-2 relative overflow-hidden text-left`}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
         
@@ -1972,6 +2028,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
               </div>
 
+              {/* Lựa Chọn Tạo Giải / Cơ Chế Giải Đấu */}
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Cơ chế giải đấu *</label>
+                <select
+                  value={modalTournamentType}
+                  onChange={(e) => setModalTournamentType(e.target.value as "individual" | "team" | "combined")}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-xs"
+                >
+                  <option value="individual">Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)</option>
+                  <option value="team">Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)</option>
+                  <option value="combined">Cá Nhân + Đồng Đội (Kết Hợp)</option>
+                </select>
+              </div>
+
               {/* Lane Capacity & Shots config */}
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-gray-150 dark:border-slate-800 space-y-3.5">
                 <h4 className="text-[10px] font-black text-slate-550 uppercase tracking-wider border-b border-gray-155 dark:border-slate-800 pb-1.5">Quy cách kỹ thuật (Cột điểm / Lượt bắn)</h4>
@@ -1993,38 +2063,44 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <span className="text-[9px] text-gray-500 font-semibold block mt-1">Khống chế số lượng bắn đồng thời trên mỗi hàng/bàn súng</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 ${
+                  modalTournamentType === "combined" ? "sm:grid-cols-2" : "sm:grid-cols-1"
+                } gap-4`}>
                   {/* Individual shots */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] font-extrabold text-gray-600 uppercase">Cá Nhân (Cột điểm) :</label>
-                      <span className="text-xs font-black font-mono text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">{modalShotsCount} lượt</span>
+                  {modalTournamentType !== "team" && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] font-extrabold text-gray-600 uppercase">Cá Nhân (Cột điểm) :</label>
+                        <span className="text-xs font-black font-mono text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">{modalShotsCount} lượt</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={modalShotsCount}
+                        onChange={(e) => setModalShotsCount(Number(e.target.value))}
+                        className="w-full accent-blue-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="30"
-                      value={modalShotsCount}
-                      onChange={(e) => setModalShotsCount(Number(e.target.value))}
-                      className="w-full accent-blue-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
-                    />
-                  </div>
+                  )}
 
                   {/* Team shots */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] font-extrabold text-gray-600 uppercase">Đồng Đội (Cột điểm) :</label>
-                      <span className="text-xs font-black font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded">{modalTeamShotsCount} lượt</span>
+                  {modalTournamentType !== "individual" && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] font-extrabold text-gray-600 uppercase">Đồng Đội (Cột điểm) :</label>
+                        <span className="text-xs font-black font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded">{modalTeamShotsCount} lượt</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={modalTeamShotsCount}
+                        onChange={(e) => setModalTeamShotsCount(Number(e.target.value))}
+                        className="w-full accent-indigo-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="30"
-                      value={modalTeamShotsCount}
-                      onChange={(e) => setModalTeamShotsCount(Number(e.target.value))}
-                      className="w-full accent-indigo-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -2084,7 +2160,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       currentUser.uid,
                       creatorEmail,
                       {
-                        competitionMode: "individual",
+                        competitionMode: modalTournamentType === "team" ? "team" : "individual",
+                        tournamentType: modalTournamentType,
                         shotsCount: modalShotsCount,
                         teamShotsCount: modalTeamShotsCount,
                         distances: defaultDistances,
@@ -2096,6 +2173,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         masterAthletes: []
                       }
                     );
+
+                    if (setTournamentType) {
+                      setTournamentType(modalTournamentType);
+                      localStorage.setItem("slingshot_tournament_type", modalTournamentType);
+                    }
 
                     // 1. Save current session to history if there's any active data (preserving 100% logic)
                     if (matchName && matchName.trim() && (athletes.length > 0 || masterAthletes.length > 0)) {

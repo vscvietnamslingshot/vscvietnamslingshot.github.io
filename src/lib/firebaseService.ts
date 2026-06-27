@@ -48,6 +48,7 @@ export interface TournamentData {
   masterAthletes?: Athlete[];
   startDate?: string;
   endDate?: string;
+  tournamentType?: "individual" | "team" | "combined";
 }
 
 export enum OperationType {
@@ -170,6 +171,7 @@ export async function createOnlineTournament(
   creatorEmail: string,
   config: {
     competitionMode: "individual" | "team";
+    tournamentType?: "individual" | "team" | "combined";
     shotsCount: number;
     teamShotsCount: number;
     directMaxPoints?: number;

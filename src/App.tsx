@@ -522,6 +522,19 @@ export default function App() {
     return (saved as "individual" | "team") || "individual";
   });
 
+  const [tournamentType, setTournamentType] = useState<"individual" | "team" | "combined">(() => {
+    const saved = localStorage.getItem("slingshot_tournament_type");
+    return (saved as "individual" | "team" | "combined") || "combined";
+  });
+
+  useEffect(() => {
+    if (tournamentType === "individual" && competitionMode !== "individual") {
+      setCompetitionMode("individual");
+    } else if (tournamentType === "team" && competitionMode !== "team") {
+      setCompetitionMode("team");
+    }
+  }, [tournamentType, competitionMode]);
+
   const [isSpectatorModeOverridden, setIsSpectatorModeOverridden] = useState(false);
   const isSpectatorModeOverriddenRef = useRef(false);
   useEffect(() => {
@@ -1462,6 +1475,14 @@ export default function App() {
         }
         if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
         if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
+        if (docVal.tournamentType) {
+          setTournamentType(docVal.tournamentType);
+          localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
+        } else if (docVal.competitionMode) {
+          const fallback = docVal.competitionMode === "team" ? "team" : "combined";
+          setTournamentType(fallback);
+          localStorage.setItem("slingshot_tournament_type", fallback);
+        }
         if (docVal.competitionMode) {
           if (!isSpectatorModeOverriddenRef.current) {
             setCompetitionMode(docVal.competitionMode);
@@ -3155,68 +3176,70 @@ export default function App() {
                 Vietnam Slingshot Championship
               </h1>
               {/* Select mode Switch: Cá nhân / Đồng Đội dưới tên App */}
-              <div className="flex flex-col gap-1.5 mt-2.5">
-                <div className="flex bg-black/30 border border-white/10 rounded-lg p-0.5 max-w-[220px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCompetitionMode("individual");
-                      if (activeHistoryId !== null && userRole !== "admin") {
-                        setIsSpectatorModeOverridden(true);
-                      }
-                      if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                        updateOnlineTournament(activeHistoryId, { competitionMode: "individual" })
-                          .catch(err => console.error("Cloud update mode failed:", err));
-                      }
-                    }}
-                    className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                      competitionMode === "individual"
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                        : "text-indigo-200 hover:text-white"
-                    }`}
-                    title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
-                  >
-                    Cá Nhân
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCompetitionMode("team");
-                      if (activeHistoryId !== null && userRole !== "admin") {
-                        setIsSpectatorModeOverridden(true);
-                      }
-                      if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                        updateOnlineTournament(activeHistoryId, { competitionMode: "team" })
-                          .catch(err => console.error("Cloud update mode failed:", err));
-                      }
-                    }}
-                    className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                      competitionMode === "team"
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                        : "text-indigo-200 hover:text-white"
-                    }`}
-                    title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
-                  >
-                    Đồng Đội
-                  </button>
+              {tournamentType === "combined" && (
+                <div className="flex flex-col gap-1.5 mt-2.5">
+                  <div className="flex bg-black/30 border border-white/10 rounded-lg p-0.5 max-w-[220px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompetitionMode("individual");
+                        if (activeHistoryId !== null && userRole !== "admin") {
+                          setIsSpectatorModeOverridden(true);
+                        }
+                        if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
+                          updateOnlineTournament(activeHistoryId, { competitionMode: "individual" })
+                            .catch(err => console.error("Cloud update mode failed:", err));
+                        }
+                      }}
+                      className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
+                        competitionMode === "individual"
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
+                          : "text-indigo-200 hover:text-white"
+                      }`}
+                      title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
+                    >
+                      Cá Nhân
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompetitionMode("team");
+                        if (activeHistoryId !== null && userRole !== "admin") {
+                          setIsSpectatorModeOverridden(true);
+                        }
+                        if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
+                          updateOnlineTournament(activeHistoryId, { competitionMode: "team" })
+                            .catch(err => console.error("Cloud update mode failed:", err));
+                        }
+                      }}
+                      className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
+                        competitionMode === "team"
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
+                          : "text-indigo-200 hover:text-white"
+                      }`}
+                      title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
+                    >
+                      Đồng Đội
+                    </button>
+                  </div>
+                  {activeHistoryId !== null && userRole !== "admin" && isSpectatorModeOverridden && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSpectatorModeOverridden(false);
+                        if (currentTournamentDoc && currentTournamentDoc.competitionMode) {
+                          setCompetitionMode(currentTournamentDoc.competitionMode);
+                        }
+                      }}
+                      className="text-[9px] text-amber-400 hover:text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded w-fit"
+                      title="Nhấn để đồng bộ lại hình thức thi đấu theo Ban Tổ Chức"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                      Chế độ tự chọn (Đồng bộ lại)
+                    </button>
+                  )}
                 </div>
-                {activeHistoryId !== null && userRole !== "admin" && isSpectatorModeOverridden && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSpectatorModeOverridden(false);
-                      if (currentTournamentDoc && currentTournamentDoc.competitionMode) {
-                        setCompetitionMode(currentTournamentDoc.competitionMode);
-                      }
-                    }}
-                    className="text-[9px] text-amber-400 hover:text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded w-fit"
-                    title="Nhấn để đồng bộ lại hình thức thi đấu theo Ban Tổ Chức"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
-                    Chế độ tự chọn (Đồng bộ lại)
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -3612,6 +3635,7 @@ export default function App() {
               teamDirectMaxShots={teamDirectMaxShots}
               directMaxPoints={directMaxPoints}
               teamDirectMaxPoints={teamDirectMaxPoints}
+              tournamentType={tournamentType}
             />
           )}
 
@@ -4577,6 +4601,8 @@ export default function App() {
               }}
               isNewTournamentModalOpen={isNewTournamentModalOpen}
               setIsNewTournamentModalOpen={setIsNewTournamentModalOpen}
+              tournamentType={tournamentType}
+              setTournamentType={setTournamentType}
             />
           )}
 
@@ -4721,6 +4747,7 @@ export default function App() {
         teamDirectMaxShots={teamDirectMaxShots}
         directMaxPoints={directMaxPoints}
         teamDirectMaxPoints={teamDirectMaxPoints}
+        tournamentType={tournamentType}
       />
 
       {showUnlockScoreModal && typeof document !== "undefined" && createPortal(

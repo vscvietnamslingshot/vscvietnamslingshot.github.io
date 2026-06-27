@@ -33,6 +33,7 @@ interface LiveBoardProps {
   teamDirectMaxShots?: number;
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
+  tournamentType?: "individual" | "team" | "combined";
 }
 
 export const LiveBoard: React.FC<LiveBoardProps> = ({
@@ -50,11 +51,48 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
   teamDirectMaxShots,
   directMaxPoints,
   teamDirectMaxPoints,
+  tournamentType = "combined"
 }) => {
-  const isDirectMode = shotsCount === 1;
+  // Resolve active source variables based on tournamentType
+  const activeAthletesList = useMemo(() => {
+    if (tournamentType === "team") {
+      return leaderboardTeamAthletes || teamAthletes || athletes;
+    }
+    return athletes;
+  }, [tournamentType, athletes, teamAthletes, leaderboardTeamAthletes]);
+
+  const activeDistances = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDistances || distances;
+    }
+    return distances;
+  }, [tournamentType, distances, teamDistances]);
+
+  const activeShotsCountVal = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamShotsCount !== undefined ? teamShotsCount : shotsCount;
+    }
+    return shotsCount;
+  }, [tournamentType, shotsCount, teamShotsCount]);
+
+  const activeDirectMaxShots = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDirectMaxShots !== undefined ? teamDirectMaxShots : (directMaxShots || 10);
+    }
+    return directMaxShots || 10;
+  }, [tournamentType, directMaxShots, teamDirectMaxShots]);
+
+  const activeDirectMaxPoints = useMemo(() => {
+    if (tournamentType === "team") {
+      return teamDirectMaxPoints;
+    }
+    return directMaxPoints;
+  }, [tournamentType, directMaxPoints, teamDirectMaxPoints]);
+
+  const isDirectMode = activeShotsCountVal === 1;
   const isTeamDirectMode = teamShotsCount === 1;
 
-  const effectiveShotsCount = isDirectMode ? (directMaxShots || 10) : shotsCount;
+  const effectiveShotsCount = isDirectMode ? activeDirectMaxShots : activeShotsCountVal;
   const effectiveTeamShotsCount = isTeamDirectMode ? (teamDirectMaxShots || 10) : (teamShotsCount !== undefined ? teamShotsCount : shotsCount);
 
   const [laneCapacity, setLaneCapacity] = useState<number>(() => {
@@ -96,16 +134,16 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
 
   // Safeguard selectedRoundIndex if distances array is updated or shortened
   useEffect(() => {
-    if (distances.length > 0 && selectedRoundIndex >= distances.length) {
-      setSelectedRoundIndex(distances.length - 1);
+    if (activeDistances.length > 0 && selectedRoundIndex >= activeDistances.length) {
+      setSelectedRoundIndex(activeDistances.length - 1);
       setActiveFlight(1);
     }
-  }, [distances, selectedRoundIndex]);
+  }, [activeDistances, selectedRoundIndex]);
 
   const getLastActiveRound = (athlete: Athlete) => {
-    if (!distances || distances.length === 0) return 1;
-    for (let i = distances.length - 1; i >= 0; i--) {
-      const distId = distances[i].id;
+    if (!activeDistances || activeDistances.length === 0) return 1;
+    for (let i = activeDistances.length - 1; i >= 0; i--) {
+      const distId = activeDistances[i].id;
       const scores = athlete.scores?.[distId];
       if (scores && scores.some(s => s !== null && s !== undefined)) {
         return i + 1;
@@ -118,13 +156,13 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
   // INDIVIDUAL SURVIVAL RANKINGS (For Podium & Top 10)
   // -----------------------------------------------------------------
   const roundResults = useMemo(() => {
-    return calculateRounds(athletes, distances, effectiveShotsCount, directMaxPoints);
-  }, [athletes, distances, effectiveShotsCount, directMaxPoints]);
+    return calculateRounds(activeAthletesList, activeDistances, effectiveShotsCount, activeDirectMaxPoints);
+  }, [activeAthletesList, activeDistances, effectiveShotsCount, activeDirectMaxPoints]);
 
   const athleteSurvivalInfo = useMemo(() => {
-    const hasMaxRoundScoreConf = distances.some(d => d.isMaxRoundScore);
+    const hasMaxRoundScoreConf = activeDistances.some(d => d.isMaxRoundScore);
 
-    return athletes.map((athlete) => {
+    return activeAthletesList.map((athlete) => {
       let eliminatedInRoundIdx: number | null = null;
       for (let i = 0; i < roundResults.length; i++) {
         if (roundResults[i].eliminatedIds.includes(athlete.id)) {
@@ -142,8 +180,8 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
         }
       }
 
-      const survivalVal = eliminatedInRoundIdx === null ? distances.length : eliminatedInRoundIdx;
-      const lastActiveRoundIdx = eliminatedInRoundIdx === null ? (distances.length - 1) : eliminatedInRoundIdx;
+      const survivalVal = eliminatedInRoundIdx === null ? activeDistances.length : eliminatedInRoundIdx;
+      const lastActiveRoundIdx = eliminatedInRoundIdx === null ? (activeDistances.length - 1) : eliminatedInRoundIdx;
 
       let survivalScore = 0;
       let survivalHits = 0;
@@ -160,12 +198,12 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
       let cumulativeCountInShotRounds = 0;
 
       // Find individual maximum score across shot/qualified rounds
-      if (distances.length > 0 && lastActiveRoundIdx >= 0) {
+      if (activeDistances.length > 0 && lastActiveRoundIdx >= 0) {
         if (hasMaxRoundScoreConf) {
           for (let i = 0; i <= lastActiveRoundIdx; i++) {
             const isQualifiedForRound = i === 0 || roundResults[i]?.qualifiedIds.includes(athlete.id);
             if (isQualifiedForRound) {
-              const dist = distances[i];
+              const dist = activeDistances[i];
               const hits = athlete.scores[dist.id] || [];
               const hitCount = getHitCount(hits);
               const score = hitCount * dist.multiplier;
@@ -191,11 +229,11 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
           survivalScore = maxScore >= 0 ? maxScore : 0;
           survivalHits = cumulativeHitsSumInShotRounds;
 
-          if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-            if (cumulativeMultiplierSumInShotRounds === 0 && distances[lastActiveRoundIdx]) {
-              cumulativeMultiplierSumInShotRounds = distances[lastActiveRoundIdx].multiplier;
+          if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
+            if (cumulativeMultiplierSumInShotRounds === 0 && activeDistances[lastActiveRoundIdx]) {
+              cumulativeMultiplierSumInShotRounds = activeDistances[lastActiveRoundIdx].multiplier;
             }
-            const totalPossPoints = directMaxPoints * cumulativeMultiplierSumInShotRounds;
+            const totalPossPoints = activeDirectMaxPoints * cumulativeMultiplierSumInShotRounds;
             survivalAccuracy = totalPossPoints > 0 ? (cumulativeScoreSumInShotRounds / totalPossPoints) * 100 : 0;
           } else {
             if (cumulativeCountInShotRounds === 0) {
@@ -210,19 +248,19 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
           if (statsAtLastRound) {
             survivalScore = statsAtLastRound.cumulativeScore;
             survivalHits = statsAtLastRound.cumulativeHits;
-            if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
+            if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
               let totalMultiplier = 0;
               for (let i = 0; i <= lastActiveRoundIdx; i++) {
-                totalMultiplier += distances[i].multiplier;
+                totalMultiplier += activeDistances[i].multiplier;
               }
-              const totalPossPoints = directMaxPoints * totalMultiplier;
+              const totalPossPoints = activeDirectMaxPoints * totalMultiplier;
               survivalAccuracy = totalPossPoints > 0 ? (survivalScore / totalPossPoints) * 100 : 0;
             } else {
               const totalPossShots = (lastActiveRoundIdx + 1) * effectiveShotsCount;
               survivalAccuracy = totalPossShots > 0 ? (survivalHits / totalPossShots) * 100 : 0;
             }
           }
-          const lastActiveDist = distances[lastActiveRoundIdx];
+          const lastActiveDist = activeDistances[lastActiveRoundIdx];
           if (lastActiveDist && lastActiveDist.isSolo) {
             survivalSoloHits = athlete.soloHits?.[lastActiveDist.id] || 0;
           }
@@ -231,7 +269,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
 
       let totalScore = 0;
       let totalHits = 0;
-      distances.forEach((dist) => {
+      activeDistances.forEach((dist) => {
         const hits = athlete.scores[dist.id] || [];
         const hitCount = getHitCount(hits);
         totalScore += hitCount * dist.multiplier;
@@ -241,19 +279,19 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
       let accuracy = 0;
       let totalMultiplierOfShotRounds = 0;
       let countShotRounds = 0;
-      distances.forEach((d) => {
+      activeDistances.forEach((d) => {
         const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
         if (wasShot) {
           totalMultiplierOfShotRounds += d.multiplier;
           countShotRounds++;
         }
       });
-      if (countShotRounds === 0 && distances.length > 0) {
-        totalMultiplierOfShotRounds = distances[0].multiplier;
+      if (countShotRounds === 0 && activeDistances.length > 0) {
+        totalMultiplierOfShotRounds = activeDistances[0].multiplier;
         countShotRounds = 1;
       }
-      if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-        const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
+      if (isDirectMode && activeDirectMaxPoints !== undefined && activeDirectMaxPoints > 0) {
+        const totalPossiblePoints = activeDirectMaxPoints * totalMultiplierOfShotRounds;
         accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
       } else {
         const totalPossShots = countShotRounds * effectiveShotsCount;
@@ -263,7 +301,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
       // If configuration hasMaxRoundScoreConf is active, we also find the max score among all distances
       if (hasMaxRoundScoreConf) {
         let maxScoreAll = -1;
-        distances.forEach((dist) => {
+        activeDistances.forEach((dist) => {
           const hits = athlete.scores[dist.id] || [];
           const hitCount = getHitCount(hits);
           const score = hitCount * dist.multiplier;
@@ -287,7 +325,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
         eliminatedInRoundIdx,
       };
     });
-  }, [athletes, roundResults, distances, effectiveShotsCount, isDirectMode, directMaxPoints]);
+  }, [activeAthletesList, roundResults, activeDistances, effectiveShotsCount, isDirectMode, activeDirectMaxPoints]);
 
   const activeRoundAthletes = useMemo(() => {
     if (selectedRoundIndex === 0) {
@@ -448,14 +486,28 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
   // TEAM SURVIVAL RANKINGS (For Team Podium)
   // -----------------------------------------------------------------
   const resolvedTeamAthletes = useMemo(() => {
+    if (tournamentType === "individual") {
+      return activeAthletesList; // use individual list, no isPrimaryTeam filter
+    }
     const source = leaderboardTeamAthletes && leaderboardTeamAthletes.length > 0 
       ? leaderboardTeamAthletes 
       : (teamAthletes && teamAthletes.length > 0 ? teamAthletes : []);
     return source.filter((a) => a.isPrimaryTeam);
-  }, [leaderboardTeamAthletes, teamAthletes]);
+  }, [leaderboardTeamAthletes, teamAthletes, activeAthletesList, tournamentType]);
 
-  const activeTeamDistances = teamDistances && teamDistances.length > 0 ? teamDistances : (distances || []);
-  const activeTeamShotsCount = effectiveTeamShotsCount;
+  const activeTeamDistances = useMemo(() => {
+    if (tournamentType === "individual") {
+      return activeDistances;
+    }
+    return teamDistances && teamDistances.length > 0 ? teamDistances : (distances || []);
+  }, [tournamentType, activeDistances, teamDistances, distances]);
+
+  const activeTeamShotsCount = useMemo(() => {
+    if (tournamentType === "individual") {
+      return effectiveShotsCount;
+    }
+    return effectiveTeamShotsCount;
+  }, [tournamentType, effectiveShotsCount, effectiveTeamShotsCount]);
 
   const teamRoundResults = useMemo(() => {
     const results: any[] = [];
@@ -1006,7 +1058,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
             <div className="bg-[#0c1222] border border-[#1b2640] rounded-2xl p-4 flex flex-col items-center shadow-lg relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-amber-250 to-amber-500"></div>
               <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider mb-5 flex items-center gap-1.5 text-center mt-1">
-                <Medal className="w-4 h-4" /> Bảng Vàng Cá Nhân
+                <Medal className="w-4 h-4" /> {tournamentType === "individual" ? "Bảng Vàng Cá Nhân (môi trường Cá Nhân)" : (tournamentType === "team" ? "Bảng Vàng Cá Nhân Team (môi trường Đồng Đội)" : "Bảng Vàng Cá Nhân")}
               </h3>
 
               {/* Podium Steps layout */}
@@ -1097,7 +1149,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
             <div className="bg-[#0c1222] border border-[#1b2640] rounded-2xl p-4 flex flex-col items-center shadow-lg relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-teal-450 via-teal-350 to-teal-500"></div>
               <h3 className="text-xs font-black text-teal-400 uppercase tracking-wider mb-5 flex items-center gap-1.5 text-center mt-1">
-                <Users className="w-4 h-4" /> Bảng Vàng Đồng Đội
+                <Users className="w-4 h-4" /> {tournamentType === "individual" ? "Bảng Vàng Đồng Đội (môi trường Cá Nhân)" : (tournamentType === "team" ? "Bảng Vàng Đồng Đội (môi trường Đồng Đội)" : "Bảng Vàng Đồng Đội")}
               </h3>
 
               {/* Podium active teams layout */}
