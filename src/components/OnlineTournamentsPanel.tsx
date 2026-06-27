@@ -25,7 +25,8 @@ import {
   Award,
   CircleDot,
   CloudUpload,
-  X
+  X,
+  Share2
 } from "lucide-react";
 import { Athlete, DistanceConfig } from "../types";
 import { getHitCount, calculateRounds } from "../utils/qualification";
@@ -49,6 +50,7 @@ interface OnlineTournamentsPanelProps {
     teamInputAthletes: Athlete[];
     startDate?: string;
     endDate?: string;
+    tournamentType?: "individual" | "team" | "combined";
   };
   onOpenAuthModal: () => void;
   onRedirectToCreateTournament?: () => void;
@@ -67,6 +69,18 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [creating, setCreating] = useState(false);
   const [showConfirmDeleteId, setShowConfirmDeleteId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleShare = (tourId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tour=${tourId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedId(tourId);
+      setTimeout(() => setCopiedId(null), 2500);
+    }).catch(err => {
+      console.error("Failed to copy link:", err);
+    });
+  };
 
   // States for the new safe Cloud Publish Dialog
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -193,11 +207,13 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const getTopAthletes = (tour: TournamentData): { name: string; team: string; score: number }[] => {
     // ALWAYS treat as individual mode for calculating individual top 3
     const isTeam = false;
-    const athletes = tour.athletes || [];
-    const distances = tour.distances || [];
-    const shotsCount = tour.shotsCount;
-    const directMaxShots = (tour as any).directMaxShots;
-    const directMaxPoints = tour.directMaxPoints;
+    const isTeamEnv = tour.tournamentType === "team" || (!tour.athletes || tour.athletes.length === 0);
+
+    const athletes = isTeamEnv ? (tour.teamAthletes || []) : (tour.athletes || []);
+    const distances = isTeamEnv ? (tour.teamDistances || tour.distances || []) : (tour.distances || []);
+    const shotsCount = isTeamEnv ? (tour.teamShotsCount !== undefined ? tour.teamShotsCount : tour.shotsCount) : tour.shotsCount;
+    const directMaxShots = isTeamEnv ? ((tour as any).teamDirectMaxShots) : (tour as any).directMaxShots;
+    const directMaxPoints = isTeamEnv ? tour.teamDirectMaxPoints : tour.directMaxPoints;
 
     if (!athletes || athletes.length === 0 || !distances || distances.length === 0) return [];
 
@@ -335,33 +351,74 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
       let totalScore = 0;
       let totalHits = 0;
-      distances.forEach((dist) => {
-        const hits = athlete.scores[dist.id] || [];
-        const hitCount = getHitCount(hits);
-        totalScore += hitCount * dist.multiplier;
-        totalHits += hitCount;
-      });
-
       let accuracy = 0;
-      let totalMultiplierOfShotRounds = 0;
-      let countShotRounds = 0;
-      distances.forEach((d) => {
-        const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
-        if (wasShot) {
-          totalMultiplierOfShotRounds += d.multiplier;
-          countShotRounds++;
+
+      if (hasMaxRoundScoreConf) {
+        let maxScore = -1;
+        let cumulativeHitsSumInShotRounds = 0;
+        let cumulativeMultiplierSumInShotRounds = 0;
+        let cumulativeCountInShotRounds = 0;
+        let cumulativeScoreSumInShotRounds = 0;
+
+        distances.forEach((dist) => {
+          const hits = athlete.scores[dist.id] || [];
+          const hitCount = getHitCount(hits);
+          const score = hitCount * dist.multiplier;
+
+          const wasShot = hits.length > 0 && hits.some(v => v !== null && v !== undefined);
+          if (wasShot) {
+            cumulativeHitsSumInShotRounds += hitCount;
+            cumulativeScoreSumInShotRounds += score;
+            cumulativeMultiplierSumInShotRounds += dist.multiplier;
+            cumulativeCountInShotRounds++;
+          }
+          if (score > maxScore) {
+            maxScore = score;
+          }
+        });
+
+        totalScore = maxScore >= 0 ? maxScore : 0;
+        totalHits = cumulativeHitsSumInShotRounds;
+
+        if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
+          if (cumulativeMultiplierSumInShotRounds === 0 && distances[0]) {
+            cumulativeMultiplierSumInShotRounds = distances[0].multiplier;
+          }
+          const totalPossiblePoints = directMaxPoints * cumulativeMultiplierSumInShotRounds;
+          accuracy = totalPossiblePoints > 0 ? (cumulativeScoreSumInShotRounds / totalPossiblePoints) * 100 : 0;
+        } else {
+          if (cumulativeCountInShotRounds === 0) cumulativeCountInShotRounds = 1;
+          const totalPossShots = cumulativeCountInShotRounds * effectiveShotsCount;
+          accuracy = totalPossShots > 0 ? (cumulativeHitsSumInShotRounds / totalPossShots) * 100 : 0;
         }
-      });
-      if (countShotRounds === 0 && distances.length > 0) {
-        totalMultiplierOfShotRounds = distances[0].multiplier;
-        countShotRounds = 1;
-      }
-      if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
-        const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
-        accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
       } else {
-        const totalPossShots = countShotRounds * effectiveShotsCount;
-        accuracy = totalPossShots > 0 ? (totalHits / totalPossShots) * 100 : 0;
+        distances.forEach((dist) => {
+          const hits = athlete.scores[dist.id] || [];
+          const hitCount = getHitCount(hits);
+          totalScore += hitCount * dist.multiplier;
+          totalHits += hitCount;
+        });
+
+        let totalMultiplierOfShotRounds = 0;
+        let countShotRounds = 0;
+        distances.forEach((d) => {
+          const wasShot = athlete.scores[d.id] && athlete.scores[d.id].length > 0 && athlete.scores[d.id].some(v => v !== null && v !== undefined);
+          if (wasShot) {
+            totalMultiplierOfShotRounds += d.multiplier;
+            countShotRounds++;
+          }
+        });
+        if (countShotRounds === 0 && distances.length > 0) {
+          totalMultiplierOfShotRounds = distances[0].multiplier;
+          countShotRounds = 1;
+        }
+        if (isDirectMode && directMaxPoints !== undefined && directMaxPoints > 0) {
+          const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
+          accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
+        } else {
+          const totalPossShots = countShotRounds * effectiveShotsCount;
+          accuracy = totalPossShots > 0 ? (totalHits / totalPossShots) * 100 : 0;
+        }
       }
 
       return {
@@ -425,12 +482,29 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const getTopTeams = (tour: TournamentData): { name: string; score: number }[] => {
     // ALWAYS treat as team mode for calculating team top 3
     const isTeam = true;
-    const resolvedTeamAthletes = (tour.teamAthletes || []).filter((a) => a.isPrimaryTeam);
-    const activeTeamDistances = tour.teamDistances || tour.distances || [];
-    const teamShotsCount = tour.teamShotsCount !== undefined ? tour.teamShotsCount : tour.shotsCount;
+    const isIndividualEnv = tour.tournamentType === "individual" || (!tour.teamAthletes || tour.teamAthletes.length === 0);
+
+    const resolvedTeamAthletes = isIndividualEnv 
+      ? (tour.athletes || []) 
+      : (tour.teamAthletes || []).filter((a) => a.isPrimaryTeam);
+
+    const activeTeamDistances = isIndividualEnv 
+      ? (tour.distances || []) 
+      : (tour.teamDistances || tour.distances || []);
+
+    const teamShotsCount = isIndividualEnv 
+      ? tour.shotsCount 
+      : (tour.teamShotsCount !== undefined ? tour.teamShotsCount : tour.shotsCount);
+
     const isTeamDirectMode = teamShotsCount === 1;
-    const teamDirectMaxShots = (tour as any).teamDirectMaxShots;
-    const teamDirectMaxPoints = tour.teamDirectMaxPoints;
+
+    const teamDirectMaxShots = isIndividualEnv 
+      ? (tour as any).directMaxShots 
+      : (tour as any).teamDirectMaxShots;
+
+    const teamDirectMaxPoints = isIndividualEnv 
+      ? tour.directMaxPoints 
+      : tour.teamDirectMaxPoints;
 
     if (!resolvedTeamAthletes || resolvedTeamAthletes.length === 0 || !activeTeamDistances || activeTeamDistances.length === 0) return [];
 
@@ -1101,7 +1175,17 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                 <div className="flex justify-between items-center mt-1">
                   <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
                     <CircleDot className="w-3 h-3 text-indigo-500" />
-                    <span>Hình thức: {tour.competitionMode === "team" ? "Thi cá nhân & Team" : "Nội dung Cá nhân"}</span>
+                    <span>Hình thức: {
+                      tour.tournamentType === "combined" 
+                        ? "Cá Nhân & Đồng Đội (Kết Hợp)" 
+                        : tour.tournamentType === "team"
+                        ? "Thi Đồng Đội"
+                        : tour.tournamentType === "individual"
+                        ? "Thi Cá Nhân"
+                        : tour.competitionMode === "team" 
+                        ? "Thi Đồng Đội" 
+                        : "Thi Cá Nhân"
+                    }</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -1115,6 +1199,19 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
+
+                    <button
+                      onClick={(e) => handleShare(tour.id, e)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 border shrink-0 ${
+                        copiedId === tour.id
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                          : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-300"
+                      }`}
+                      title="Copy link chia sẻ giải đấu trực tuyến này"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      {copiedId === tour.id ? "Đã copy!" : "Chia sẻ"}
+                    </button>
 
                     <button
                       onClick={() => onSelectTournament(tour.id, tour)}

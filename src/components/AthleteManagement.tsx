@@ -29,7 +29,8 @@ import {
   Trophy,
   ArrowUp,
   ArrowDown,
-  Eye
+  Eye,
+  GripVertical
 } from "lucide-react";
 
 interface AthleteManagementProps {
@@ -237,6 +238,47 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (draggedId !== id) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+
+    const currentList = isVscTab ? vscSystemAthletes : athletes;
+    const sourceIdx = currentList.findIndex(a => a.id === draggedId);
+    const targetIdx = currentList.findIndex(a => a.id === targetId);
+
+    if (sourceIdx !== -1 && targetIdx !== -1) {
+      const newList = [...currentList];
+      const [draggedItem] = newList.splice(sourceIdx, 1);
+      newList.splice(targetIdx, 0, draggedItem);
+
+      if (isVscTab) {
+        updateVscSystemAthletesAndKeepSync(newList);
+      } else {
+        setAthletes(newList);
+      }
+    }
+
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
   const handleAddVscToTournament = (athlete: Athlete) => {
     const exists = currentActiveAthletes.some(a => a.id === athlete.id);
     if (exists) {
@@ -305,6 +347,10 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const [applyConfirmStep, setApplyConfirmStep] = useState<0 | 1 | 2>(0);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [resetConfirmStep, setResetConfirmStep] = useState<0 | 1 | 2>(0);
+
+  // Drag and drop states
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   // New Club state variables
   const [newClubName, setNewClubName] = useState("");
@@ -1080,13 +1126,22 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 <div
                   key={ath.id}
                   onClick={() => handleSelectAthlete(ath)}
-                  className={`p-2.5 rounded-lg flex items-center justify-between gap-3 cursor-pointer transition-all border ${
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, ath.id)}
+                  onDragOver={(e) => handleDragOver(e, ath.id)}
+                  onDrop={(e) => handleDrop(e, ath.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`p-2.5 rounded-lg flex items-center justify-between gap-3 cursor-grab active:cursor-grabbing transition-all border ${
                     isActive 
                       ? "border-blue-500 bg-blue-50/50" 
+                      : dragOverId === ath.id
+                      ? "border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20"
                       : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                  }`}
+                  } ${draggedId === ath.id ? "opacity-45" : ""}`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
+                    <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 cursor-grab" />
+
                     <img 
                       src={ath.avatarUrl || AVATAR_MALE} 
                       alt={ath.name}

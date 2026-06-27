@@ -983,8 +983,704 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return ranks;
   }, [resolvedTeamAthletes, activeTeamDistances, teamRoundResults]);
 
+  // Unified helper function to compute team scores and rankings exactly like TeamLeaderboard.tsx
+  const computeDashboardTeamData = (
+    rawAthletes: any[],
+    targetDistances: any[],
+    targetShotsCount: number,
+    competitionMode: "individual" | "team",
+    activeTab: "survival" | "allRound",
+    directShots?: number,
+    teamDirectShots?: number,
+    directPoints?: number,
+    teamDirectPoints?: number
+  ) => {
+    const isDirectMode = targetShotsCount === 1;
+    const effectiveShotsCount = isDirectMode
+      ? (competitionMode === "team" ? (teamDirectShots || 10) : (directShots || 10))
+      : targetShotsCount;
+
+    const effectiveDirectMaxPoints = competitionMode === "team" ? teamDirectPoints : directPoints;
+    const isPointModeActive = isDirectMode && effectiveDirectMaxPoints !== undefined && effectiveDirectMaxPoints > 0;
+
+    // activeAthletes is standard filtered list
+    const activeAthletes = rawAthletes.filter((a) => a.isPrimaryTeam);
+
+    let activeAthletesForCalculation = [];
+    if (competitionMode === "team") {
+      activeAthletesForCalculation = rawAthletes.filter((a) => a.isPrimaryTeam);
+    } else {
+      if (activeTab === "survival") {
+        activeAthletesForCalculation = rawAthletes.filter((a) => a.isPrimaryTeam);
+      } else {
+        activeAthletesForCalculation = rawAthletes;
+      }
+    }
+
+    const roundResults = calculateRounds(activeAthletes, targetDistances, effectiveShotsCount, effectiveDirectMaxPoints);
+
+    const teamRoundResults: any[] = [];
+    const activeTeams = Array.from(new Set(activeAthletes.map((a) => {
+      const raw = a.team.trim();
+      return raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+    }))) as string[];
+
+    for (let r = 0; r < targetDistances.length; r++) {
+      const dist = targetDistances[r];
+      const teamRoundScores: Record<string, {
+        roundHits: number;
+        roundScore: number;
+        cumulativeHits: number;
+        cumulativeScore: number;
+        displayScore: number;
+        accuracy: number;
+        displayScoreWithSolo: number;
+        hasUnshotMember: boolean;
+        hasAnySoloEntered: boolean;
+        teamSoloHits: number;
+      }> = {};
+
+      const currentRoundTeams = Array.from(new Set(activeAthletes.map((a) => {
+        const raw = a.team.trim();
+        return raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+      }))).filter((tName) => activeTeams.includes(tName as string)) as string[];
+
+      currentRoundTeams.forEach((teamName: string) => {
+        const members = activeAthletes.filter((a) => {
+          const raw = a.team.trim();
+          const t = raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+          return t === teamName;
+        });
+
+        const activeMembers = members.filter(memb => memb.status !== "Bỏ thi");
+
+        const hasUnshotMember = activeMembers.some((memb) => {
+          const hits = memb.scores[dist.id] || [];
+          return !hits || hits.length === 0 || hits.every((v) => v === null || v === undefined);
+        });
+
+        let roundHits = 0;
+        let totalSoloHits = 0;
+        let hasAnySoloEntered = false;
+
+        activeMembers.forEach((memb) => {
+          const hits = memb.scores[dist.id] || [];
+          roundHits += getHitCount(hits);
+          const soloVal = memb.soloHits?.[dist.id];
+          if (soloVal !== undefined && soloVal !== null) {
+            totalSoloHits += soloVal;
+            hasAnySoloEntered = true;
+          }
+        });
+
+        const roundScore = roundHits * dist.multiplier;
+        const prevRoundStats = r > 0 ? teamRoundResults[r - 1]?.scores[teamName] : null;
+        const cumulativeHits = (prevRoundStats?.cumulativeHits || 0) + roundHits;
+        const cumulativeScore = (prevRoundStats?.cumulativeScore || 0) + roundScore;
+        const displayScore = cumulativeScore;
+
+        let accuracy = 0;
+        if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+          let totalMultiplierSum = 0;
+          for (let i = 0; i <= r; i++) {
+            totalMultiplierSum += targetDistances[i].multiplier;
+          }
+          const totalPossPoints = effectiveDirectMaxPoints * totalMultiplierSum * activeMembers.length;
+          accuracy = totalPossPoints > 0 ? (cumulativeScore / totalPossPoints) * 100 : 0;
+        } else {
+          const totalPossShots = (r + 1) * effectiveShotsCount * activeMembers.length;
+          accuracy = totalPossShots > 0 ? (cumulativeHits / totalPossShots) * 100 : 0;
+        }
+
+        teamRoundScores[teamName] = {
+          roundHits,
+          roundScore,
+          cumulativeHits,
+          cumulativeScore,
+          displayScore,
+          accuracy,
+          displayScoreWithSolo: cumulativeScore + (totalSoloHits * 0.001),
+          hasUnshotMember,
+          hasAnySoloEntered,
+          teamSoloHits: totalSoloHits,
+        };
+      });
+
+      const scoresArray = Object.entries(teamRoundScores).map(([name, val]) => ({
+        teamName: name,
+        score: val.displayScoreWithSolo,
+      }));
+
+      const sortedByScore = [...scoresArray].sort((a, b) => b.score - a.score);
+      const sortedNames = sortedByScore.map(item => item.teamName);
+
+      let qualifiedTeams: string[] = [];
+      let eliminatedTeams: string[] = [];
+
+      if (competitionMode === "team") {
+        const qLimit = dist.teamEliminationLimit ?? 0;
+        if (qLimit > 0) {
+          qualifiedTeams = sortedNames.slice(0, qLimit);
+          eliminatedTeams = sortedNames.slice(qLimit);
+        } else {
+          const prevQualified = r > 0 ? teamRoundResults[r - 1].qualifiedTeams : activeTeams;
+          qualifiedTeams = [...prevQualified];
+        }
+      } else {
+        qualifiedTeams = [...activeTeams];
+      }
+
+      teamRoundResults.push({
+        roundId: dist.id,
+        scores: teamRoundScores,
+        qualifiedTeams,
+        eliminatedTeams,
+      });
+    }
+
+    const athleteSurvivalMap: Record<string, {
+      eliminatedInRoundIdx: number | null;
+      survivalVal: number;
+      survivalScore: number;
+      survivalHits: number;
+      survivalShots?: number;
+      survivalAccuracy: number;
+    }> = {};
+
+    const hasMaxRoundScoreConf = targetDistances.some(d => d.isMaxRoundScore);
+
+    activeAthletes.forEach((athlete) => {
+      const raw = athlete.team.trim();
+      const teamName = raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+      let eliminatedInRoundIdx: number | null = null;
+      for (let i = 0; i < teamRoundResults.length; i++) {
+        if (teamRoundResults[i].eliminatedTeams.includes(teamName)) {
+          eliminatedInRoundIdx = i;
+          break;
+        }
+      }
+
+      const survivalVal = eliminatedInRoundIdx === null ? targetDistances.length : eliminatedInRoundIdx;
+      const lastActiveRoundIdx = eliminatedInRoundIdx === null ? (targetDistances.length - 1) : eliminatedInRoundIdx;
+
+      let survivalScore = 0;
+      let survivalHits = 0;
+      let survivalAccuracy = 0;
+
+      if (targetDistances.length > 0 && lastActiveRoundIdx >= 0) {
+        if (hasMaxRoundScoreConf) {
+          let maxScore = -1;
+          let maxHits = 0;
+          let maxAccuracy = 0;
+
+          let cumulativeHitsSumInShotRounds = 0;
+          let cumulativeScoreSumInShotRounds = 0;
+          let cumulativeMultiplierSumInShotRounds = 0;
+          let cumulativeCountInShotRounds = 0;
+
+          for (let i = 0; i <= lastActiveRoundIdx; i++) {
+            const dist = targetDistances[i];
+            const hits = athlete.scores[dist.id] || [];
+            const hitCount = getHitCount(hits);
+            const score = hitCount * dist.multiplier;
+
+            const wasShot = hits.length > 0 && hits.some(v => v !== null && v !== undefined);
+            if (wasShot) {
+              cumulativeHitsSumInShotRounds += hitCount;
+              cumulativeScoreSumInShotRounds += score;
+              cumulativeMultiplierSumInShotRounds += dist.multiplier;
+              cumulativeCountInShotRounds++;
+            }
+
+            let accuracy = 0;
+            if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+              const totalPossPoints = effectiveDirectMaxPoints * dist.multiplier;
+              accuracy = totalPossPoints > 0 ? (score / totalPossPoints) * 100 : 0;
+            } else {
+              accuracy = effectiveShotsCount > 0 ? (hitCount / effectiveShotsCount) * 100 : 0;
+            }
+
+            if (score > maxScore) {
+              maxScore = score;
+              maxHits = hitCount;
+              maxAccuracy = accuracy;
+            }
+          }
+
+          survivalScore = maxScore >= 0 ? maxScore : 0;
+          survivalHits = cumulativeHitsSumInShotRounds;
+          let calculatedPossShots = 0;
+          if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+            if (cumulativeMultiplierSumInShotRounds === 0 && targetDistances[lastActiveRoundIdx]) {
+              cumulativeMultiplierSumInShotRounds = targetDistances[lastActiveRoundIdx].multiplier;
+            }
+            const totalPossPoints = effectiveDirectMaxPoints * cumulativeMultiplierSumInShotRounds;
+            calculatedPossShots = totalPossPoints;
+            survivalAccuracy = totalPossPoints > 0 ? (cumulativeScoreSumInShotRounds / totalPossPoints) * 100 : 0;
+          } else {
+            if (cumulativeCountInShotRounds === 0) {
+              cumulativeCountInShotRounds = 1;
+            }
+            const totalPossShots = cumulativeCountInShotRounds * effectiveShotsCount;
+            calculatedPossShots = totalPossShots;
+            survivalAccuracy = totalPossShots > 0 ? (cumulativeHitsSumInShotRounds / totalPossShots) * 100 : 0;
+          }
+          athleteSurvivalMap[athlete.id] = {
+            eliminatedInRoundIdx,
+            survivalVal,
+            survivalScore,
+            survivalHits,
+            survivalShots: calculatedPossShots,
+            survivalAccuracy,
+          };
+        } else {
+          const statsAtLastRound = roundResults[lastActiveRoundIdx]?.scores[athlete.id];
+          if (statsAtLastRound) {
+            survivalScore = statsAtLastRound.cumulativeScore;
+            survivalHits = statsAtLastRound.cumulativeHits;
+            let calculatedPossShots = 0;
+            if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+              let totalMultiplier = 0;
+              for (let i = 0; i <= lastActiveRoundIdx; i++) {
+                totalMultiplier += targetDistances[i].multiplier;
+              }
+              const totalPossPoints = effectiveDirectMaxPoints * totalMultiplier;
+              calculatedPossShots = totalPossPoints;
+              survivalAccuracy = totalPossPoints > 0 ? (survivalScore / totalPossPoints) * 100 : 0;
+            } else {
+              const totalPossShots = (lastActiveRoundIdx + 1) * effectiveShotsCount;
+              calculatedPossShots = totalPossShots;
+              survivalAccuracy = totalPossShots > 0 ? (survivalHits / totalPossShots) * 100 : 0;
+            }
+            athleteSurvivalMap[athlete.id] = {
+              eliminatedInRoundIdx,
+              survivalVal,
+              survivalScore,
+              survivalHits,
+              survivalShots: calculatedPossShots,
+              survivalAccuracy,
+            };
+          }
+        }
+      }
+    });
+
+    const activeTeamScores: Record<string, number> = {};
+    if (hasMaxRoundScoreConf) {
+      const teamsList = Array.from(new Set(activeAthletes.map((a) => {
+        const raw = a.team.trim();
+        return raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+      }))) as string[];
+
+      teamsList.forEach((teamName) => {
+        const members = activeAthletes.filter((a) => {
+          const raw = a.team.trim();
+          const t = raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+          return t === teamName && a.status !== "Bỏ thi";
+        });
+
+        let teamScoreSum = 0;
+        let teamSoloSum = 0;
+
+        members.forEach((ath) => {
+          let maxScore = -1;
+          let maxSoloHits = 0;
+
+          targetDistances.forEach((distance, rIdx) => {
+            const isQualified = rIdx === 0 || (teamRoundResults[rIdx]?.qualifiedTeams.includes(teamName));
+            if (isQualified) {
+              const hits = ath.scores[distance.id] || [];
+              const hitCount = getHitCount(hits);
+              const score = hitCount * distance.multiplier;
+              const soloVal = ath.soloHits?.[distance.id];
+              const soloHitsAmt = (soloVal === null || soloVal === undefined) ? 0 : soloVal;
+
+              if (score > maxScore) {
+                maxScore = score;
+                maxSoloHits = soloHitsAmt;
+              }
+            }
+          });
+
+          teamScoreSum += maxScore >= 0 ? maxScore : 0;
+          teamSoloSum += maxSoloHits;
+        });
+
+        activeTeamScores[teamName] = teamScoreSum + (teamSoloSum * 0.001);
+      });
+    } else {
+      activeAthletes.forEach((ath) => {
+        const rawTeam = ath.team.trim();
+        const teamName = rawTeam === "" ? "VĐV Tự Do (Không Đội)" : rawTeam;
+
+        let personalScore = 0;
+        let personalSolo = 0;
+        targetDistances.forEach((distance, rIdx) => {
+          const isQualified = rIdx === 0 || (teamRoundResults[rIdx]?.qualifiedTeams.includes(teamName));
+          if (isQualified) {
+            const hits = ath.scores[distance.id] || [];
+            const hitCount = getHitCount(hits);
+            personalScore += hitCount * distance.multiplier;
+
+            const soloVal = ath.soloHits?.[distance.id];
+            const soloHitsNum = (soloVal === null || soloVal === undefined) ? 0 : soloVal;
+            personalSolo += soloHitsNum;
+          }
+        });
+
+        activeTeamScores[teamName] = (activeTeamScores[teamName] || 0) + personalScore + (personalSolo * 0.001);
+      });
+    }
+
+    const teamRanks: Record<string, number> = {};
+    const teamStatsMap: Record<string, { survivalVal: number; score: number }> = {};
+    activeAthletes.forEach((ath) => {
+      const rawTeam = ath.team.trim();
+      const teamName = rawTeam === "" ? "VĐV Tự Do (Không Đội)" : rawTeam;
+      if (!teamStatsMap[teamName]) {
+        let eliminatedInRoundIdx: number | null = null;
+        for (let i = 0; i < teamRoundResults.length; i++) {
+          if (teamRoundResults[i].eliminatedTeams.includes(teamName)) {
+            eliminatedInRoundIdx = i;
+            break;
+          }
+        }
+        const sVal = eliminatedInRoundIdx === null ? targetDistances.length : eliminatedInRoundIdx;
+        teamStatsMap[teamName] = {
+          survivalVal: sVal,
+          score: activeTeamScores[teamName] || 0,
+        };
+      }
+    });
+
+    const teamNames = Object.keys(teamStatsMap);
+    teamNames.forEach((tName) => {
+      const tStats = teamStatsMap[tName];
+      let betterTeamsCount = 0;
+      teamNames.forEach((otherName) => {
+        if (otherName === tName) return;
+        const otherStats = teamStatsMap[otherName];
+        let isOtherBetter = false;
+        if (otherStats.survivalVal !== tStats.survivalVal) {
+          isOtherBetter = otherStats.survivalVal > tStats.survivalVal;
+        } else {
+          isOtherBetter = otherStats.score > tStats.score;
+        }
+        if (isOtherBetter) {
+          betterTeamsCount++;
+        }
+      });
+      teamRanks[tName] = betterTeamsCount + 1;
+    });
+
+    const teamRanksAllRound: Record<string, number> = {};
+    const teamStatsAllRoundMap: Record<string, { score: number }> = {};
+    activeAthletes.forEach((ath) => {
+      const rawTeam = ath.team.trim();
+      const teamName = rawTeam === "" ? "VĐV Tự Do (Không Đội)" : rawTeam;
+      if (!teamStatsAllRoundMap[teamName]) {
+        let totalScoreAll = 0;
+        const members = activeAthletes.filter((a) => {
+          const r = a.team.trim();
+          const t = r === "" ? "VĐV Tự Do (Không Đội)" : r;
+          return t === teamName && a.status !== "Bỏ thi";
+        });
+
+        if (hasMaxRoundScoreConf) {
+          let teamScoreSum = 0;
+          members.forEach((memb) => {
+            let memberMaxScore = -1;
+            targetDistances.forEach((dist, rIdx) => {
+              const isQualified = rIdx === 0 || (teamRoundResults[rIdx]?.qualifiedTeams.includes(teamName));
+              if (isQualified) {
+                const hits = memb.scores[dist.id] || [];
+                const hitCount = getHitCount(hits);
+                const score = hitCount * dist.multiplier;
+                if (score > memberMaxScore) {
+                  memberMaxScore = score;
+                }
+              }
+            });
+            teamScoreSum += memberMaxScore >= 0 ? memberMaxScore : 0;
+          });
+          totalScoreAll = teamScoreSum;
+        } else {
+          members.forEach((memb) => {
+            targetDistances.forEach((d) => {
+              const hits = memb.scores[d.id] || [];
+              const hitCount = getHitCount(hits);
+              totalScoreAll += hitCount * d.multiplier;
+            });
+          });
+        }
+
+        teamStatsAllRoundMap[teamName] = { score: totalScoreAll };
+      }
+    });
+
+    const teamNamesAllRound = Object.keys(teamStatsAllRoundMap);
+    teamNamesAllRound.forEach((tName) => {
+      const tStats = teamStatsAllRoundMap[tName];
+      let betterTeamsCount = 0;
+      teamNamesAllRound.forEach((otherName) => {
+        if (otherName === tName) return;
+        const otherStats = teamStatsAllRoundMap[otherName];
+        if (otherStats.score > tStats.score) {
+          betterTeamsCount++;
+        }
+      });
+      teamRanksAllRound[tName] = betterTeamsCount + 1;
+    });
+
+    const groups: Record<string, any[]> = {};
+    activeAthletesForCalculation.forEach((ath) => {
+      const rawTeam = ath.team.trim();
+      const teamName = rawTeam === "" ? "VĐV Tự Do (Không Đội)" : rawTeam;
+
+      let totalScore = 0;
+      let totalHits = 0;
+      let totalShots = 0;
+      let accuracyVal = 0;
+
+      if (competitionMode === "team") {
+        if (hasMaxRoundScoreConf && activeTab !== "allRound") {
+          let maxScore = -1;
+          let cumulativeHitsSumInShotRounds = 0;
+          let cumulativeMultiplierSumInShotRounds = 0;
+          let cumulativeCountInShotRounds = 0;
+
+          targetDistances.forEach((dist, rIdx) => {
+            const isQualified = rIdx === 0 || (teamRoundResults[rIdx]?.qualifiedTeams.includes(teamName));
+            if (isQualified) {
+              const hits = ath.scores[dist.id] || [];
+              const hitCount = getHitCount(hits);
+              const score = hitCount * dist.multiplier;
+
+              const wasShot = hits.length > 0 && hits.some(v => v !== null && v !== undefined);
+              if (wasShot) {
+                cumulativeHitsSumInShotRounds += hitCount;
+                cumulativeMultiplierSumInShotRounds += dist.multiplier;
+                cumulativeCountInShotRounds++;
+              }
+              if (score > maxScore) {
+                maxScore = score;
+              }
+            }
+          });
+          totalScore = maxScore >= 0 ? maxScore : 0;
+          totalHits = cumulativeHitsSumInShotRounds;
+          if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+            if (cumulativeMultiplierSumInShotRounds === 0 && targetDistances[0]) {
+              cumulativeMultiplierSumInShotRounds = targetDistances[0].multiplier;
+            }
+            totalShots = effectiveDirectMaxPoints * cumulativeMultiplierSumInShotRounds;
+          } else {
+            if (cumulativeCountInShotRounds === 0) cumulativeCountInShotRounds = 1;
+            totalShots = cumulativeCountInShotRounds * effectiveShotsCount;
+          }
+        } else {
+          const survivalInfo = athleteSurvivalMap[ath.id];
+          if (survivalInfo) {
+            totalScore = survivalInfo.survivalScore;
+            totalHits = survivalInfo.survivalHits;
+            totalShots = survivalInfo.survivalShots ?? 0;
+            accuracyVal = survivalInfo.survivalAccuracy;
+          }
+        }
+      } else {
+        if (activeTab === "allRound") {
+          if (hasMaxRoundScoreConf) {
+            let maxScore = -1;
+            let cumulativeHitsSumInShotRounds = 0;
+            let cumulativeMultiplierSumInShotRounds = 0;
+            let cumulativeCountInShotRounds = 0;
+
+            targetDistances.forEach((dist) => {
+              const hits = ath.scores[dist.id] || [];
+              const hitCount = getHitCount(hits);
+              const score = hitCount * dist.multiplier;
+
+              const wasShot = hits.length > 0 && hits.some(v => v !== null && v !== undefined);
+              if (wasShot) {
+                cumulativeHitsSumInShotRounds += hitCount;
+                cumulativeMultiplierSumInShotRounds += dist.multiplier;
+                cumulativeCountInShotRounds++;
+              }
+              if (score > maxScore) {
+                maxScore = score;
+              }
+            });
+
+            totalScore = maxScore >= 0 ? maxScore : 0;
+            totalHits = cumulativeHitsSumInShotRounds;
+            if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+              if (cumulativeMultiplierSumInShotRounds === 0 && targetDistances[0]) {
+                cumulativeMultiplierSumInShotRounds = targetDistances[0].multiplier;
+              }
+              totalShots = effectiveDirectMaxPoints * cumulativeMultiplierSumInShotRounds;
+            } else {
+              if (cumulativeCountInShotRounds === 0) cumulativeCountInShotRounds = 1;
+              totalShots = cumulativeCountInShotRounds * effectiveShotsCount;
+            }
+          } else {
+            targetDistances.forEach((dist) => {
+              const hits = ath.scores[dist.id] || [];
+              const hitCount = getHitCount(hits);
+              totalScore += hitCount * dist.multiplier;
+              totalHits += hitCount;
+            });
+            let totalMultiplierOfShotRounds = 0;
+            let countShotRounds = 0;
+            targetDistances.forEach((d) => {
+              const wasShot = ath.scores[d.id] && ath.scores[d.id].length > 0 && ath.scores[d.id].some(v => v !== null && v !== undefined);
+              if (wasShot) {
+                totalMultiplierOfShotRounds += d.multiplier;
+                countShotRounds++;
+              }
+            });
+            if (countShotRounds === 0 && targetDistances.length > 0) {
+              totalMultiplierOfShotRounds = targetDistances[0].multiplier;
+              countShotRounds = 1;
+            }
+            if (isPointModeActive && effectiveDirectMaxPoints !== undefined) {
+              totalShots = effectiveDirectMaxPoints * totalMultiplierOfShotRounds;
+            } else {
+              totalShots = countShotRounds * effectiveShotsCount;
+            }
+          }
+        } else {
+          const survivalInfo = athleteSurvivalMap[ath.id];
+          if (survivalInfo) {
+            totalScore = survivalInfo.survivalScore;
+            totalHits = survivalInfo.survivalHits;
+            totalShots = survivalInfo.survivalShots ?? 0;
+            accuracyVal = survivalInfo.survivalAccuracy;
+          }
+        }
+      }
+
+      const mItem = {
+        id: ath.id,
+        name: ath.name,
+        totalScore,
+        totalHits,
+        totalShots,
+        accuracy: accuracyVal,
+      };
+
+      if (!groups[teamName]) {
+        groups[teamName] = [];
+      }
+      groups[teamName].push(mItem);
+    });
+
+    const teamsArray = Object.entries(groups).map(([teamName, members]) => {
+      let totalScore = members.reduce((sum, m) => sum + m.totalScore, 0);
+      let totalHits = members.reduce((sum, m) => sum + m.totalHits, 0);
+      let totalShots = members.reduce((sum, m) => sum + m.totalShots, 0);
+
+      if (competitionMode === "team" && hasMaxRoundScoreConf && activeTab !== "allRound") {
+        let teamScoreSum = 0;
+        const activeMembers = rawAthletes.filter((a) => {
+          const raw = a.team.trim();
+          const t = raw === "" ? "VĐV Tự Do (Không Đội)" : raw;
+          return t === teamName && a.status !== "Bỏ thi" && a.isPrimaryTeam;
+        });
+
+        activeMembers.forEach((memb) => {
+          let memberMaxScore = -1;
+          targetDistances.forEach((dist, rIdx) => {
+            const isQualified = rIdx === 0 || (teamRoundResults[rIdx]?.qualifiedTeams.includes(teamName));
+            if (isQualified) {
+              const hits = memb.scores[dist.id] || [];
+              const hitCount = getHitCount(hits);
+              const score = hitCount * dist.multiplier;
+              if (score > memberMaxScore) {
+                memberMaxScore = score;
+              }
+            }
+          });
+          teamScoreSum += memberMaxScore >= 0 ? memberMaxScore : 0;
+        });
+        totalScore = teamScoreSum;
+      }
+
+      const averageAccuracy = isPointModeActive && effectiveDirectMaxPoints !== undefined
+        ? (totalShots > 0 ? (totalScore / totalShots) * 100 : 0)
+        : (totalShots > 0 ? (totalHits / totalShots) * 100 : 0);
+
+      return {
+        teamName,
+        totalScore,
+        totalHits,
+        totalShots,
+        averageAccuracy,
+        memberCount: members.length,
+      };
+    });
+
+    const sortedTeams = teamsArray.sort((a, b) => {
+      if (competitionMode === "team") {
+        if (activeTab === "survival") {
+          const rankA = teamRanks[a.teamName] || 999;
+          const rankB = teamRanks[b.teamName] || 999;
+          if (rankA !== rankB) return rankA - rankB;
+        } else {
+          const rankA = teamRanksAllRound[a.teamName] || 999;
+          const rankB = teamRanksAllRound[b.teamName] || 999;
+          if (rankA !== rankB) return rankA - rankB;
+        }
+        return a.teamName.localeCompare(b.teamName, "vi");
+      } else {
+        if (a.totalScore !== b.totalScore) {
+          return b.totalScore - a.totalScore;
+        }
+        if (b.averageAccuracy !== a.averageAccuracy) {
+          return b.averageAccuracy - a.averageAccuracy;
+        }
+        return a.teamName.localeCompare(b.teamName, "vi");
+      }
+    });
+
+    return sortedTeams.map((item) => ({
+      teamName: item.teamName,
+      totalScore: item.totalScore,
+      memberCount: item.memberCount,
+    }));
+  };
+
   // 6. Aggregate survival stats matching the exact scoring layout
   const teamLeaderboardSurvivalData = useMemo(() => {
+    if (tournamentType === "individual") {
+      return computeDashboardTeamData(
+        athletes,
+        distances,
+        shotsCount,
+        "individual",
+        "survival",
+        directMaxShots,
+        teamDirectMaxShots,
+        directMaxPoints,
+        teamDirectMaxPoints
+      );
+    }
+    if (tournamentType === "team") {
+      const activeTeamAthletes = leaderboardTeamAthletes || teamAthletes || athletes;
+      const activeTeamDistancesList = teamDistances || distances;
+      const activeTeamShotsCountVal = teamShotsCount || shotsCount;
+      return computeDashboardTeamData(
+        activeTeamAthletes,
+        activeTeamDistancesList,
+        activeTeamShotsCountVal,
+        "team",
+        "survival",
+        directMaxShots,
+        teamDirectMaxShots,
+        directMaxPoints,
+        teamDirectMaxPoints
+      );
+    }
+
     const groups: Record<string, { totalScore: number; memberCount: number }> = {};
     const hasMaxRoundScoreConf = activeTeamDistances.some(d => d.isMaxRoundScore);
 
@@ -1043,10 +1739,58 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       }
       return a.teamName.localeCompare(b.teamName, "vi");
     });
-  }, [resolvedTeamAthletes, activeTeamDistances, teamRoundResults, teamRanks, activeTeamScores]);
+  }, [
+    athletes,
+    distances,
+    shotsCount,
+    leaderboardTeamAthletes,
+    teamAthletes,
+    teamDistances,
+    teamShotsCount,
+    tournamentType,
+    directMaxShots,
+    teamDirectMaxShots,
+    directMaxPoints,
+    teamDirectMaxPoints,
+    resolvedTeamAthletes,
+    activeTeamDistances,
+    teamRoundResults,
+    teamRanks,
+    activeTeamScores
+  ]);
 
   // 7. Aggregate cumulative stats matching the exact scoring layout
   const teamLeaderboardAllRoundData = useMemo(() => {
+    if (tournamentType === "individual") {
+      return computeDashboardTeamData(
+        athletes,
+        distances,
+        shotsCount,
+        "individual",
+        "allRound",
+        directMaxShots,
+        teamDirectMaxShots,
+        directMaxPoints,
+        teamDirectMaxPoints
+      );
+    }
+    if (tournamentType === "team") {
+      const activeTeamAthletes = leaderboardTeamAthletes || teamAthletes || athletes;
+      const activeTeamDistancesList = teamDistances || distances;
+      const activeTeamShotsCountVal = teamShotsCount || shotsCount;
+      return computeDashboardTeamData(
+        activeTeamAthletes,
+        activeTeamDistancesList,
+        activeTeamShotsCountVal,
+        "team",
+        "allRound",
+        directMaxShots,
+        teamDirectMaxShots,
+        directMaxPoints,
+        teamDirectMaxPoints
+      );
+    }
+
     const groups: Record<string, { totalScore: number; memberCount: number }> = {};
     const hasMaxRoundScoreConf = activeTeamDistances.some(d => d.isMaxRoundScore);
 
@@ -1116,7 +1860,24 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       }
       return a.teamName.localeCompare(b.teamName, "vi");
     });
-  }, [resolvedTeamAthletes, activeTeamDistances, teamRanksAllRound, teamRoundResults]);
+  }, [
+    athletes,
+    distances,
+    shotsCount,
+    leaderboardTeamAthletes,
+    teamAthletes,
+    teamDistances,
+    teamShotsCount,
+    tournamentType,
+    directMaxShots,
+    teamDirectMaxShots,
+    directMaxPoints,
+    teamDirectMaxPoints,
+    resolvedTeamAthletes,
+    activeTeamDistances,
+    teamRanksAllRound,
+    teamRoundResults
+  ]);
 
   const top3SurvivalTeams = useMemo(() => {
     const list = [...teamLeaderboardSurvivalData];

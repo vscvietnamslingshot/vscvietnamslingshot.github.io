@@ -660,6 +660,28 @@ export default function App() {
   const [isPublishDraftModalOpen, setIsPublishDraftModalOpen] = useState(false);
   const [onlineTournaments, setOnlineTournaments] = useState<TournamentData[]>([]);
 
+  const [isShareCopied, setIsShareCopied] = useState(false);
+
+  const handleShareActiveTournament = () => {
+    if (!activeHistoryId) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tour=${activeHistoryId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setIsShareCopied(true);
+      setTimeout(() => setIsShareCopied(false), 2500);
+    }).catch(err => {
+      console.error("Failed to copy link:", err);
+    });
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tourParam = params.get("tour") || params.get("id");
+    if (tourParam && tourParam.startsWith("tour-")) {
+      setActiveHistoryId(tourParam);
+      localStorage.setItem("slingshot_active_history_id", tourParam);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = subscribeToTournamentsList((list) => {
       setOnlineTournaments(list);
@@ -3176,51 +3198,55 @@ export default function App() {
                 Vietnam Slingshot Championship
               </h1>
               {/* Select mode Switch: Cá nhân / Đồng Đội dưới tên App */}
-              {tournamentType === "combined" && (
+              {(tournamentType === "combined" || tournamentType === "individual" || tournamentType === "team") && (
                 <div className="flex flex-col gap-1.5 mt-2.5">
                   <div className="flex bg-black/30 border border-white/10 rounded-lg p-0.5 max-w-[220px]">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCompetitionMode("individual");
-                        if (activeHistoryId !== null && userRole !== "admin") {
-                          setIsSpectatorModeOverridden(true);
-                        }
-                        if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                          updateOnlineTournament(activeHistoryId, { competitionMode: "individual" })
-                            .catch(err => console.error("Cloud update mode failed:", err));
-                        }
-                      }}
-                      className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                        competitionMode === "individual"
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                          : "text-indigo-200 hover:text-white"
-                      }`}
-                      title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
-                    >
-                      Cá Nhân
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCompetitionMode("team");
-                        if (activeHistoryId !== null && userRole !== "admin") {
-                          setIsSpectatorModeOverridden(true);
-                        }
-                        if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                          updateOnlineTournament(activeHistoryId, { competitionMode: "team" })
-                            .catch(err => console.error("Cloud update mode failed:", err));
-                        }
-                      }}
-                      className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                        competitionMode === "team"
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                          : "text-indigo-200 hover:text-white"
-                      }`}
-                      title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
-                    >
-                      Đồng Đội
-                    </button>
+                    {(tournamentType === "combined" || tournamentType === "individual") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCompetitionMode("individual");
+                          if (activeHistoryId !== null && userRole !== "admin") {
+                            setIsSpectatorModeOverridden(true);
+                          }
+                          if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
+                            updateOnlineTournament(activeHistoryId, { competitionMode: "individual" })
+                              .catch(err => console.error("Cloud update mode failed:", err));
+                          }
+                        }}
+                        className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
+                          competitionMode === "individual"
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
+                            : "text-indigo-200 hover:text-white"
+                        }`}
+                        title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
+                      >
+                        Cá Nhân
+                      </button>
+                    )}
+                    {(tournamentType === "combined" || tournamentType === "team") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCompetitionMode("team");
+                          if (activeHistoryId !== null && userRole !== "admin") {
+                            setIsSpectatorModeOverridden(true);
+                          }
+                          if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
+                            updateOnlineTournament(activeHistoryId, { competitionMode: "team" })
+                              .catch(err => console.error("Cloud update mode failed:", err));
+                          }
+                        }}
+                        className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
+                          competitionMode === "team"
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
+                            : "text-indigo-200 hover:text-white"
+                        }`}
+                        title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
+                      >
+                        Đồng Đội
+                      </button>
+                    )}
                   </div>
                   {activeHistoryId !== null && userRole !== "admin" && isSpectatorModeOverridden && (
                     <button
@@ -3406,13 +3432,26 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 shrink-0 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-200 dark:border-slate-800">
               <button
                 onClick={() => setShowExitConfirmModal(true)}
                 className="w-full md:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-350 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-705 dark:text-slate-250 text-xs font-black uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-transparent shadow-xs"
               >
                 <Home className="w-3.5 h-3.5" /> Thoát Giải Đấu
               </button>
+              {activeHistoryId.startsWith("tour-") && (
+                <button
+                  onClick={handleShareActiveTournament}
+                  className={`w-full md:w-auto px-4 py-2 text-xs font-black uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs border border-transparent ${
+                    isShareCopied
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  }`}
+                  title="Copy link chia sẻ giải đấu trực tuyến này"
+                >
+                  <Share2 className="w-3.5 h-3.5" /> {isShareCopied ? "Đã copy link!" : "Chia sẻ giải đấu"}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -3615,6 +3654,7 @@ export default function App() {
                 teamInputAthletes,
                 startDate,
                 endDate,
+                tournamentType,
               }}
             />
           )}
