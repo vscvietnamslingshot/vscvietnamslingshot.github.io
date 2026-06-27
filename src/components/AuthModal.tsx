@@ -8,6 +8,7 @@ import {
 } from "../firebase";
 import { createUserProfile } from "../lib/firebaseService";
 import { LogIn, Key, Mail, UserPlus, X, User, Heart, ShieldAlert } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  const { language } = useLanguage();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,17 +48,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       onClose();
     } catch (err: any) {
       console.error(err);
-      let VietnameseError = "Đã xảy ra lỗi khi đăng nhập. Vui lòng xác thực lại.";
+      let localizedError = language === "en" ? "An error occurred during login. Please try again." : "Đã xảy ra lỗi khi đăng nhập. Vui lòng xác thực lại.";
       if (err.code === "auth/email-already-in-use") {
-        VietnameseError = "Email này đã được sử dụng bởi một tài khoản khác.";
+        localizedError = language === "en" ? "This email is already in use by another account." : "Email này đã được sử dụng bởi một tài khoản khác.";
       } else if (err.code === "auth/weak-password") {
-        VietnameseError = "Mật khẩu yếu, tối thiểu phải từ 6 ký tự.";
+        localizedError = language === "en" ? "Weak password. Must be at least 6 characters." : "Mật khẩu yếu, tối thiểu phải từ 6 ký tự.";
       } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
-        VietnameseError = "Tài khoản hoặc mật khẩu không chính xác.";
+        localizedError = language === "en" ? "Incorrect email or password." : "Tài khoản hoặc mật khẩu không chính xác.";
       } else if (err.code === "auth/invalid-email") {
-        VietnameseError = "Địa chỉ email không đúng định dạng.";
+        localizedError = language === "en" ? "Invalid email address format." : "Địa chỉ email không đúng định dạng.";
       }
-      setError(VietnameseError);
+      setError(localizedError);
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError("Đăng nhập bằng Google không thành công hoặc bị huỷ.");
+      setError(language === "en" ? "Google login failed or was cancelled." : "Đăng nhập bằng Google không thành công hoặc bị huỷ.");
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] text-slate-800 dark:text-slate-100"
+      className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[999] text-slate-800 dark:text-slate-101"
       onClick={onClose}
     >
       <div 
@@ -93,7 +95,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       >
         {/* Close Button */}
         <button 
-          title="Đóng"
+          title={language === "en" ? "Close" : "Đóng"}
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 rounded-lg transition-colors cursor-pointer"
         >
@@ -108,13 +110,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               VSC Cloud Sync
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-sans tracking-tight">
-            {isRegister ? "Đăng Ký Tài Khoản" : "Đăng Nhập Đồng Bộ"}
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-101 font-sans tracking-tight">
+            {isRegister 
+              ? (language === "en" ? "Create Account" : "Đăng Ký Tài Khoản") 
+              : (language === "en" ? "Sign In Sync" : "Đăng Nhập Đồng Bộ")}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans mt-0.5">
             {isRegister 
-              ? "Tạo tài khoản để trực tuyến lưu trữ, quản lý giải đấu và chia sẻ bảng điểm online."
-              : "Đăng nhập để chia sẻ bảng điểm thời gian thực, phân quyền trọng tài và xem trực tiếp."}
+              ? (language === "en" 
+                  ? "Create an account to store tournaments on the cloud, manage referees, and share real-time scoreboards." 
+                  : "Tạo tài khoản để trực tuyến lưu trữ, quản lý giải đấu và chia sẻ bảng điểm online.")
+              : (language === "en" 
+                  ? "Sign in to share live scoreboards, authorize referee scoring, and watch match updates live." 
+                  : "Đăng nhập để chia sẻ bảng điểm thời gian thực, phân quyền trọng tài và xem trực tiếp.")}
           </p>
         </div>
 
@@ -122,29 +130,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <form onSubmit={handleEmailAuth} className="flex flex-col gap-3 font-sans">
           {isRegister && (
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Tên hiển thị</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                {language === "en" ? "Display Name" : "Tên hiển thị"}
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-2.5 w-4.5 h-4.5 text-slate-400" />
                 <input
                   type="text"
                   required
-                  placeholder="Ví dụ: trọng tài Tuấn"
+                  placeholder={language === "en" ? "e.g. Referee John" : "Ví dụ: trọng tài Tuấn"}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full pl-9.5 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-100"
+                  className="w-full pl-9.5 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-101"
                 />
               </div>
             </div>
           )}
 
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Email của bạn</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+              {language === "en" ? "Your Email" : "Email của bạn"}
+            </label>
             <div className="relative">
               <Mail className="absolute left-3 top-2.5 w-4.5 h-4.5 text-slate-400" />
               <input
                 type="email"
                 required
-                placeholder="email@vidu.com"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-9.5 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-101"
@@ -153,13 +165,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Mật khẩu</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+              {language === "en" ? "Password" : "Mật khẩu"}
+            </label>
             <div className="relative">
               <Key className="absolute left-3 top-2.5 w-4.5 h-4.5 text-slate-400" />
               <input
                 type="password"
                 required
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder={language === "en" ? "Minimum 6 characters" : "Tối thiểu 6 ký tự"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-9.5 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-101"
@@ -180,14 +194,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-98 disabled:opacity-50 disabled:pointer-events-none cursor-pointer mt-1"
           >
             {isRegister ? <UserPlus className="w-4.5 h-4.5" /> : <LogIn className="w-4.5 h-4.5" />}
-            {isRegister ? "Đăng ký thành viên" : "Đăng nhập ngay"}
+            {isRegister 
+              ? (language === "en" ? "Sign Up Now" : "Đăng ký thành viên") 
+              : (language === "en" ? "Sign In Now" : "Đăng nhập ngay")}
           </button>
         </form>
 
         {/* Divider */}
         <div className="flex items-center gap-2 my-1 text-slate-400 text-xs font-sans">
           <div className="grow border-t border-slate-200 dark:border-slate-800"></div>
-          <span>hoặc đăng nhập bằng</span>
+          <span>{language === "en" ? "or sign in with" : "hoặc đăng nhập bằng"}</span>
           <div className="grow border-t border-slate-200 dark:border-slate-800"></div>
         </div>
 
@@ -211,22 +227,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <div className="text-center text-xs text-slate-500 dark:text-slate-400 font-sans mt-1">
           {isRegister ? (
             <span>
-              Đã có tài khoản?{" "}
+              {language === "en" ? "Already have an account? " : "Đã có tài khoản? "}
               <button 
                 onClick={() => setIsRegister(false)}
                 className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
               >
-                Đăng nhập ngay
+                {language === "en" ? "Sign In Now" : "Đăng nhập ngay"}
               </button>
             </span>
           ) : (
             <span>
-              Chưa có tài khoản?{" "}
+              {language === "en" ? "Don't have an account? " : "Chưa có tài khoản? "}
               <button 
                 onClick={() => setIsRegister(true)}
                 className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
               >
-                Tạo tài khoản mới
+                {language === "en" ? "Create Account" : "Tạo tài khoản mới"}
               </button>
             </span>
           )}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig } from "../types";
 import { Check, Edit2, Trash2, Shield, User, Users, Save, X, ChevronUp, ChevronDown, Lock, Unlock } from "lucide-react";
 import { AVATAR_MALE } from "./AthleteManagement";
@@ -46,6 +47,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   isLockedByOtherReferee = false,
   lockedByRefereeEmail = "",
 }) => {
+  const { language, t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(athlete.name);
   const [editTeam, setEditTeam] = useState(athlete.team);
@@ -109,7 +111,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="Tên vận động viên"
+                placeholder={language === "en" ? "Athlete name" : "Tên vận động viên"}
                 className="w-full text-sm focus:outline-none bg-transparent"
               />
             </div>
@@ -119,7 +121,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 type="text"
                 value={editTeam}
                 onChange={(e) => setEditTeam(e.target.value)}
-                placeholder="Đội / CLB"
+                placeholder={language === "en" ? "Team / Club" : "Đội / CLB"}
                 className="w-full text-sm focus:outline-none bg-transparent"
               />
             </div>
@@ -148,13 +150,13 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               )}
               {athlete.status === "Bỏ thi" && (
                 <span className="text-xs text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full font-extrabold self-start sm:self-auto border border-rose-200">
-                  ⚠️ BỎ THI
+                  ⚠️ {language === "en" ? "WITHDRAWN" : "BỎ THI"}
                 </span>
               )}
               {isLockedByOtherReferee && (
                 <span className="text-[11px] text-amber-700 dark:text-amber-350 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full font-extrabold border border-amber-200 dark:border-amber-900/40 shrink-0 self-start sm:self-auto flex items-center gap-1.5 leading-none shadow-sm animate-pulse">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  🔒 ĐANG GHI ĐIỂM BỞI TRỌNG TÀI: {lockedByRefereeEmail}
+                  🔒 {language === "en" ? "SCORING IN PROGRESS BY REFEREE" : "ĐANG GHI ĐIỂM BỞI TRỌNG TÀI"}: {lockedByRefereeEmail}
                 </span>
               )}
             </div>
@@ -167,16 +169,16 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               <button
                 onClick={handleSave}
                 className="p-1 px-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors flex items-center gap-1"
-                title="Lưu"
+                title={language === "en" ? "Save" : "Lưu"}
               >
-                <Save className="w-3 h-3" /> Lưu
+                <Save className="w-3 h-3" /> {language === "en" ? "Save" : "Lưu"}
               </button>
               <button
                 onClick={handleCancel}
                 className="p-1 px-2 text-xs font-semibold bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors flex items-center gap-1"
-                title="Hủy"
+                title={language === "en" ? "Cancel" : "Hủy"}
               >
-                <X className="w-3 h-3" /> Hủy
+                <X className="w-3 h-3" /> {language === "en" ? "Cancel" : "Hủy"}
               </button>
             </>
           ) : !isLockedByOtherReferee ? (
@@ -189,7 +191,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                     ? "text-gray-300 dark:text-gray-700 cursor-not-allowed" 
                     : "text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 }`}
-                title="Di chuyển lên trên"
+                title={language === "en" ? "Move up" : "Di chuyển lên trên"}
               >
                 <ChevronUp className="w-4 h-4" />
               </button>
@@ -201,21 +203,21 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                     ? "text-gray-300 dark:text-gray-700 cursor-not-allowed" 
                     : "text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                 }`}
-                title="Di chuyển xuống dưới"
+                title={language === "en" ? "Move down" : "Di chuyển xuống dưới"}
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full transition-colors cursor-pointer"
-                title="Sửa thông tin VĐV"
+                title={language === "en" ? "Edit athlete info" : "Sửa thông tin VĐV"}
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-955/20 text-gray-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-full transition-colors cursor-pointer"
-                title="Xóa vận động viên"
+                title={language === "en" ? "Delete athlete" : "Xóa vận động viên"}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -231,26 +233,26 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
             <tr className="bg-gray-50 border-b border-gray-200">
               {/* Diểm Tổng Column header */}
               <th className="border-r border-gray-200 text-center font-bold text-gray-800 bg-gray-100/70 p-2 w-[110px]">
-                ĐIỂM TỔNG
+                {language === "en" ? "TOTAL SCORE" : "ĐIỂM TỔNG"}
               </th>
               {/* Điểm Column header */}
               <th className="border-r border-gray-200 text-center font-bold text-gray-800 p-2 w-[85px]">
-                Điểm
+                {language === "en" ? "Score" : "Điểm"}
               </th>
               {/* Điểm nhân Column header */}
               <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[85px]">
-                Điểm nhân
+                {language === "en" ? "Multiplier" : "Điểm nhân"}
               </th>
               {/* Cự ly Column header */}
               <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[100px]">
-                Cự ly
+                {language === "en" ? "Distance" : "Cự ly"}
               </th>
               {/* Lượt bắn spanned header */}
               <th 
                 colSpan={shotsCount} 
                 className="text-center font-semibold text-gray-700 p-2 bg-slate-50 border-b border-gray-200"
               >
-                Lượt bắn (Mục tiêu)
+                {language === "en" ? "Shots (Target)" : "Lượt bắn (Mục tiêu)"}
               </th>
             </tr>
             <tr className="bg-slate-50 border-b border-gray-100 text-xs">
@@ -308,7 +310,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                   }`}>
                     {rowScoreObj.score}
                     <div className="text-[10px] text-gray-400 font-normal mt-0.5">
-                      ({rowScoreObj.hitCount} viên)
+                      ({rowScoreObj.hitCount} {language === "en" ? "hits" : "viên"})
                     </div>
                   </td>
 
@@ -319,15 +321,15 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
 
                   {/* Cự ly (Distance) */}
                   <td className="border-r border-gray-200 text-center text-sm font-bold text-gray-700 p-2">
-                    <div className="text-[10px] text-indigo-500 font-mono font-bold block mb-0.5">Vòng {distIdx + 1}</div>
+                    <div className="text-[10px] text-indigo-500 font-mono font-bold block mb-0.5">{language === "en" ? "Round" : "Vòng"} {distIdx + 1}</div>
                     <div className="flex items-center justify-center gap-1">
                       <span>{distance.distance}</span>
                       {isDistancePreExisting && (
-                        <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 inline-block" title="Điểm số đã được bảo vệ" />
+                        <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 inline-block" title={language === "en" ? "Score protected" : "Điểm số đã được bảo vệ"} />
                       )}
                     </div>
                     {isDistancePreExisting && (
-                      <span className="text-[8.5px] uppercase font-bold text-emerald-600 block mt-0.5">Đã Khóa</span>
+                      <span className="text-[8.5px] uppercase font-bold text-emerald-600 block mt-0.5">{language === "en" ? "Locked" : "Đã Khóa"}</span>
                     )}
 
                     {distance.isElimination && distance.isSolo && (() => {
@@ -339,7 +341,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                       return (
                         <div className="mt-2 flex flex-col items-center bg-purple-50 hover:bg-purple-100/75 dark:bg-slate-900 border border-purple-200 rounded p-1.5 animate-fadeIn mx-1 min-w-[75px]">
                           <span className="text-[8.5px] text-purple-700 dark:text-purple-400 font-black uppercase leading-tight text-center flex items-center gap-1 justify-center">
-                            Điểm Solo
+                            {language === "en" ? "Solo Score" : "Điểm Solo"}
                             {isInputTab ? (
                               isInputSoloLocked ? (
                                 <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
@@ -413,7 +415,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                 />
                                 {rounds.length > 1 && !isLocked && (
                                   <button
-                                    title="Xóa lượt"
+                                    title={language === "en" ? "Delete round" : "Xóa lượt"}
                                     onClick={() => {
                                       const newRounds = rounds.filter((_, rIdx) => rIdx !== idx);
                                       onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
@@ -429,13 +431,13 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
 
                           {!isLocked && (
                             <button
-                              title="Thêm lượt solo"
+                              title={language === "en" ? "Add solo round" : "Thêm lượt solo"}
                               onClick={() => {
                                 onUpdateSoloHits?.(athlete.id, distance.id, [...rounds, null]);
                               }}
                               className="mt-1.5 w-full py-0.5 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 rounded border border-purple-200 hover:bg-purple-200 dark:hover:bg-purple-900 text-[8.5px] font-black flex items-center justify-center gap-0.5 transition cursor-pointer"
                             >
-                              + Thêm
+                              + {language === "en" ? "Add" : "Thêm"}
                             </button>
                           )}
                         </div>
@@ -458,7 +460,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                           type="text"
                           pattern="[0-9]*"
                           inputMode="numeric"
-                          placeholder="Nhập điểm"
+                          placeholder={language === "en" ? "Enter score" : "Nhập điểm"}
                           value={(() => {
                             const val = hits[0];
                             if (val === true || val === "true" || val === "TRUE") return "1";
@@ -579,16 +581,16 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
         const totalPossibleShots = countShotRounds * shotsCount;
         let totalValMax = totalPossibleShots;
         let actualValSum = hitCountSum;
-        let unitText = "viên";
-        let labelText = "Tổng phát trúng";
+        let unitText = language === "en" ? "shots" : "viên";
+        let labelText = language === "en" ? "Total hits" : "Tổng phát trúng";
         let accuracy = totalPossibleShots > 0 ? (hitCountSum / totalPossibleShots) * 100 : 0;
 
         if (isPointModeActive && directMaxPoints !== undefined) {
           const totalPossiblePoints = directMaxPoints * totalMultiplierOfShotRounds;
-          labelText = "Hiệu suất điểm";
+          labelText = language === "en" ? "Score efficiency" : "Hiệu suất điểm";
           actualValSum = totalScore;
           totalValMax = totalPossiblePoints;
-          unitText = "điểm";
+          unitText = language === "en" ? "pts" : "điểm";
           accuracy = totalPossiblePoints > 0 ? (totalScore / totalPossiblePoints) * 100 : 0;
         }
 
@@ -608,7 +610,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 const rowData = rowScores.find((r) => r.distanceId === dist.id) || { hitCount: 0 };
                 return (
                   <span key={dist.id} className="bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
-                    V{idx + 1}: {rowData.hitCount} {isPointModeActive ? "điểm" : "viên"}
+                    {language === "en" ? "R" : "V"}{idx + 1}: {rowData.hitCount} {isPointModeActive ? (language === "en" ? "pts" : "điểm") : (language === "en" ? "shots" : "viên")}
                   </span>
                 );
               })}
@@ -618,7 +620,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
       })()}
 
       {showLocalUnlockModal && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-101">
           <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 animate-scaleIn">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -626,13 +628,17 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-200 uppercase tracking-wide">
-                  Xác nhận sửa điểm Solo?
+                  {language === "en" ? "Confirm editing Solo score?" : "Xác nhận sửa điểm Solo?"}
                 </h3>
-                <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Hộp bảo vệ tránh chạm nhầm</p>
+                <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">{language === "en" ? "Protection box to avoid accidental edits" : "Hộp bảo vệ tránh chạm nhầm"}</p>
               </div>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-              Bạn có chắc chắn muốn <strong>mở khóa</strong> để ghi / sửa điểm Solo cho vận động viên <strong>{athlete.name}</strong> không?
+              {language === "en" ? (
+                <>Are you sure you want to <strong>unlock</strong> to enter/edit Solo score for athlete <strong>{athlete.name}</strong>?</>
+              ) : (
+                <>Bạn có chắc chắn muốn <strong>mở khóa</strong> để ghi / sửa điểm Solo cho vận động viên <strong>{athlete.name}</strong> không?</>
+              )}
             </p>
             <div className="flex gap-2.5 justify-end">
               <button
@@ -640,7 +646,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 onClick={() => setShowLocalUnlockModal(false)}
                 className="px-4 py-2 text-xs font-bold border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               >
-                Hủy
+                {language === "en" ? "Cancel" : "Hủy"}
               </button>
               <button
                 type="button"
@@ -650,7 +656,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 }}
                 className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg cursor-pointer"
               >
-                Xác nhận mở khóa
+                {language === "en" ? "Confirm Unlock" : "Xác nhận mở khóa"}
               </button>
             </div>
           </div>
@@ -660,7 +666,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
 
       {showDeleteModal && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[10005] animate-fadeIn text-slate-800 dark:text-slate-100"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[10005] animate-fadeIn text-slate-800 dark:text-slate-101"
           onClick={() => setShowDeleteModal(false)}
         >
           <div 
@@ -671,11 +677,15 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               <div className="p-2 bg-rose-50 dark:bg-rose-955/30 rounded-full">
                 <Trash2 className="w-5 h-5" />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide">Xác nhận xóa VĐV?</h3>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide">{language === "en" ? "Confirm delete athlete?" : "Xác nhận xóa VĐV?"}</h3>
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-              Bạn có chắc chắn muốn xóa vận động viên <strong>{athlete.name}</strong> không? Điều này sẽ xóa hồ sơ và điểm số của VĐV khỏi loạt bắn hiện hành.
+              {language === "en" ? (
+                <>Are you sure you want to delete athlete <strong>{athlete.name}</strong>? This will delete the athlete's profile and scores from the current round.</>
+              ) : (
+                <>Bạn có chắc chắn muốn xóa vận động viên <strong>{athlete.name}</strong> không? Điều này sẽ xóa hồ sơ và điểm số của VĐV khỏi loạt bắn hiện hành.</>
+              )}
             </p>
 
             <div className="flex gap-2.5 justify-end font-sans mt-1">
@@ -684,7 +694,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 onClick={() => setShowDeleteModal(false)}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
               <button
                 type="button"
@@ -694,7 +704,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                 }}
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                Đồng ý xóa
+                {language === "en" ? "Confirm Delete" : "Đồng ý xóa"}
               </button>
             </div>
           </div>

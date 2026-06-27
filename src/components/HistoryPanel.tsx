@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useLanguage } from "../context/LanguageContext";
 import { MatchHistoryItem } from "../types";
 import { Calendar, Trash2, RotateCcw, Award, FileSpreadsheet, Trophy, Users, FileDown, FileUp, Database, Clock, ShieldAlert, HardDriveDownload } from "lucide-react";
 import { getHitCount } from "../utils/qualification";
@@ -35,6 +36,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   startDate = "",
   endDate = "",
 }) => {
+  const { language } = useLanguage();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
   const [importError, setImportError] = useState("");
@@ -121,10 +123,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const formatTimeAgo = (ts: number) => {
     const diff = Date.now() - ts;
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Vừa mới đây";
-    if (mins < 60) return `${mins} phút trước`;
+    if (mins < 1) return language === "en" ? "Just now" : "Vừa mới đây";
+    if (mins < 60) return language === "en" ? `${mins}m ago` : `${mins} phút trước`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} giờ trước`;
+    if (hours < 24) return language === "en" ? `${hours}h ago` : `${hours} giờ trước`;
     return formatDate(new Date(ts).toISOString());
   };
 
@@ -136,10 +138,12 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         <div className="text-left">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-emerald-600" />
-            Sao Lưu & Phục Hồi Dữ Liệu Toàn Bộ Giải Đấu
+            {language === "en" ? "Backup & Restore Entire Tournament Data" : "Sao Lưu & Phục Hồi Dữ Liệu Toàn Bộ Giải Đấu"}
           </h3>
           <p className="text-[11px] text-gray-500 mt-1 max-w-xl">
-            Tất cả các bản ghi lịch sử, cấu hình cự ly, và danh sách vận động viên sẽ được đóng gói đầy đủ trong file JSON của bạn.
+            {language === "en" 
+              ? "All history logs, distance settings, and athletes list will be fully packed into your JSON file." 
+              : "Tất cả các bản ghi lịch sử, cấu hình cự ly, và danh sách vận động viên sẽ được đóng gói đầy đủ trong file JSON của bạn."}
           </p>
         </div>
 
@@ -148,7 +152,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             onClick={onExportBackup}
             className="flex-1 md:flex-none py-1.5 px-4 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm active:scale-98"
           >
-            <FileDown className="w-4.5 h-4.5" /> Tải Sao Lưu (.json)
+            <FileDown className="w-4.5 h-4.5" /> {language === "en" ? "Download Backup (.json)" : "Tải Sao Lưu (.json)"}
           </button>
           
           <button
@@ -156,7 +160,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             onClick={() => fileInputRefRestore.current?.click()}
             className="flex-1 md:flex-none py-1.5 px-4 text-xs bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-xl font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
           >
-            <FileUp className="w-4.5 h-4.5" /> Phục Hồi Từ File (.json)
+            <FileUp className="w-4.5 h-4.5" /> {language === "en" ? "Restore from File (.json)" : "Phục Hồi Từ File (.json)"}
           </button>
           <input
             ref={fileInputRefRestore}
@@ -177,10 +181,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     setImportSuccess(true);
                     setTimeout(() => setImportSuccess(false), 4500);
                   } else {
-                    setImportError("Định dạng file backup .json không hợp lệ!");
+                    setImportError(language === "en" ? "Invalid backup .json file format!" : "Định dạng file backup .json không hợp lệ!");
                   }
                 } catch (err) {
-                  setImportError("Lỗi đọc file .json phục hồi!");
+                  setImportError(language === "en" ? "Error reading restore .json file!" : "Lỗi đọc file .json phục hồi!");
                 }
               };
               reader.readAsText(file);
@@ -195,7 +199,9 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         <span className="text-[11px] text-red-650 font-bold block bg-red-50 p-3 rounded-xl border border-red-200 text-center animate-fadeIn">{importError}</span>
       )}
       {importSuccess && (
-        <span className="text-[11px] text-emerald-700 font-extrabold block bg-emerald-50 p-3 rounded-xl border border-emerald-250 text-center animate-fadeIn animate-pulse">✓ Đã phục hồi toàn bộ dữ liệu lịch sử thành công!</span>
+        <span className="text-[11px] text-emerald-700 font-extrabold block bg-emerald-50 p-3 rounded-xl border border-emerald-250 text-center animate-fadeIn animate-pulse">
+          {language === "en" ? "✓ Successfully restored all history logs!" : "✓ Đã phục hồi toàn bộ dữ liệu lịch sử thành công!"}
+        </span>
       )}
 
       {/* MANUAL HISTORY SAVE CARD */}
@@ -204,17 +210,19 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           <div className="text-left">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Award className="w-4.5 h-4.5 text-emerald-600 animate-pulse" />
-              Ghi Lịch Sử Giải Hiện Tại (Manual Backup)
+              {language === "en" ? "Record Current Tournament (Manual Backup)" : "Ghi Lịch Sử Giải Hiện Tại (Manual Backup)"}
             </h3>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
-              Lưu trữ thủ công toàn bộ trạng thái điểm số hiện tại của giải đấu vào kho lịch sử thiết bị hiện tại.
+              {language === "en" 
+                ? "Manually archive the current state of scores into local storage history." 
+                : "Lưu trữ thủ công toàn bộ trạng thái điểm số hiện tại của giải đấu vào kho lịch sử thiết bị hiện tại."}
             </p>
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto items-center shrink-0">
             <input
               type="text"
-              placeholder={matchName || "e.g. Vòng Sơ Loại..."}
+              placeholder={matchName || (language === "en" ? "e.g. Qualification..." : "e.g. Vòng Sơ Loại...")}
               value={sessionSaveName}
               onChange={(e) => setSessionSaveName(e.target.value)}
               className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 border-gray-300 rounded-xl focus:outline-none w-full sm:w-56 font-bold text-slate-800 dark:text-slate-100"
@@ -226,7 +234,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               }}
               className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl cursor-pointer whitespace-nowrap transition-colors shadow-sm"
             >
-              Ghi Lại Giải
+              {language === "en" ? "Save Match" : "Ghi Lại Giải"}
             </button>
           </div>
         </div>
@@ -246,13 +254,15 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               </div>
               <div>
                 <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  HỘP ĐEN SAO LƯU NỘI BỘ (DEVICE BACKUPS)
+                  {language === "en" ? "BLACKBOX INTERNAL DEVICE BACKUPS" : "HỘP ĐEN SAO LƯU NỘI BỘ (DEVICE BACKUPS)"}
                   <span className="bg-rose-500 text-white text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full uppercase shrink-0 animate-pulse">
                     ADMIN & SUB-ADMIN
                   </span>
                 </h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  Tự động lưu trạng thái xuống thiết bị của Ban Tổ Chức (Ghi đè mỗi 5 phút, tạo dòng thời gian mỗi 15 phút - lưu 5 bản gần nhất).
+                  {language === "en" 
+                    ? "Autosave state to Organizer's device (Overwrite every 5 min, timeline point every 15 min - saves 5 recent copies)." 
+                    : "Tự động lưu trạng thái xuống thiết bị của Ban Tổ Chức (Ghi đè mỗi 5 phút, tạo dòng thời gian mỗi 15 phút - lưu 5 bản gần nhất)."}
                 </p>
               </div>
             </div>
@@ -261,8 +271,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           {deviceBackups.length === 0 ? (
             <div className="bg-slate-950/40 p-5 rounded-xl border border-slate-800 text-center text-xs text-slate-400 font-medium">
               <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2 animate-spin" />
-              Chưa ghi nhận bản sao lưu tự động nào từ phiên chấm điểm hiện tại của Admin.<br />
-              <span className="text-[10px] text-slate-500">Tiến trình tự động quét định kỳ sẽ ghi đè và kích hoạt sau 5 phút làm việc.</span>
+              {language === "en" ? "No automatic backups recorded from Admin's current scoring session yet." : "Chưa ghi nhận bản sao lưu tự động nào từ phiên chấm điểm hiện tại của Admin."}<br />
+              <span className="text-[10px] text-slate-500">
+                {language === "en" ? "Scheduled periodic sweep will overwrite and activate after 5 minutes of activity." : "Tiến trình tự động quét định kỳ sẽ ghi đè và kích hoạt sau 5 phút làm việc."}
+              </span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -283,13 +295,15 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                           : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                       }`}>
                         <Clock className="w-3 h-3" />
-                        {b.isTimeline ? "15 Phút (Dòng thời gian)" : "5 Phút (Ghi đè liên tục)"}
+                        {b.isTimeline 
+                          ? (language === "en" ? "15 Min (Timeline)" : "15 Phút (Dòng thời gian)") 
+                          : (language === "en" ? "5 Min (Overwrite)" : "5 Phút (Ghi đè liên tục)")}
                       </span>
                       <h4 className="text-sm font-black text-slate-100 line-clamp-1">
                         {b.matchName}
                       </h4>
                       <p className="text-[10px] text-slate-450 mt-0.5 font-mono">
-                        Đã lưu: {formatTimeAgo(b.timestamp)} ({formatDate(new Date(b.timestamp).toISOString())})
+                        {language === "en" ? "Saved: " : "Đã lưu: "}{formatTimeAgo(b.timestamp)} ({formatDate(new Date(b.timestamp).toISOString())})
                       </p>
                     </div>
                   </div>
@@ -299,7 +313,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                       <div className="w-full bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg flex flex-col gap-1.5 text-[11px] text-amber-300 animate-fadeIn font-extrabold items-center">
                         <span className="uppercase text-[9px] text-amber-400 tracking-wider flex items-center gap-1.5 text-center">
                           <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500 animate-pulse" />
-                          Ghi đè giải hiện tại trên thiết bị?
+                          {language === "en" ? "Overwrite current match on device?" : "Ghi đè giải hiện tại trên thiết bị?"}
                         </span>
                         <div className="flex gap-2 w-full">
                           <button
@@ -310,14 +324,14 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             }}
                             className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black cursor-pointer text-xs"
                           >
-                            Xác nhận nạp
+                            {language === "en" ? "Confirm Load" : "Xác nhận nạp"}
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeviceBackupRestoreId(null)}
                             className="py-1 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-medium cursor-pointer text-xs"
                           >
-                            Hủy
+                            {language === "en" ? "Cancel" : "Hủy"}
                           </button>
                         </div>
                       </div>
@@ -328,17 +342,17 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                           onClick={() => setDeviceBackupRestoreId(b.id)}
                           className="flex-1 py-1 px-3 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 rounded-lg font-black transition-colors flex items-center justify-center gap-1 cursor-pointer text-[11px]"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" /> Khôi phục giải
+                          <RotateCcw className="w-3.5 h-3.5" /> {language === "en" ? "Restore Match" : "Khôi phục giải"}
                         </button>
                         <button
                           type="button"
                           onClick={() => {
-                            if (confirm(`Bạn chắc chắn muốn xóa bản sao lưu nội bộ ngày ${formatDate(new Date(b.timestamp).toISOString())}?`)) {
+                            if (confirm(language === "en" ? `Are you sure you want to delete the internal backup of date ${formatDate(new Date(b.timestamp).toISOString())}?` : `Bạn chắc chắn muốn xóa bản sao lưu nội bộ ngày ${formatDate(new Date(b.timestamp).toISOString())}?`)) {
                               onDeleteDeviceBackup?.(b.id);
                             }
                           }}
                           className="py-1 px-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer border border-transparent hover:border-rose-500/20"
-                          title="Xóa bản sao lưu"
+                          title={language === "en" ? "Delete backup" : "Xóa bản sao lưu"}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -356,26 +370,28 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       <div className="border-b dark:border-slate-800 pb-2 mt-2">
         <h3 className="text-base font-black text-slate-850 dark:text-slate-150 uppercase tracking-wider flex items-center gap-2 font-sans">
           <Calendar className="w-4.5 h-4.5 text-blue-600" />
-          Hồ Sơ Lịch Sử Các Trận Đấu (Tournament Records)
+          {language === "en" ? "Tournament Records History" : "Hồ Sơ Lịch Sử Các Trận Đấu (Tournament Records)"}
         </h3>
         <p className="text-[11px] text-gray-500 mt-0.5">
-          Danh sách các giải đấu được lưu trữ thủ công trong phiên hoạt động hiện tại.
+          {language === "en" ? "List of tournaments manually archived in the current session." : "Danh sách các giải đấu được lưu trữ thủ công trong phiên hoạt động hiện tại."}
         </p>
       </div>
 
       {history.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-8 rounded-2xl shadow-sm text-center flex flex-col gap-3 items-center justify-center">
           <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-1" />
-          <h3 className="text-base font-bold text-gray-700 dark:text-gray-200">Chưa có lịch sử lưu trữ</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-450 max-w-sm mx-auto leading-relaxed">
-            Điểm số hiện tại của bạn sẽ được tự động lưu vào bộ nhớ trình duyệt. Để chuyển hẳn một giải cũ vào kho lưu trữ vĩnh viễn, hãy nhấn nút &quot;Lưu lại giải&quot; ở phần Cấu hình giải đấu.
+          <h3 className="text-base font-bold text-gray-700 dark:text-gray-200">{language === "en" ? "No archived history yet" : "Chưa có lịch sử lưu trữ"}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-455 max-w-sm mx-auto leading-relaxed font-sans">
+            {language === "en" 
+              ? "Your current scores will be automatically saved to your browser memory. To move an old tournament to the permanent archive, press the 'Save Match' button in the Tournament Settings section." 
+              : "Điểm số hiện tại của bạn sẽ được tự động lưu vào bộ nhớ trình duyệt. Để chuyển hẳn một giải cũ vào kho lưu trữ vĩnh viễn, hãy nhấn nút \"Lưu lại giải\" ở phần Cấu hình giải đấu."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {history.map((item) => {
             // Calculate champion
-            let championName = "Chưa có";
+            let championName = language === "en" ? "None yet" : "Chưa có";
             let championTeam = "";
             let maxScore = -1;
 
@@ -410,7 +426,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         setConfirmDeleteId(item.id);
                       }}
                       className="p-1.5 bg-rose-50 dark:bg-rose-955/20 text-rose-500 hover:text-white hover:bg-rose-600 rounded-lg transition-all cursor-pointer shadow-sm active:scale-95"
-                      title="Xóa bản ghi lịch sử"
+                      title={language === "en" ? "Delete record" : "Xóa bản ghi lịch sử"}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -423,15 +439,15 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 {/* Quick specifications breakdown */}
                 <div className="grid grid-cols-3 gap-2 py-2 border-y border-gray-100 dark:border-slate-800 text-xs">
                   <div className="text-center">
-                    <span className="text-[10px] text-gray-450 block mb-0.5 uppercase font-semibold">Cự ly</span>
-                    <span className="font-semibold text-gray-700 dark:text-slate-200">{item.distances.length} dòng</span>
+                    <span className="text-[10px] text-gray-455 block mb-0.5 uppercase font-semibold">{language === "en" ? "Distances" : "Cự ly"}</span>
+                    <span className="font-semibold text-gray-700 dark:text-slate-200">{item.distances.length} {language === "en" ? "lines" : "dòng"}</span>
                   </div>
                   <div className="text-center border-x border-gray-100 dark:border-slate-800">
-                    <span className="text-[10px] text-gray-450 block mb-0.5 uppercase font-semibold">Số lượt bắn</span>
-                    <span className="font-semibold text-gray-700 dark:text-slate-200 font-mono">{item.shotCount} phát</span>
+                    <span className="text-[10px] text-gray-455 block mb-0.5 uppercase font-semibold">{language === "en" ? "Shots count" : "Số lượt bắn"}</span>
+                    <span className="font-semibold text-gray-700 dark:text-slate-200 font-mono">{item.shotCount} {language === "en" ? "shots" : "phát"}</span>
                   </div>
                   <div className="text-center">
-                    <span className="text-[10px] text-gray-450 block mb-0.5 uppercase font-semibold">VĐV (Thi/ĐK)</span>
+                    <span className="text-[10px] text-gray-455 block mb-0.5 uppercase font-semibold">{language === "en" ? "Athletes (Comp/Reg)" : "VĐV (Thi/ĐK)"}</span>
                     <span className="font-semibold text-gray-700 dark:text-slate-200 font-mono flex items-center justify-center gap-0.5" title="Số vận động viên trong bảng Ghi Điểm / Số vận động viên đăng ký trong giải đấu">
                       <Users className="w-3.5 h-3.5 text-gray-405" /> {item.athletes.length}/{item.masterCount || item.athletes.length}
                     </span>
@@ -445,13 +461,13 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                       <Trophy className="w-4 h-4" />
                     </div>
                     <div className="text-xs">
-                      <span className="text-[10px] text-amber-800 dark:text-amber-455 font-bold uppercase tracking-wide block">Nhà Vô Địch (Đầu bảng)</span>
+                      <span className="text-[10px] text-amber-800 dark:text-amber-455 font-bold uppercase tracking-wide block">{language === "en" ? "Champion (Leaderboard Top)" : "Nhà Vô Địch (Đầu bảng)"}</span>
                       <span className="font-bold text-gray-800 dark:text-slate-100">{championName}</span>{" "}
                       {championTeam && (
                         <span className="text-gray-500 dark:text-slate-400 font-medium">({championTeam})</span>
                       )}
                       <span className="text-amber-700 dark:text-amber-400 font-mono font-bold block">
-                        {maxScore} điểm
+                        {maxScore} {language === "en" ? "points" : "điểm"}
                       </span>
                     </div>
                   </div>
@@ -471,7 +487,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   {confirmRestoreId === item.id ? (
                     <div className="w-full bg-amber-50 dark:bg-amber-955 border border-amber-250 dark:border-amber-900/50 p-2 rounded-xl flex flex-col gap-1.5 text-xs text-amber-900 dark:text-amber-300 animate-fadeIn font-extrabold justify-center items-center">
                       <span className="uppercase text-[9px] text-amber-805 dark:text-amber-400 block text-center tracking-wide">
-                        ⚠️ Ghi đè điểm hiện tại?
+                        {language === "en" ? "⚠️ Overwrite current scores?" : "⚠️ Ghi đè điểm hiện tại?"}
                       </span>
                       <div className="flex gap-1.5 w-full">
                         <button
@@ -482,14 +498,14 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                           }}
                           className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10.5px] cursor-pointer"
                         >
-                          Có, đổi bảng
+                          {language === "en" ? "Yes, switch table" : "Có, đổi bảng"}
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmRestoreId(null)}
                           className="py-1 px-3 bg-gray-200 dark:bg-slate-800 text-slate-755 dark:text-slate-300 rounded font-bold text-[10.5px] cursor-pointer"
                         >
-                          Hủy
+                          {language === "en" ? "Cancel" : "Hủy"}
                         </button>
                       </div>
                     </div>
@@ -501,7 +517,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                       }}
                       className="w-full py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 rounded text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> Khôi phục bảng điểm này
+                      <RotateCcw className="w-3.5 h-3.5" /> {language === "en" ? "Restore this score table" : "Khôi phục bảng điểm này"}
                     </button>
                   )}
                 </div>
@@ -525,11 +541,17 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               <div className="p-2 bg-rose-50 dark:bg-rose-955/30 rounded-full">
                 <Trash2 className="w-5 h-5 animate-pulse" />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">Xóa Giải Đấu?</h3>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
+                {language === "en" ? "Delete Tournament?" : "Xóa Giải Đấu?"}
+              </h3>
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-              Bạn có chắc chắn muốn xóa bản ghi của giải đấu <strong>{history.find(h => h.id === confirmDeleteId)?.matchName || "này"}</strong>? Toàn bộ hồ sơ danh sách VĐV và điểm số đã lưu trữ sẽ bị xóa sạch hoàn toàn và không thể khôi phục.
+              {language === "en" ? (
+                <>Are you sure you want to delete the record of <strong>{history.find(h => h.id === confirmDeleteId)?.matchName || "this tournament"}</strong>? All archived athlete profiles and saved scores will be completely wiped out and cannot be restored.</>
+              ) : (
+                <>Bạn có chắc chắn muốn xóa bản ghi của giải đấu <strong>{history.find(h => h.id === confirmDeleteId)?.matchName || "này"}</strong>? Toàn bộ hồ sơ danh sách VĐV và điểm số đã lưu trữ sẽ bị xóa sạch hoàn toàn và không thể khôi phục.</>
+              )}
             </p>
 
             <div className="flex gap-2 justify-end font-sans mt-1">
@@ -538,7 +560,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 onClick={() => setConfirmDeleteId(null)}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
               <button
                 type="button"
@@ -548,7 +570,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 }}
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                Đồng ý xóa
+                {language === "en" ? "Confirm Delete" : "Đồng ý xóa"}
               </button>
             </div>
           </div>

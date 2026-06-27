@@ -30,6 +30,7 @@ import {
   CloudUpload
 } from "lucide-react";
 import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList, Club } from "./types";
+import { useLanguage } from "./context/LanguageContext";
 import { AthleteCard } from "./components/AthleteCard";
 import { Leaderboard } from "./components/Leaderboard";
 import { TeamLeaderboard } from "./components/TeamLeaderboard";
@@ -207,6 +208,7 @@ const PublishDraftModal: React.FC<{
   onOverwrite: (id: string) => void;
   onCreateNew: (name: string) => void;
 }> = ({ isOpen, onClose, draftPreviewItem, onlineTournaments, onOverwrite, onCreateNew }) => {
+  const { language } = useLanguage();
   const cleanName = draftPreviewItem.matchName.replace(/\s*\([^)]*\)\s*$/, "").trim();
   const [publishOption, setPublishOption] = React.useState<"overwrite" | "new">(onlineTournaments.length > 0 ? "overwrite" : "new");
   
@@ -234,8 +236,12 @@ const PublishDraftModal: React.FC<{
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex justify-between items-center">
           <div>
-            <h3 className="text-base font-black uppercase tracking-wider">Đăng bản nháp lên Online Cloud 🏆</h3>
-            <p className="text-[10px] text-indigo-100 mt-1">Đồng bộ bảng điểm lịch sử của thầy cô lên hệ thống trực tuyến</p>
+            <h3 className="text-base font-black uppercase tracking-wider">
+              {language === "en" ? "Publish draft to Online Cloud 🏆" : "Đăng bản nháp lên Online Cloud 🏆"}
+            </h3>
+            <p className="text-[10px] text-indigo-100 mt-1">
+              {language === "en" ? "Sync history scores to the online system" : "Đồng bộ bảng điểm lịch sử của thầy cô lên hệ thống trực tuyến"}
+            </p>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-all text-white cursor-pointer">
             <X size={18} />
@@ -245,16 +251,20 @@ const PublishDraftModal: React.FC<{
         {/* Content */}
         <div className="p-6 space-y-6">
           <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase block mb-1">BẢN NHÁP HIỆN TẠI</span>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase block mb-1">
+              {language === "en" ? "CURRENT DRAFT" : "BẢN NHÁP HIỆN TẠI"}
+            </span>
             <div className="text-xs font-black text-slate-800 dark:text-slate-200">{draftPreviewItem.matchName}</div>
             <div className="flex gap-4 mt-2 text-[10px] text-slate-500 font-mono">
-              <span>👤 {draftPreviewItem.athletes.length} VĐV</span>
-              <span>🎯 {draftPreviewItem.shotCount} Lượt bắn</span>
+              <span>👤 {draftPreviewItem.athletes.length} {language === "en" ? "Athletes" : "VĐV"}</span>
+              <span>🎯 {draftPreviewItem.shotCount} {language === "en" ? "Shots" : "Lượt bắn"}</span>
             </div>
           </div>
 
           <div className="space-y-4">
-            <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Chọn phương thức xuất bản</label>
+            <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              {language === "en" ? "Select Publishing Method" : "Chọn phương thức xuất bản"}
+            </label>
             
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -267,8 +277,12 @@ const PublishDraftModal: React.FC<{
                     : "border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-950"
                 } ${onlineTournaments.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                <div className="text-xs font-bold">GHI ĐÈ giải đấu online</div>
-                <div className="text-[9px] mt-1 opacity-80">Thay thế dữ liệu của một giải online sẵn có</div>
+                <div className="text-xs font-bold">
+                  {language === "en" ? "OVERWRITE online tournament" : "GHI ĐÈ giải đấu online"}
+                </div>
+                <div className="text-[9px] mt-1 opacity-80">
+                  {language === "en" ? "Replace data of an existing online tournament" : "Thay thế dữ liệu của một giải online sẵn có"}
+                </div>
               </button>
 
               <button
@@ -280,14 +294,20 @@ const PublishDraftModal: React.FC<{
                     : "border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-950"
                 }`}
               >
-                <div className="text-xs font-bold">TẠO GIẢI MỚI hoàn toàn</div>
-                <div className="text-[9px] mt-1 opacity-80">Khởi tạo và tải lên một giải đấu trực tuyến mới</div>
+                <div className="text-xs font-bold">
+                  {language === "en" ? "CREATE NEW tournament" : "TẠO GIẢI MỚI hoàn toàn"}
+                </div>
+                <div className="text-[9px] mt-1 opacity-80">
+                  {language === "en" ? "Initialize and upload a new online tournament" : "Khởi tạo và tải lên một giải đấu trực tuyến mới"}
+                </div>
               </button>
             </div>
 
             {publishOption === "overwrite" && onlineTournaments.length > 0 && (
               <div className="space-y-2 pt-2">
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Danh sách giải online (Được gợi ý giải gần tên nhất)</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {language === "en" ? "Online Tournaments List (Closest match suggested)" : "Danh sách giải online (Được gợi ý giải gần tên nhất)"}
+                </label>
                 <select
                   value={selectedTourId}
                   onChange={(e) => setSelectedTourId(e.target.value)}
@@ -295,22 +315,26 @@ const PublishDraftModal: React.FC<{
                 >
                   {onlineTournaments.map((tour) => (
                     <option key={tour.id} value={tour.id}>
-                      {tour.matchName} {tour.id === defaultTourId ? " ⭐️ (Gần đây nhất)" : ""}
+                      {tour.matchName} {tour.id === defaultTourId ? (language === "en" ? " ⭐️ (Most recent)" : " ⭐️ (Gần đây nhất)") : ""}
                     </option>
                   ))}
                 </select>
-                <p className="text-[9px] text-rose-500 font-medium">⚠️ Thầy cô lưu ý: Hành động này sẽ thay thế hoàn toàn điểm số của giải đấu được chọn.</p>
+                <p className="text-[9px] text-rose-500 font-medium">
+                  {language === "en" ? "⚠️ Notice: This action will completely overwrite scores of the selected tournament." : "⚠️ Thầy cô lưu ý: Hành động này sẽ thay thế hoàn toàn điểm số của giải đấu được chọn."}
+                </p>
               </div>
             )}
 
             {publishOption === "new" && (
               <div className="space-y-2 pt-2">
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tên giải đấu online mới</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {language === "en" ? "New Online Tournament Name" : "Tên giải đấu online mới"}
+                </label>
                 <input
                   type="text"
                   value={newTourName}
                   onChange={(e) => setNewTourName(e.target.value)}
-                  placeholder="Nhập tên giải đấu..."
+                  placeholder={language === "en" ? "Enter tournament name..." : "Nhập tên giải đấu..."}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
@@ -325,7 +349,7 @@ const PublishDraftModal: React.FC<{
             onClick={onClose}
             className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
           >
-            Đóng
+            {language === "en" ? "Close" : "Đóng"}
           </button>
           
           <button
@@ -339,7 +363,7 @@ const PublishDraftModal: React.FC<{
             }}
             className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md text-center"
           >
-            Đăng online 🚀
+            {language === "en" ? "Publish Online 🚀" : "Đăng online 🚀"}
           </button>
         </div>
       </div>
@@ -348,6 +372,7 @@ const PublishDraftModal: React.FC<{
 };
 
 export default function App() {
+  const { language, setLanguage, t } = useLanguage();
   const [isStorageRestoring, setIsStorageRestoring] = useState(true);
   const [isNewTournamentModalOpen, setIsNewTournamentModalOpen] = useState(false);
 
@@ -3153,7 +3178,30 @@ export default function App() {
       )}
 
       {/* Top Main Banner Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg border-b border-indigo-950" id="app-header">
+      <header className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg border-b border-indigo-950 relative" id="app-header">
+        {/* Language selector buttons at the very top right of the header */}
+        <div className="absolute top-2 right-4 flex items-center gap-1.5 z-30">
+          <button
+            onClick={() => setLanguage("vi")}
+            className={`px-2 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+              language === "vi"
+                ? "bg-amber-500 text-slate-950 shadow-sm"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            VIE
+          </button>
+          <button
+            onClick={() => setLanguage("en")}
+            className={`px-2 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+              language === "en"
+                ? "bg-amber-500 text-slate-950 shadow-sm"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            ENG
+          </button>
+        </div>
         <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3.5">
             <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner shrink-0">
@@ -3162,10 +3210,10 @@ export default function App() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] uppercase font-serif font-black tracking-widest bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow-sm">
-                  VSC OFFICIAL
+                  {t("app.vsc_official", "VSC OFFICIAL")}
                 </span>
                 <span className="text-[10px] uppercase font-mono tracking-widest text-indigo-300 font-black">
-                  App v2.5 Premium
+                  {t("app.version", "App v2.5 Premium")}
                 </span>
                 {activeHistoryId && activeHistoryId.startsWith("tour-") && (
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
@@ -3178,24 +3226,24 @@ export default function App() {
                     {networkStatus === "offline" ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shrink-0" />
-                        Ngoại tuyến (Lưu Cache)
+                        {t("app.offline_mode", "Ngoại tuyến (Lưu Cache)")}
                       </>
                     ) : dbHasPendingWrites ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-spin shrink-0" />
-                        Đang đồng bộ Cloud...
+                        {t("app.syncing", "Đang đồng bộ Cloud...")}
                       </>
                     ) : (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        Đồng bộ Cloud OK
+                        {t("app.sync_ok", "Đồng bộ Cloud OK")}
                       </>
                     )}
                   </span>
                 )}
               </div>
               <h1 className="text-xl sm:text-2xl font-black mt-1 tracking-tight text-white font-sans uppercase leading-none">
-                Vietnam Slingshot Championship
+                {t("app.title", "Vietnam Slingshot Championship")}
               </h1>
               {/* Select mode Switch: Cá nhân / Đồng Đội dưới tên App */}
               {(tournamentType === "combined" || tournamentType === "individual" || tournamentType === "team") && (
@@ -3221,7 +3269,7 @@ export default function App() {
                         }`}
                         title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
                       >
-                        Cá Nhân
+                        {t("dashboard.individual", "Cá Nhân")}
                       </button>
                     )}
                     {(tournamentType === "combined" || tournamentType === "team") && (
@@ -3244,7 +3292,7 @@ export default function App() {
                         }`}
                         title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
                       >
-                        Đồng Đội
+                        {t("dashboard.team", "Đồng Đội")}
                       </button>
                     )}
                   </div>
@@ -3283,7 +3331,7 @@ export default function App() {
                   </span>
                 </div>
               ) : (
-                <span className="text-[10px] font-bold text-gray-400 font-sans uppercase">Chế độ Khách (Spectator)</span>
+                <span className="text-[10px] font-bold text-gray-400 font-sans uppercase">{t("app.guest_mode", "Chế độ Khách (Spectator)")}</span>
               )}
 
               {currentUser ? (
@@ -3291,9 +3339,9 @@ export default function App() {
                   type="button"
                   onClick={() => auth.signOut()}
                   className="text-[10px] font-black text-rose-450 hover:text-rose-300 uppercase underline cursor-pointer hover:scale-102 transition-all p-0.5 font-sans"
-                  title="Thoát tài khoản"
+                  title={t("btn.logout", "Thoát tài khoản")}
                 >
-                  Thoát
+                  {t("btn.logout_short", "Thoát")}
                 </button>
               ) : (
                 <button 
@@ -3301,19 +3349,19 @@ export default function App() {
                   onClick={() => setIsAuthModalOpen(true)}
                   className="text-[11px] font-black text-indigo-300 hover:text-indigo-100 uppercase underline cursor-pointer hover:scale-102 transition-all p-0.5 shrink-0 font-sans"
                 >
-                  Đăng Nhập
+                  {t("btn.login", "Đăng Nhập")}
                 </button>
               )}
             </div>
 
             {activeHistoryId ? (
               <div className="flex items-center gap-2 bg-black/15 p-2 rounded-lg border border-white/10 w-full">
-                <span className="text-xs text-blue-200 font-semibold px-2 shrink-0">Giải đấu:</span>
+                <span className="text-xs text-blue-200 font-semibold px-2 shrink-0">{t("app.viewing_tournament", "Giải đấu: ")}</span>
                 <input
                   type="text"
                   value={headerTempName}
                   onChange={(e) => setHeaderTempName(e.target.value)}
-                  placeholder="Nhập tên giải..."
+                  placeholder={language === "en" ? "Enter tournament name..." : "Nhập tên giải..."}
                   className="bg-transparent text-sm font-bold focus:outline-none placeholder-blue-300 w-full text-white min-w-[120px] flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && headerTempName.trim() !== matchName.trim() && headerTempName.trim().length > 0) {
@@ -3327,7 +3375,7 @@ export default function App() {
                     onClick={handleSaveHeaderMatchName}
                     className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-black uppercase rounded transition-all shrink-0 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    Xác nhận
+                    {t("btn.confirm", "Xác nhận")}
                   </button>
                 )}
               </div>
@@ -3335,8 +3383,8 @@ export default function App() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 bg-black/15 p-2 rounded-lg border border-white/5 w-full">
                 <span className="text-[11px] text-zinc-400 font-semibold italic text-center leading-tight">
                   {currentUser 
-                    ? "Chưa chọn giải đấu. Chọn một giải từ danh sách bên dưới hoặc tạo mới."
-                    : "Bạn đang xem ở chế độ Public. Vui lòng chọn một giải đấu từ danh sách bên dưới để xem trực tiếp (Live Board & Leaderboard). Đăng nhập để tự tạo giải của riêng mình!"
+                    ? (language === "en" ? "No tournament selected. Select one from the list below or create a new one." : "Chưa chọn giải đấu. Chọn một giải từ danh sách bên dưới hoặc tạo mới.")
+                    : (language === "en" ? "You are in Spectator Mode. Please select a tournament from the list below to watch live standings & logs. Login to host your own tournament!" : "Bạn đang xem ở chế độ Public. Vui lòng chọn một giải đấu từ danh sách bên dưới để xem trực tiếp (Live Board & Leaderboard). Đăng nhập để tự tạo giải của riêng mình!")
                   }
                 </span>
                 {currentUser && (
@@ -3406,7 +3454,9 @@ export default function App() {
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-501 dark:text-slate-400">
-                    {isOnlineTournament ? "Giải đấu trực tuyến (Cloud)" : "Giải đấu nội bộ (Offline)"}
+                    {isOnlineTournament 
+                      ? (language === "en" ? "Online Tournament (Cloud)" : "Giải đấu trực tuyến (Cloud)") 
+                      : (language === "en" ? "Local Tournament (Offline)" : "Giải đấu nội bộ (Offline)")}
                   </span>
                   <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
                     userRole === "admin"
@@ -3415,18 +3465,22 @@ export default function App() {
                         ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                         : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                   }`}>
-                    {userRole === "admin" ? "Admin Board (Ban Tổ Chức)" : userRole === "referee" ? "Referee Board (Trọng Tài)" : "User Board (Người Xem / Spectator)"}
+                    {userRole === "admin" 
+                      ? (language === "en" ? "Admin Board (Organizer)" : "Admin Board (Ban Tổ Chức)") 
+                      : userRole === "referee" 
+                        ? (language === "en" ? "Referee Board (Referee)" : "Referee Board (Trọng Tài)") 
+                        : (language === "en" ? "Spectator Board (Spectator)" : "User Board (Người Xem / Spectator)")}
                   </span>
                 </div>
                 <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-1">
-                  Đang xem giải: <strong className="text-indigo-650 dark:text-indigo-400">{matchName}</strong>
+                  {language === "en" ? "Active Tournament: " : "Đang xem giải: "}<strong className="text-indigo-650 dark:text-indigo-400">{matchName}</strong>
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal mt-1 max-w-4xl">
                   {userRole === "admin" 
-                    ? "Thầy cô đang xem dưới tư cách Ban Tổ Chức (Admin Board), có toàn quyền quản lý cấu hình, thêm bớt cự ly, danh sách vận động viên, chỉ định trọng tài và sửa đổi điểm số."
+                    ? (language === "en" ? "You are viewing as the Organizing Committee (Admin Board), with full authority to manage configurations, distances, athletes, assign referees, and edit scores." : "Thầy cô đang xem dưới tư cách Ban Tổ Chức (Admin Board), có toàn quyền quản lý cấu hình, thêm bớt cự ly, danh sách vận động viên, chỉ định trọng tài và sửa đổi điểm số.")
                     : userRole === "referee"
-                      ? "Bạn đang xem dưới quyền Trọng Tài (Referee Board), được quyền nhập điểm và ghi điểm trực tiếp ở các cự ly của giải đấu nhưng không thể thay đổi thông số cấu hình giải."
-                      : "Bạn đang xem dưới tư cách Khán Giả (User Board / Spectator View). Bảng điểm hiển thị chế độ Chỉ Xem và cập nhật trực tiếp thời gian thực siêu tốc mỗi khi trọng tài lưu điểm mới."
+                      ? (language === "en" ? "You are viewing under Referee rights (Referee Board), authorized to input and record scores directly at the tournament distances, but cannot change tournament configuration parameters." : "Bạn đang xem dưới quyền Trọng Tài (Referee Board), được quyền nhập điểm và ghi điểm trực tiếp ở các cự ly của giải đấu nhưng không thể thay đổi thông số cấu hình giải.")
+                      : (language === "en" ? "You are viewing as a Spectator (User Board / Spectator View). The leaderboard is Read-Only and updates live in real-time whenever a referee saves new scores." : "Bạn đang xem dưới tư cách Khán Giả (User Board / Spectator View). Bảng điểm hiển thị chế độ Chỉ Xem và cập nhật trực tiếp thời gian thực siêu tốc mỗi khi trọng tài lưu điểm mới.")
                   }
                 </p>
               </div>
@@ -3437,7 +3491,7 @@ export default function App() {
                 onClick={() => setShowExitConfirmModal(true)}
                 className="w-full md:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-350 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-705 dark:text-slate-250 text-xs font-black uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-transparent shadow-xs"
               >
-                <Home className="w-3.5 h-3.5" /> Thoát Giải Đấu
+                <Home className="w-3.5 h-3.5" /> {language === "en" ? "Exit Tournament" : "Thoát Giải Đấu"}
               </button>
               {activeHistoryId.startsWith("tour-") && (
                 <button
@@ -3447,9 +3501,9 @@ export default function App() {
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                       : "bg-indigo-600 hover:bg-indigo-700 text-white"
                   }`}
-                  title="Copy link chia sẻ giải đấu trực tuyến này"
+                  title={language === "en" ? "Copy link to share this online tournament" : "Copy link chia sẻ giải đấu trực tuyến này"}
                 >
-                  <Share2 className="w-3.5 h-3.5" /> {isShareCopied ? "Đã copy link!" : "Chia sẻ giải đấu"}
+                  <Share2 className="w-3.5 h-3.5" /> {isShareCopied ? (language === "en" ? "Link Copied!" : "Đã copy link!") : (language === "en" ? "Share Tournament" : "Chia sẻ giải đấu")}
                 </button>
               )}
             </div>
@@ -3470,7 +3524,7 @@ export default function App() {
               }`}
               id="tab-home-btn"
             >
-              <Home className="w-4 h-4 text-indigo-505" /> Trang Chủ
+              <Home className="w-4 h-4 text-indigo-505" /> {language === "en" ? "Home" : "Trang Chủ"}
             </button>
 
             {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
@@ -3483,7 +3537,7 @@ export default function App() {
                 }`}
                 id="tab-input-scores-btn"
               >
-                <ClipboardCheck className="w-4 h-4" /> {competitionMode === "team" ? "Nhập Điểm Team" : "Nhập Điểm"}
+                <ClipboardCheck className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Enter Team Scores" : "Nhập Điểm Team") : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
               </button>
             )}
 
@@ -3497,7 +3551,7 @@ export default function App() {
                 }`}
                 id="tab-scoring-btn"
               >
-                <Target className="w-4 h-4" /> {competitionMode === "team" ? "Ghi Điểm Team" : "Ghi Điểm"}
+                <Target className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Record Team Scores" : "Ghi Điểm Team") : (language === "en" ? "Record Scores" : "Ghi Điểm")}
               </button>
             )}
 
@@ -3511,7 +3565,7 @@ export default function App() {
                 }`}
                 id="tab-dashboard-btn"
               >
-                <TrendingUp className="w-4 h-4" /> Tổng Hợp
+                <TrendingUp className="w-4 h-4" /> {language === "en" ? "Overview" : "Tổng Hợp"}
               </button>
             )}
 
@@ -3525,7 +3579,7 @@ export default function App() {
                 }`}
                 id="tab-leaderboard-btn"
               >
-                <Trophy className="w-4 h-4" /> {competitionMode === "team" ? "Bảng Cá Nhân Team" : "Bảng Cá Nhân"}
+                <Trophy className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Team Individual Standings" : "Bảng Cá Nhân Team") : (language === "en" ? "Individual Standings" : "Bảng Cá Nhân")}
               </button>
             )}
 
@@ -3539,7 +3593,7 @@ export default function App() {
                 }`}
                 id="tab-teams-btn"
               >
-                <Shield className="w-4 h-4" /> {competitionMode === "team" ? "Bảng Đồng Đội Team" : "Bảng Đồng Đội"}
+                <Shield className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Team Standings" : "Bảng Đồng Đội Team") : (language === "en" ? "Club Standings" : "Bảng Đồng Đội")}
               </button>
             )}
 
@@ -3553,7 +3607,7 @@ export default function App() {
                 }`}
                 id="tab-settings-btn"
               >
-                <Settings className="w-4 h-4" /> Cấu Hình
+                <Settings className="w-4 h-4" /> {language === "en" ? "Settings" : "Cấu Hình"}
               </button>
             )}
 
@@ -3567,7 +3621,7 @@ export default function App() {
                 }`}
                 id="tab-athletes-btn"
               >
-                <Users className="w-4 h-4" /> Quản Lý VĐV
+                <Users className="w-4 h-4" /> {language === "en" ? "Roster" : "Quản Lý VĐV"}
               </button>
             )}
 
@@ -3581,7 +3635,7 @@ export default function App() {
                 }`}
                 id="tab-history-btn"
               >
-                <History className="w-4 h-4" /> Lịch Sử
+                <History className="w-4 h-4" /> {language === "en" ? "Backups" : "Lịch Sử"}
                 {history.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-amber-500 text-white border-2 border-white rounded-full text-[9px] font-bold w-4.5 h-4.5 flex items-center justify-center">
                     {history.length}

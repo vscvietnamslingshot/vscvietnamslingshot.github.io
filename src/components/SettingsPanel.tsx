@@ -5,6 +5,7 @@ import { Settings, Plus, Edit2, Trash2, Calendar, FileDown, FileUp, RefreshCw, T
 import { getHitCount } from "../utils/qualification";
 import { auth } from "../firebase";
 import { createOnlineTournament, updateOnlineTournament } from "../lib/firebaseService";
+import { useLanguage } from "../context/LanguageContext";
 
 interface SettingsPanelProps {
   matchName: string;
@@ -109,6 +110,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   tournamentType = "combined",
   setTournamentType,
 }) => {
+  const { language } = useLanguage();
   const [tempMatchName, setTempMatchName] = useState(matchName);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -484,7 +486,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b pb-2 mb-1">
           <Settings className="w-4.5 h-4.5 text-blue-600" />
-          Cấu Hình Giải Đấu
+          {language === "en" ? "Tournament Configuration" : "Cấu Hình Giải Đấu"}
         </h3>
 
         {isTournamentLocked ? (
@@ -493,53 +495,53 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-150 dark:border-emerald-900/60 p-2.5 rounded-xl text-xs font-bold text-emerald-850 dark:text-emerald-400">
               <span className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider">
                 <Lock className="w-3.5 h-3.5" /> 
-                Cấu hình đã khóa
+                {language === "en" ? "Configuration Locked" : "Cấu hình đã khóa"}
               </span>
-              <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900 px-2 py-0.5 rounded text-emerald-800 dark:text-emerald-300 font-extrabold">BẢO VỆ AT</span>
+              <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900 px-2 py-0.5 rounded text-emerald-800 dark:text-emerald-300 font-extrabold">{language === "en" ? "SECURE MODE" : "BẢO VỆ AT"}</span>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-gray-150 dark:border-slate-800 space-y-2">
               <div>
-                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">ID GIẢI ĐẤU:</span>
+                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">{language === "en" ? "TOURNAMENT ID:" : "ID GIẢI ĐẤU:"}</span>
                 <span className="text-xs font-mono font-black text-slate-800 dark:text-white bg-slate-200/60 dark:bg-slate-900 px-1.5 py-0.5 rounded leading-tight inline-block mt-0.5">{tournamentId}</span>
               </div>
               
               <div>
-                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">TÊN GIẢI ĐẤU:</span>
+                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">{language === "en" ? "TOURNAMENT NAME:" : "TÊN GIẢI ĐẤU:"}</span>
                 <span className="text-xs font-black text-indigo-700 dark:text-indigo-400 block mt-0.5">{matchName}</span>
               </div>
 
               <div>
-                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">CƠ CHẾ GIẢI ĐẤU:</span>
+                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">{language === "en" ? "TOURNAMENT FORMAT:" : "CƠ CHẾ GIẢI ĐẤU:"}</span>
                 <span className="text-xs font-black text-amber-600 dark:text-amber-400 block mt-0.5">
-                  {tournamentType === "individual" && "Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)"}
-                  {tournamentType === "team" && "Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)"}
-                  {tournamentType === "combined" && "Cá Nhân + Đồng Đội (Kết Hợp)"}
+                  {tournamentType === "individual" && (language === "en" ? "Individual (Individual view only)" : "Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)")}
+                  {tournamentType === "team" && (language === "en" ? "Team (Team view only)" : "Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)")}
+                  {tournamentType === "combined" && (language === "en" ? "Individual + Team (Combined)" : "Cá Nhân + Đồng Đội (Kết Hợp)")}
                 </span>
               </div>
 
               <div>
-                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">CHI TIẾT & LUẬT BẮN:</span>
-                <div className="text-xs text-slate-650 dark:text-gray-300 italic mt-0.5 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed pr-1 font-medium">{tournamentDesc || "Chưa có diễn giải chi tiết."}</div>
+                <span className="block text-[10px] text-gray-500 font-extrabold uppercase tracking-wide">{language === "en" ? "DETAILS & SCORING RULES:" : "CHI TIẾT & LUẬT BẮN:"}</span>
+                <div className="text-xs text-slate-650 dark:text-gray-300 italic mt-0.5 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed pr-1 font-medium">{tournamentDesc || (language === "en" ? "No description provided." : "Chưa có diễn giải chi tiết.")}</div>
               </div>
 
               <div className={`grid ${
                 tournamentType === "combined" ? "grid-cols-3" : "grid-cols-2"
               } gap-2 pt-1 border-t border-gray-100 dark:border-slate-800/80`}>
                 <div>
-                  <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">VĐV / LANE (X)</span>
+                  <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">{language === "en" ? "ATHLETES / LANE" : "VĐV / LANE (X)"}</span>
                   <span className="text-xs font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 block">{laneCapacity}</span>
                 </div>
                 {tournamentType !== "team" && (
                   <div>
-                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT CÁ NHÂN</span>
-                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5 block">{shotsCount} lượt</span>
+                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">{language === "en" ? "INDIVIDUAL SHOTS" : "CỘT CÁ NHÂN"}</span>
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-mono mt-0.5 block">{shotsCount} {language === "en" ? "shots" : "lượt"}</span>
                   </div>
                 )}
                 {tournamentType !== "individual" && (
                   <div>
-                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">CỘT ĐỒNG ĐỘI</span>
-                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 block">{teamShotsCount} lượt</span>
+                    <span className="block text-[8px] text-gray-500 font-extrabold uppercase tracking-widest leading-normal">{language === "en" ? "TEAM SHOTS" : "CỘT ĐỒNG ĐỘI"}</span>
+                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 block">{teamShotsCount} {language === "en" ? "shots" : "lượt"}</span>
                   </div>
                 )}
               </div>
@@ -559,7 +561,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className="w-full py-1.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-gray-300 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98"
             >
               <Unlock className="w-3.5 h-3.5 text-amber-500" />
-              Mở Khóa Chỉnh Sửa Nhanh
+              {language === "en" ? "Unlock Quick Edit" : "Mở Khóa Chỉnh Sửa Nhanh"}
             </button>
           </div>
         ) : (
@@ -568,16 +570,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 p-2.5 rounded-xl text-xs font-bold text-amber-850 dark:text-amber-400">
               <span className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider">
                 <Unlock className="w-3.5 h-3.5" /> 
-                Chế độ chỉnh sửa đang mở
+                {language === "en" ? "Editing Mode Active" : "Chế độ chỉnh sửa đang mở"}
               </span>
-              <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded font-extrabold uppercase animate-pulse">Chú ý chạm</span>
+              <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded font-extrabold uppercase animate-pulse">{language === "en" ? "WARNING" : "Chú ý chạm"}</span>
             </div>
 
             {/* ID Input */}
             <div>
               <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
-                <span>Mã ID Giải Đấu</span>
-                <span className="text-[8px] bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400 px-1 py-0.5 rounded font-black font-mono">LỢI ÍCH TỰ ĐỘNG</span>
+                <span>{language === "en" ? "Tournament ID Code" : "Mã ID Giải Đấu"}</span>
+                <span className="text-[8px] bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-gray-400 px-1 py-0.5 rounded font-black font-mono">{language === "en" ? "AUTO GENERATED" : "LỢI ÍCH TỰ ĐỘNG"}</span>
               </label>
               <input
                 type="text"
@@ -589,13 +591,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {/* Tournament Name Input */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tên Giải Đấu</label>
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Tournament Name" : "Tên Giải Đấu"}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={tempMatchName}
                   onChange={(e) => setTempMatchName(e.target.value)}
-                  placeholder="e.g. Giải Slingshot Việt Nam"
+                  placeholder={language === "en" ? "e.g. Vietnam Slingshot Championship" : "e.g. Giải Slingshot Việt Nam"}
                   className="flex-1 px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                 />
                 {tempMatchName.trim() !== matchName.trim() && tempMatchName.trim().length > 0 && (
@@ -604,7 +606,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     onClick={handleSaveMatchName}
                     className="px-3 bg-blue-605 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0"
                   >
-                    Lưu
+                    {language === "en" ? "Save" : "Lưu"}
                   </button>
                 )}
               </div>
@@ -612,7 +614,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {/* Tournament Type Select */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Cơ Chế Giải Đấu</label>
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Tournament Format" : "Cơ Chế Giải Đấu"}</label>
               <select
                 value={tournamentType}
                 onChange={(e) => {
@@ -628,16 +630,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 }}
                 className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
               >
-                <option value="individual">Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)</option>
-                <option value="team">Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)</option>
-                <option value="combined">Cá Nhân + Đồng Đội (Kết Hợp)</option>
+                <option value="individual">{language === "en" ? "Individual (Individual view only)" : "Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)"}</option>
+                <option value="team">{language === "en" ? "Team (Team view only)" : "Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)"}</option>
+                <option value="combined">{language === "en" ? "Individual + Team (Combined)" : "Cá Nhân + Đồng Đội (Kết Hợp)"}</option>
               </select>
             </div>
 
             {/* Match Dates Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Ngày Thi Đấu</label>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Start Date" : "Ngày Thi Đấu"}</label>
                 <input
                   type="date"
                   value={startDate}
@@ -646,7 +648,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Ngày Kết Thúc</label>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "End Date" : "Ngày Kết Thúc"}</label>
                 <input
                   type="date"
                   value={endDate}
@@ -658,7 +660,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {/* Description Textarea */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Diễn Giải / Luật Bắn</label>
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Description & Rules" : "Diễn Giải / Luật Bắn"}</label>
               <textarea
                 value={tournamentDesc}
                 onChange={(e) => {
@@ -666,14 +668,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   localStorage.setItem("slingshot_active_tournament_desc", e.target.value);
                 }}
                 rows={3}
-                placeholder="Nhập luật bắn, thể thức, hoặc lưu ý..."
+                placeholder={language === "en" ? "Enter rules, formats, or notes..." : "Nhập luật bắn, thể thức, hoặc lưu ý..."}
                 className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-505 font-medium leading-relaxed"
               />
             </div>
 
             {/* Show lane capacity selector as an editable element when unlocked */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Số VĐV / LANE (x)</label>
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Athletes per LANE" : "Số VĐV / LANE (x)"}</label>
               <input
                 type="number"
                 min={2}
@@ -692,8 +694,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className={`grid grid-cols-1 ${shotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
                 <div>
                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
-                    <span>Số lượt Cá Nhân:</span>
-                    <span className="text-blue-600 font-black font-mono">{shotsCount} lượt</span>
+                    <span>{language === "en" ? "Individual Rounds:" : "Số lượt Cá Nhân:"}</span>
+                    <span className="text-blue-600 font-black font-mono">{shotsCount} {language === "en" ? "rds" : "lượt"}</span>
                   </label>
                   <div className="w-full">
                     <input
@@ -714,7 +716,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <>
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                        Số viên MAX (Lượt Cá Nhân):
+                        {language === "en" ? "MAX shots (Individual Rd):" : "Số viên MAX (Lượt Cá Nhân):"}
                       </label>
                       <input
                         type="number"
@@ -723,13 +725,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         value={directMaxShots}
                         onChange={(e) => setDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
                         className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                        placeholder="Ví dụ: 10, 15, 20..."
+                        placeholder={language === "en" ? "e.g. 10, 15, 20..." : "Ví dụ: 10, 15, 20..."}
                       />
                     </div>
 
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                        Số điểm MAX (Cá Nhân):
+                        {language === "en" ? "MAX Points (Individual):" : "Số điểm MAX (Cá Nhân):"}
                       </label>
                       <input
                         type="number"
@@ -745,7 +747,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           }
                         }}
                         className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                        placeholder="Trống (Tính theo số viên)"
+                        placeholder={language === "en" ? "Empty (Calculated by hits)" : "Trống (Tính theo số viên)"}
                       />
                     </div>
                   </>
@@ -758,8 +760,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className={`grid grid-cols-1 ${teamShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
                 <div>
                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
-                    <span>Số lượt Đồng Đội:</span>
-                    <span className="text-indigo-600 font-black font-mono">{teamShotsCount} lượt</span>
+                    <span>{language === "en" ? "Team Rounds:" : "Số lượt Đồng Đội:"}</span>
+                    <span className="text-indigo-600 font-black font-mono">{teamShotsCount} {language === "en" ? "rds" : "lượt"}</span>
                   </label>
                   <div className="w-full">
                     <input
@@ -780,7 +782,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <>
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                        Số viên MAX (Lượt Đồng Đội):
+                        {language === "en" ? "MAX shots (Team Rd):" : "Số viên MAX (Lượt Đồng Đội):"}
                       </label>
                       <input
                         type="number"
@@ -789,13 +791,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         value={teamDirectMaxShots}
                         onChange={(e) => setTeamDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
                         className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                        placeholder="Ví dụ: 10, 15, 20..."
+                        placeholder={language === "en" ? "e.g. 10, 15, 20..." : "Ví dụ: 10, 15, 20..."}
                       />
                     </div>
 
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                        Số điểm MAX (Đồng Đội):
+                        {language === "en" ? "MAX Points (Team):" : "Số điểm MAX (Đồng Đội):"}
                       </label>
                       <input
                         type="number"
@@ -811,7 +813,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           }
                         }}
                         className="w-full px-3 py-1 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-xs"
-                        placeholder="Trống (Tính theo số viên)"
+                        placeholder={language === "en" ? "Empty (Calculated by hits)" : "Trống (Tính theo số viên)"}
                       />
                     </div>
                   </>
@@ -825,21 +827,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 const changes: string[] = [];
                 const currentName = tempMatchName.trim();
                 if (currentName && currentName !== snapshotMatchName) {
-                  changes.push(`Tên giải đấu: "${snapshotMatchName || 'Trống'}" ➔ "${currentName}"`);
+                  changes.push(language === "en" 
+                    ? `Tournament name: "${snapshotMatchName || 'Empty'}" ➔ "${currentName}"`
+                    : `Tên giải đấu: "${snapshotMatchName || 'Trống'}" ➔ "${currentName}"`
+                  );
                 }
                 const currentDesc = tournamentDesc.trim();
                 const snapDesc = snapshotTournamentDesc.trim();
                 if (currentDesc !== snapDesc) {
-                  changes.push(`Diễn giải / Luật bắn: Thay đổi nội dung`);
+                  changes.push(language === "en" 
+                    ? `Description / Rules: Updated content`
+                    : `Diễn giải / Luật bắn: Thay đổi nội dung`
+                  );
                 }
                 if (laneCapacity !== snapshotLaneCapacity) {
-                  changes.push(`Số VĐV / LANE (x): ${snapshotLaneCapacity} ➔ ${laneCapacity}`);
+                  changes.push(language === "en"
+                    ? `Athletes per LANE: ${snapshotLaneCapacity} ➔ ${laneCapacity}`
+                    : `Số VĐV / LANE (x): ${snapshotLaneCapacity} ➔ ${laneCapacity}`
+                  );
                 }
                 if (shotsCount !== snapshotShotsCount) {
-                  changes.push(`Số lượt Cá Nhân: ${snapshotShotsCount} lượt ➔ ${shotsCount} lượt`);
+                  changes.push(language === "en"
+                    ? `Individual Rounds: ${snapshotShotsCount} rds ➔ ${shotsCount} rds`
+                    : `Số lượt Cá Nhân: ${snapshotShotsCount} lượt ➔ ${shotsCount} lượt`
+                  );
                 }
                 if (teamShotsCount !== snapshotTeamShotsCount) {
-                  changes.push(`Số lượt Đồng Đội: ${snapshotTeamShotsCount} lượt ➔ ${teamShotsCount} lượt`);
+                  changes.push(language === "en"
+                    ? `Team Rounds: ${snapshotTeamShotsCount} rds ➔ ${teamShotsCount} rds`
+                    : `Số lượt Đồng Đội: ${snapshotTeamShotsCount} lượt ➔ ${teamShotsCount} lượt`
+                  );
                 }
 
                 if (changes.length > 0) {
@@ -853,7 +870,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98"
             >
               <Lock className="w-3.5 h-3.5" />
-              Khóa Cấu Hình Lại
+              {language === "en" ? "Lock Configuration" : "Khóa Cấu Hình Lại"}
             </button>
           </div>
         )}
@@ -866,7 +883,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             className="w-full py-1.5 px-2.5 text-xs font-bold bg-amber-50 hover:bg-amber-100 active:scale-98 text-amber-700 dark:bg-amber-950/10 dark:text-amber-400 dark:border-amber-900/60 border border-amber-200 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" /> 
-            Reset Toàn Bộ Điểm Số
+            {language === "en" ? "Reset All Scores" : "Reset Toàn Bộ Điểm Số"}
           </button>
 
           {/* Trigger the Modal Popup configuration for clean creation flow */}
@@ -892,7 +909,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-rose-500/10 active:scale-95"
           >
             <PlusCircle className="w-4.5 h-4.5 animate-pulse" /> 
-            Bắt đầu giải đấu mới (Mở Modal)
+            {language === "en" ? "Start New Tournament (Open Modal)" : "Bắt đầu giải đấu mới (Mở Modal)"}
           </button>
         </div>
 
@@ -900,14 +917,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="border-t border-gray-150 pt-4 flex flex-col gap-3">
           <span className="text-xs font-black text-slate-800 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wide">
             <FileDown className="text-blue-600 w-4.5 h-4.5" />
-            Lưu Trữ, Xuất / Nhập Backup
+            {language === "en" ? "Storage, Export / Import Backup" : "Lưu Trữ, Xuất / Nhập Backup"}
           </span>
 
           <button
             onClick={handleExportCSV}
             className="w-full py-2 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
           >
-            <FileDown className="w-4 h-4" /> Xuất Bảng Điểm CSV (Excel)
+            <FileDown className="w-4 h-4" /> {language === "en" ? "Export Scoreboard CSV (Excel)" : "Xuất Bảng Điểm CSV (Excel)"}
           </button>
 
           <div className="flex gap-2">
@@ -915,14 +932,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               onClick={handleExportJSON}
               className="flex-1 py-1.5 px-2 text-[11.5px] bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 border rounded font-extrabold flex items-center justify-center gap-1 transition-colors cursor-pointer text-center"
             >
-              <FileDown className="w-3.5 h-3.5" /> Tải JSON
+              <FileDown className="w-3.5 h-3.5" /> {language === "en" ? "Download JSON" : "Tải JSON"}
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex-1 py-1.5 px-2 text-[11.5px] bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900 rounded font-black flex items-center justify-center gap-1 transition-colors cursor-pointer text-center"
             >
-              <FileUp className="w-3.5 h-3.5" /> Phục Hồi
+              <FileUp className="w-3.5 h-3.5" /> {language === "en" ? "Restore" : "Phục Hồi"}
             </button>
             <input
               ref={fileInputRef}
@@ -943,10 +960,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       setImportSuccess(true);
                       setTimeout(() => setImportSuccess(false), 4500);
                     } else {
-                      setImportError("Mẫu sao lưu .json không tương thích!");
+                      setImportError(language === "en" ? "Incompatible JSON backup template!" : "Mẫu sao lưu .json không tương thích!");
                     }
                   } catch (err) {
-                    setImportError("Lỗi cấu trúc tệp phục hồi!");
+                    setImportError(language === "en" ? "Restore file structure error!" : "Lỗi cấu trúc tệp phục hồi!");
                   }
                 };
                 reader.readAsText(file);
@@ -960,7 +977,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <span className="text-[10px] text-red-650 font-bold block bg-red-50 p-2 rounded border border-red-200 text-center animate-fadeIn">{importError}</span>
           )}
           {importSuccess && (
-            <span className="text-[10px] text-emerald-700 font-black block bg-emerald-50 p-2 rounded border border-emerald-200 text-center animate-fadeIn">✓ Đã phục hồi dữ liệu hoàn chỉnh!</span>
+            <span className="text-[10px] text-emerald-700 font-black block bg-emerald-50 p-2 rounded border border-emerald-200 text-center animate-fadeIn">{language === "en" ? "✓ Fully restored tournament data!" : "✓ Đã phục hồi dữ liệu hoàn chỉnh!"}</span>
           )}
 
           {/* CLOUD REFEREE MANAGER */}
@@ -969,10 +986,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {/* SUB ADMINS MANAGER */}
               <div className="flex flex-col gap-3 pb-4 border-b border-gray-150 dark:border-slate-800/60">
                 <span className="text-[11px] font-black text-indigo-500 uppercase tracking-widest block flex items-center gap-1">
-                  <Shield className="w-4 h-4" /> QUẢN LÝ SUB ADMIN (CLOUD)
+                  <Shield className="w-4 h-4" /> {language === "en" ? "MANAGE SUB ADMINS (CLOUD)" : "QUẢN LÝ SUB ADMIN (CLOUD)"}
                 </span>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                  Nhập email của Sub Admin để cấp toàn quyền quản trị cho giải đấu trực tuyến này.
+                  {language === "en" ? "Enter Sub Admin email to grant full administration rights for this online tournament." : "Nhập email của Sub Admin để cấp toàn quyền quản trị cho giải đấu trực tuyến này."}
                 </p>
                 <div className="flex gap-1.5 font-sans">
                   <input
@@ -988,7 +1005,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         if (emailStr && onUpdateSubAdmins) {
                           const currentSubAdmins = subAdmins || [];
                           if (currentSubAdmins.includes(emailStr)) {
-                            alert("Email Sub Admin này đã tồn tại.");
+                            alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
                             return;
                           }
                           onUpdateSubAdmins([...currentSubAdmins, emailStr]);
@@ -1005,18 +1022,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       if (emailStr && onUpdateSubAdmins) {
                         const currentSubAdmins = subAdmins || [];
                         if (currentSubAdmins.includes(emailStr)) {
-                          alert("Email Sub Admin này đã tồn tại.");
+                          alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
                           return;
                         }
                         onUpdateSubAdmins([...currentSubAdmins, emailStr]);
                         inputEl.value = "";
                       } else if (!emailStr) {
-                        alert("Vui lòng nhập email hợp lệ!");
+                        alert(language === "en" ? "Please enter a valid email!" : "Vui lòng nhập email hợp lệ!");
                       }
                     }}
                     className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer"
                   >
-                    Thêm
+                    {language === "en" ? "Add" : "Thêm"}
                   </button>
                 </div>
                 {subAdmins && subAdmins.length > 0 ? (
@@ -1032,7 +1049,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             }
                           }}
                           className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
-                          title="Xóa Sub Admin"
+                          title={language === "en" ? "Delete Sub Admin" : "Xóa Sub Admin"}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -1040,16 +1057,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-405 italic">Chưa chỉ định Sub Admin nào</p>
+                  <p className="text-[10px] text-slate-405 italic">{language === "en" ? "No Sub Admins assigned yet" : "Chưa chỉ định Sub Admin nào"}</p>
                 )}
               </div>
 
               {/* REFEREE MANAGER */}
               <span className="text-[11px] font-black text-indigo-500 uppercase tracking-widest block flex items-center gap-1">
-                <Users className="w-4 h-4" /> QUẢN LÝ TRỌNG TÀI (CLOUD)
+                <Users className="w-4 h-4" /> {language === "en" ? "MANAGE REFEREES (CLOUD)" : "QUẢN LÝ TRỌNG TÀI (CLOUD)"}
               </span>
               <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                Nhập email của trọng tài để cấp quyền nhập và ghi điểm cho giải đấu trực tuyến này.
+                {language === "en" ? "Enter referee email to grant scoring permissions for this online tournament." : "Nhập email của trọng tài để cấp quyền nhập và ghi điểm cho giải đấu trực tuyến này."}
               </p>
               <div className="flex gap-1.5 font-sans">
                 <input
@@ -1064,7 +1081,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       const emailStr = inputEl?.value?.trim();
                       if (emailStr && referees && onUpdateReferees) {
                         if (referees.includes(emailStr)) {
-                          alert("Email trọng tài này đã tồn tại.");
+                          alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
                           return;
                         }
                         onUpdateReferees([...referees, emailStr]);
@@ -1080,18 +1097,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     const emailStr = inputEl?.value?.trim();
                     if (emailStr && referees && onUpdateReferees) {
                       if (referees.includes(emailStr)) {
-                        alert("Email trọng tài này đã tồn tại.");
+                        alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
                         return;
                       }
                       onUpdateReferees([...referees, emailStr]);
                       inputEl.value = "";
                     } else if (!emailStr) {
-                      alert("Vui lòng nhập email hợp lệ!");
+                      alert(language === "en" ? "Please enter a valid email!" : "Vui lòng nhập email hợp lệ!");
                     }
                   }}
                   className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer"
                 >
-                  Thêm
+                  {language === "en" ? "Add" : "Thêm"}
                 </button>
               </div>
               {referees && referees.length > 0 ? (
@@ -1107,7 +1124,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           }
                         }}
                         className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
-                        title="Xóa trọng tài"
+                        title={language === "en" ? "Delete Referee" : "Xóa trọng tài"}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -1115,13 +1132,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-slate-405 italic">Chưa chỉ định trọng tài nào</p>
+                <p className="text-[10px] text-slate-405 italic">{language === "en" ? "No referees assigned yet" : "Chưa chỉ định trọng tài nào"}</p>
               )}
             </div>
           ) : (
             <div className="border-t border-gray-150 dark:border-slate-800/60 pt-4 flex flex-col gap-2">
               <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block flex items-center gap-1">
-                <Users className="w-4 h-4 text-slate-400" /> QUẢN LÝ TRỌNG TÀI (MÀU CLOUD)
+                <Users className="w-4 h-4 text-slate-400" /> {language === "en" ? "MANAGE REFEREES (CLOUD STATUS)" : "QUẢN LÝ TRỌNG TÀI (MÀU CLOUD)"}
               </span>
               <div className="p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl flex flex-col gap-1.5 font-sans">
                 <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-black">
@@ -1129,13 +1146,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                   </span>
-                  Tính năng Trọng tài Đám mây (Cloud)
+                  {language === "en" ? "Cloud Referee Feature" : "Tính năng Trọng tài Đám mây (Cloud)"}
                 </div>
                 <p className="text-[11px] text-slate-501 dark:text-slate-400 leading-relaxed">
-                  Để cấp quyền cho trọng tài nhập điểm từ các máy điện thoại/máy tính bảng khác nhau, bạn cần đưa giải đấu này trực tuyến.
+                  {language === "en" ? "To allow referees to enter scores from different phones/tablets, you need to publish this tournament online." : "Để cấp quyền cho trọng tài nhập điểm từ các máy điện thoại/máy tính bảng khác nhau, bạn cần đưa giải đấu này trực tuyến."}
                 </p>
                 <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">
-                  👉 Cách kích hoạt: Vào <strong>Trang Chủ</strong> &rarr; Nhành nhấp nút <strong>"Đăng giải đấu lên Cloud"</strong> hoặc đổi sang giải đấu trực tuyến.
+                  👉 {language === "en" ? "How to activate: Go to Home -> Click 'Publish Tournament to Cloud' or switch to an online tournament." : "Cách kích hoạt: Vào Trang Chủ &rarr; Nhấp nút \"Đăng giải đấu lên Cloud\" hoặc đổi sang giải đấu trực tuyến."}
                 </div>
               </div>
             </div>
@@ -1149,7 +1166,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-950 dark:text-white flex items-center gap-2 border-b pb-2 mb-1 uppercase tracking-wide">
           <Bolt className="w-4.5 h-4.5 text-blue-600" />
-          Cự Ly Cá Nhân
+          {language === "en" ? "Individual Distance" : "Cự Ly Cá Nhân"}
         </h3>
 
         {/* List of individual distances */}
@@ -1168,11 +1185,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {editingDistanceId === dist.id && editingDistanceType === "individual" ? (
                 <div className="flex flex-col gap-2.5 animate-fadeIn w-full">
                    <div className="text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-                    ✏️ Sửa Cự Ly Cá Nhân (Vòng {distIdx + 1})
+                    ✏️ {language === "en" ? `Edit Individual Distance (Round ${distIdx + 1})` : `Sửa Cự Ly Cá Nhân (Vòng ${distIdx + 1})`}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Tên cự ly:</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
                       <input
                         type="text"
                         value={editingDistanceStr}
@@ -1181,7 +1198,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Điểm nhân:</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Multiplier:" : "Điểm nhân:"}</span>
                       <input
                         type="number"
                         value={editingMultiplierVal}
@@ -1199,7 +1216,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsMaxRoundScore(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Max điểm các vòng</span>
+                      <span>{language === "en" ? "MAX points of rounds" : "Max điểm các vòng"}</span>
                     </label>
 
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1209,7 +1226,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsCumulative(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Cộng dồn điểm từ vòng trước</span>
+                      <span>{language === "en" ? "Cumulative points from previous round" : "Cộng dồn điểm từ vòng trước"}</span>
                     </label>
 
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1219,7 +1236,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsElimination(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Áp dụng loại trực tiếp (Cut)</span>
+                      <span>{language === "en" ? "Apply direct elimination (Cut)" : "Áp dụng loại trực tiếp (Cut)"}</span>
                     </label>
 
                     {editingIsElimination && (
@@ -1230,7 +1247,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           onChange={(e) => setEditingIsSolo(e.target.checked)}
                           className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                         />
-                        <span>Phát sinh vòng SOLO khi bằng điểm</span>
+                        <span>{language === "en" ? "Generate SOLO round on tie break" : "Phát sinh vòng SOLO khi bằng điểm"}</span>
                       </label>
                     )}
                   </div>
@@ -1238,18 +1255,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {editingIsElimination && (
                     <div className="pl-4.5 border-l-2 border-indigo-200 flex flex-col gap-1.5 animate-slideDown">
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gray-500">Lấy người đi tiếp bằng:</span>
+                        <span className="text-gray-500">{language === "en" ? "Determine advance by:" : "Lấy người đi tiếp bằng:"}</span>
                         <select
                           value={editingEliminationType}
                           onChange={(e) => setEditingEliminationType(e.target.value as "count" | "percent")}
                           className="bg-white dark:bg-slate-900 border rounded text-[11px] p-0.5 focus:outline-none"
                         >
-                          <option value="percent">% Số người đi tiếp</option>
-                          <option value="count">Số người cụ thể</option>
+                          <option value="percent">{language === "en" ? "% percentage to advance" : "% Số người đi tiếp"}</option>
+                          <option value="count">{language === "en" ? "Specific number of people" : "Số người cụ thể"}</option>
                         </select>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gray-500">Giá trị đi tiếp:</span>
+                        <span className="text-gray-500">{language === "en" ? "Advance value:" : "Giá trị đi tiếp:"}</span>
                         <input
                           type="number"
                           min={1}
@@ -1258,7 +1275,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           className="w-14 p-0.5 bg-white dark:bg-slate-900 border rounded text-[11px] text-center font-mono focus:outline-none"
                         />
                         <span className="text-gray-405">
-                          {editingEliminationType === "percent" ? "%" : "người"}
+                          {editingEliminationType === "percent" ? "%" : (language === "en" ? "athletes" : "người")}
                         </span>
                       </div>
                     </div>
@@ -1312,7 +1329,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }}
                       className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold cursor-pointer"
                     >
-                      Lưu
+                      {language === "en" ? "Save" : "Lưu"}
                     </button>
                     <button
                       type="button"
@@ -1322,7 +1339,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }}
                       className="px-2.5 py-1 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 rounded text-xs font-semibold cursor-pointer"
                     >
-                      Hủy
+                      {language === "en" ? "Cancel" : "Hủy"}
                     </button>
                   </div>
                 </div>
@@ -1331,22 +1348,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="flex flex-col">
                     <span className="font-bold text-gray-850 dark:text-gray-200 flex items-center gap-1.5 flex-wrap">
                       <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md dark:bg-indigo-950/35 dark:text-indigo-350 dark:border-indigo-900">
-                        Vòng {distIdx + 1}
+                        {language === "en" ? "Round " : "Vòng "}{distIdx + 1}
                       </span>
                       <span>{dist.distance}</span>
                     </span>
                     <div className="flex items-center gap-1 flex-wrap mt-1">
                       <span className="text-[10px] px-1 bg-slate-100 dark:bg-slate-900 dark:text-slate-400 rounded text-slate-650 font-mono">
-                        Hệ số: x{dist.multiplier}
+                        {language === "en" ? "Multiplier:" : "Hệ số:"} x{dist.multiplier}
                       </span>
                       {dist.isCumulative && (
                         <span className="text-[9px] px-1 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 font-extrabold rounded uppercase border border-green-250 shrink-0">
-                          cộng dồn
+                          {language === "en" ? "cumulative" : "cộng dồn"}
                         </span>
                       )}
                       {dist.isElimination && (
                         <span className="text-[9px] px-1 bg-amber-50 dark:bg-amber-950/20 text-amber-705 dark:text-amber-400 font-extrabold rounded uppercase border border-amber-250 shrink-0">
-                          loại ({dist.eliminationValue}{dist.eliminationType === "percent" ? "%" : " người"})
+                          {language === "en" ? "cut (" : "loại ("}{dist.eliminationValue}{dist.eliminationType === "percent" ? "%" : (language === "en" ? " athletes" : " người")})
                         </span>
                       )}
                       {dist.isElimination && dist.isSolo && (
@@ -1373,7 +1390,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setEditingIsMaxRoundScore(!!dist.isMaxRoundScore);
                       }}
                       className="p-1.5 text-blue-600 hover:text-white bg-blue-50 dark:bg-blue-950/15 dark:text-blue-405 hover:bg-blue-600 rounded-lg transition-all cursor-pointer shadow-sm"
-                      title="Sửa cự ly"
+                      title={language === "en" ? "Edit distance" : "Sửa cự ly"}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -1386,7 +1403,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setConfirmDeleteDistanceType("individual");
                       }}
                       className="p-1.5 text-rose-500 hover:text-white bg-rose-50 dark:bg-rose-955/15 hover:bg-rose-600 rounded-lg transition-all cursor-pointer shadow-sm"
-                      title="Xóa cự ly"
+                      title={language === "en" ? "Delete distance" : "Xóa cự ly"}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1400,21 +1417,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Add individual distance form */}
         <div className="border-t border-gray-100 pt-3 flex flex-col gap-2.5">
           <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            Thêm cự ly cá nhân mới
+            {language === "en" ? "Add new individual distance" : "Thêm cự ly cá nhân mới"}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <span className="text-[10px] text-gray-400 block mb-0.5">Tên cự ly:</span>
+              <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
               <input
                 type="text"
-                placeholder="e.g. 15 Met"
+                placeholder={language === "en" ? "e.g. 15 Meters" : "e.g. 15 Met"}
                 value={newDistanceStr}
                 onChange={(e) => setNewDistanceStr(e.target.value)}
                 className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 block mb-0.5">Hệ số nhân:</span>
+              <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Multiplier:" : "Hệ số nhân:"}</span>
               <input
                 type="number"
                 value={newMultiplierVal}
@@ -1432,7 +1449,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewIsMaxRoundScore(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span>Max điểm các vòng</span>
+              <span>{language === "en" ? "MAX points of rounds" : "Max điểm các vòng"}</span>
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1442,7 +1459,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewIsCumulative(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span>Cộng dồn điểm từ vòng trước</span>
+              <span>{language === "en" ? "Cumulative points from previous round" : "Cộng dồn điểm từ vòng trước"}</span>
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1452,7 +1469,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewIsElimination(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span>Áp dụng loại trực tiếp (Cut)</span>
+              <span>{language === "en" ? "Apply direct elimination (Cut)" : "Áp dụng loại trực tiếp (Cut)"}</span>
             </label>
 
             {newIsElimination && (
@@ -1463,7 +1480,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   onChange={(e) => setNewIsSolo(e.target.checked)}
                   className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                 />
-                <span>Phát sinh vòng SOLO khi bằng điểm</span>
+                <span>{language === "en" ? "Generate SOLO round on tie break" : "Phát sinh vòng SOLO khi bằng điểm"}</span>
               </label>
             )}
           </div>
@@ -1471,18 +1488,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {newIsElimination && (
             <div className="pl-4.5 border-l-2 border-blue-200 flex flex-col gap-1.5 animate-slideDown">
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-gray-500 font-medium">Lấy người đi tiếp bằng:</span>
+                <span className="text-gray-500 font-medium">{language === "en" ? "Determine advance by:" : "Lấy người đi tiếp bằng:"}</span>
                 <select
                   value={newEliminationType}
                   onChange={(e) => setNewEliminationType(e.target.value as "count" | "percent")}
                   className="bg-gray-50 dark:bg-slate-900 border rounded text-[11px] p-0.5"
                 >
-                  <option value="percent">% Số người đi tiếp</option>
-                  <option value="count">Số người cụ thể</option>
+                  <option value="percent">{language === "en" ? "% percentage to advance" : "% Số người đi tiếp"}</option>
+                  <option value="count">{language === "en" ? "Specific number of people" : "Số người cụ thể"}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-gray-500 font-medium">Giá trị đi tiếp:</span>
+                <span className="text-gray-500 font-medium">{language === "en" ? "Advance value:" : "Giá trị đi tiếp:"}</span>
                 <input
                   type="number"
                   min={1}
@@ -1491,7 +1508,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="w-14 p-0.5 bg-gray-55 dark:bg-slate-900 border rounded text-[11px] text-center font-mono"
                 />
                 <span className="text-gray-400 font-semibold">
-                  {newEliminationType === "percent" ? "%" : "người"}
+                  {newEliminationType === "percent" ? "%" : (language === "en" ? "athletes" : "người")}
                 </span>
               </div>
             </div>
@@ -1501,7 +1518,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             onClick={handleAddDistance}
             className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" /> Thêm Cự Ly Cá Nhân
+            <Plus className="w-3.5 h-3.5" /> {language === "en" ? "Add Individual Distance" : "Thêm Cự Ly Cá Nhân"}
           </button>
         </div>
       </div>
@@ -1512,7 +1529,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-950 dark:text-white flex items-center gap-2 border-b pb-2 mb-1 uppercase tracking-wide">
           <Users className="w-4.5 h-4.5 text-blue-600" />
-          Cự Ly Đồng Đội
+          {language === "en" ? "Team Distance" : "Cự Ly Đồng Đội"}
         </h3>
 
         {/* List of team distances */}
@@ -1525,11 +1542,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {editingDistanceId === dist.id && editingDistanceType === "team" ? (
                 <div className="flex flex-col gap-2.5 animate-fadeIn w-full">
                   <div className="text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-                    ✏️ Sửa Cự Ly Đồng Đội (Vòng {distIdx + 1})
+                    ✏️ {language === "en" ? `Edit Team Distance (Round ${distIdx + 1})` : `Sửa Cự Ly Đồng Đội (Vòng ${distIdx + 1})`}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Tên cự ly:</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
                       <input
                         type="text"
                         value={editingDistanceStr}
@@ -1538,7 +1555,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 block mb-0.5">Điểm nhân:</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Multiplier:" : "Điểm nhân:"}</span>
                       <input
                         type="number"
                         value={editingMultiplierVal}
@@ -1556,7 +1573,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsMaxRoundScore(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Max điểm các vòng</span>
+                      <span>{language === "en" ? "MAX points of rounds" : "Max điểm các vòng"}</span>
                     </label>
 
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1566,7 +1583,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsCumulative(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Cộng dồn điểm từ vòng trước</span>
+                      <span>{language === "en" ? "Cumulative points from previous round" : "Cộng dồn điểm từ vòng trước"}</span>
                     </label>
 
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-650 dark:text-gray-350 select-none">
@@ -1576,18 +1593,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setEditingIsElimination(e.target.checked)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span>Áp dụng loại trực tiếp (Cut)</span>
+                      <span>{language === "en" ? "Apply direct elimination (Cut)" : "Áp dụng loại trực tiếp (Cut)"}</span>
                     </label>
 
                     {editingIsElimination && (
-                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-amber-700 dark:text-amber-400 select-none ml-4.5 animate-fadeIn">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-amber-700 dark:text-amber-405 select-none ml-4.5 animate-fadeIn">
                         <input
                           type="checkbox"
                           checked={editingIsSolo}
                           onChange={(e) => setEditingIsSolo(e.target.checked)}
                           className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                         />
-                        <span>Phát sinh vòng SOLO khi bằng điểm</span>
+                        <span>{language === "en" ? "Generate SOLO round on tie break" : "Phát sinh vòng SOLO khi bằng điểm"}</span>
                       </label>
                     )}
                   </div>
@@ -1595,18 +1612,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {editingIsElimination && (
                     <div className="pl-4.5 border-l-2 border-indigo-200 flex flex-col gap-1.5 animate-slideDown">
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gray-500 font-semibold">Lấy đội đi tiếp bằng:</span>
+                        <span className="text-gray-500 font-semibold">{language === "en" ? "Determine advance by:" : "Lấy đội đi tiếp bằng:"}</span>
                         <select
                           value={editingEliminationType}
                           onChange={(e) => setEditingEliminationType(e.target.value as "count" | "percent")}
                           className="bg-white dark:bg-slate-900 border rounded text-[11px] p-0.5"
                         >
-                          <option value="percent">% Số đội đi tiếp</option>
-                          <option value="count">Số đội cụ thể</option>
+                          <option value="percent">{language === "en" ? "% percentage to advance" : "% Số đội đi tiếp"}</option>
+                          <option value="count">{language === "en" ? "Specific number of teams" : "Số đội cụ thể"}</option>
                         </select>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gray-500 font-semibold">Giá trị đi tiếp:</span>
+                        <span className="text-gray-500 font-semibold">{language === "en" ? "Advance value:" : "Giá trị đi tiếp:"}</span>
                         <input
                           type="number"
                           min={1}
@@ -1615,7 +1632,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           className="w-14 p-0.5 bg-white dark:bg-slate-900 border rounded text-[11px] text-center font-mono"
                         />
                         <span className="text-gray-400 font-semibold">
-                          {editingEliminationType === "percent" ? "%" : "đội"}
+                          {editingEliminationType === "percent" ? "%" : (language === "en" ? "teams" : "đội")}
                         </span>
                       </div>
                     </div>
@@ -1669,7 +1686,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }}
                       className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold cursor-pointer"
                     >
-                      Lưu
+                      {language === "en" ? "Save" : "Lưu"}
                     </button>
                     <button
                       type="button"
@@ -1679,7 +1696,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }}
                       className="px-2.5 py-1 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 rounded text-xs font-semibold cursor-pointer"
                     >
-                      Hủy
+                      {language === "en" ? "Cancel" : "Hủy"}
                     </button>
                   </div>
                 </div>
@@ -1688,22 +1705,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="flex flex-col">
                     <span className="font-bold text-gray-850 dark:text-gray-200 flex items-center gap-1.5 flex-wrap">
                       <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900">
-                        Vòng {distIdx + 1}
+                        {language === "en" ? "Round " : "Vòng "}{distIdx + 1}
                       </span>
                       <span>{dist.distance}</span>
                     </span>
                     <div className="flex items-center gap-1 flex-wrap mt-1">
                       <span className="text-[10px] px-1 bg-slate-100 dark:bg-slate-900 dark:text-slate-400 rounded text-slate-650 font-mono">
-                        Hệ số: x{dist.multiplier}
+                        {language === "en" ? "Multiplier:" : "Hệ số:"} x{dist.multiplier}
                       </span>
                       {dist.isCumulative && (
                         <span className="text-[9px] px-1 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 font-extrabold rounded uppercase border border-green-250 shrink-0">
-                          cộng dồn
+                          {language === "en" ? "cumulative" : "cộng dồn"}
                         </span>
                       )}
                       {dist.isElimination && (
                         <span className="text-[9px] px-1 bg-amber-50 dark:bg-amber-950/20 text-amber-705 dark:text-amber-400 font-extrabold rounded uppercase border border-amber-250 shrink-0">
-                          loại ({dist.eliminationValue}{dist.eliminationType === "percent" ? "%" : " đội"})
+                          {language === "en" ? "cut (" : "loại ("}{dist.eliminationValue}{dist.eliminationType === "percent" ? "%" : (language === "en" ? " teams" : " đội")})
                         </span>
                       )}
                       {dist.isElimination && dist.isSolo && (
@@ -1730,7 +1747,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setEditingIsMaxRoundScore(!!dist.isMaxRoundScore);
                       }}
                       className="p-1.5 text-blue-600 hover:text-white bg-blue-50 dark:bg-blue-95/15 dark:text-blue-405 hover:bg-blue-600 rounded-lg transition-all cursor-pointer shadow-sm"
-                      title="Sửa cự ly"
+                      title={language === "en" ? "Edit distance" : "Sửa cự ly"}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -1743,7 +1760,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setConfirmDeleteDistanceType("team");
                       }}
                       className="p-1.5 text-rose-500 hover:text-white bg-rose-50 dark:bg-rose-955/15 hover:bg-rose-600 rounded-lg transition-all cursor-pointer shadow-sm"
-                      title="Xóa cự ly"
+                      title={language === "en" ? "Delete distance" : "Xóa cự ly"}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1757,21 +1774,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Add team distance form */}
         <div className="border-t border-gray-100 pt-3 flex flex-col gap-2.5">
           <div className="text-xs font-black text-gray-500 uppercase tracking-widest">
-            Thêm cự ly đồng đội mới
+            {language === "en" ? "Add new team distance" : "Thêm cự ly đồng đội mới"}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <span className="text-[10px] text-gray-400 block mb-0.5">Tên cự ly:</span>
+              <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
               <input
                 type="text"
-                placeholder="e.g. 15 Met Đồng Đội"
+                placeholder={language === "en" ? "e.g. 15 Meters Team" : "e.g. 15 Met Đồng Đội"}
                 value={newTeamDistanceStr}
                 onChange={(e) => setNewTeamDistanceStr(e.target.value)}
                 className="w-full px-2 py-1 text-xs bg-gray-55 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded"
               />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 block mb-0.5">Hệ số nhân:</span>
+              <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Multiplier:" : "Hệ số nhân:"}</span>
               <input
                 type="number"
                 value={newTeamMultiplierVal}
@@ -1789,7 +1806,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewTeamIsMaxRoundScore(e.target.checked)}
                 className="rounded border-gray-350 text-blue-600"
               />
-              <span>Max điểm các vòng</span>
+              <span>{language === "en" ? "MAX points of rounds" : "Max điểm các vòng"}</span>
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-gray-650 dark:text-gray-350 select-none">
@@ -1799,7 +1816,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewTeamIsCumulative(e.target.checked)}
                 className="rounded border-gray-350 text-blue-600"
               />
-              <span>Cộng dồn điểm từ vòng trước</span>
+              <span>{language === "en" ? "Cumulative points from previous round" : "Cộng dồn điểm từ vòng trước"}</span>
             </label>
 
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-gray-650 dark:text-gray-350 select-none">
@@ -1809,7 +1826,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onChange={(e) => setNewTeamIsElimination(e.target.checked)}
                 className="rounded border-gray-350 text-blue-600"
               />
-              <span>Áp dụng loại trực tiếp (Cut)</span>
+              <span>{language === "en" ? "Apply direct elimination (Cut)" : "Áp dụng loại trực tiếp (Cut)"}</span>
             </label>
 
             {newTeamIsElimination && (
@@ -1820,7 +1837,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   onChange={(e) => setNewTeamIsSolo(e.target.checked)}
                   className="rounded border-amber-300 text-amber-600"
                 />
-                <span>Phát sinh vòng SOLO khi bằng điểm</span>
+                <span>{language === "en" ? "Generate SOLO round on tie break" : "Phát sinh vòng SOLO khi bằng điểm"}</span>
               </label>
             )}
           </div>
@@ -1828,18 +1845,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {newTeamIsElimination && (
             <div className="pl-4.5 border-l-2 border-blue-200 flex flex-col gap-1.5 animate-slideDown">
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-gray-500 font-semibold font-sans">Lấy đội đi tiếp bằng:</span>
+                <span className="text-gray-500 font-semibold font-sans">{language === "en" ? "Determine advance by:" : "Lấy đội đi tiếp bằng:"}</span>
                 <select
                   value={newTeamEliminationType}
                   onChange={(e) => setNewTeamEliminationType(e.target.value as "count" | "percent")}
                   className="bg-gray-50 dark:bg-slate-900 border rounded text-[11px] p-0.5"
                 >
-                  <option value="percent">% Số đội đi tiếp</option>
-                  <option value="count">Số đội cụ thể</option>
+                  <option value="percent">{language === "en" ? "% percentage to advance" : "% Số đội đi tiếp"}</option>
+                  <option value="count">{language === "en" ? "Specific number of teams" : "Số đội cụ thể"}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-gray-500 font-semibold font-sans">Giá trị đi tiếp:</span>
+                <span className="text-gray-500 font-semibold font-sans">{language === "en" ? "Advance value:" : "Giá trị đi tiếp:"}</span>
                 <input
                   type="number"
                   min={1}
@@ -1848,7 +1865,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="w-14 p-0.5 bg-gray-55 dark:bg-slate-900 border rounded text-[11px] text-center font-mono"
                 />
                 <span className="text-gray-400 font-bold">
-                  {newTeamEliminationType === "percent" ? "%" : "đội"}
+                  {newTeamEliminationType === "percent" ? "%" : (language === "en" ? "teams" : "đội")}
                 </span>
               </div>
             </div>
@@ -1858,7 +1875,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             onClick={handleAddTeamDistance}
             className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" /> Thêm Cự Ly Đồng Đội
+            <Plus className="w-3.5 h-3.5" /> {language === "en" ? "Add Team Distance" : "Thêm Cự Ly Đồng Đội"}
           </button>
         </div>
       </div>
@@ -1875,21 +1892,25 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="flex-1 flex flex-col gap-4 z-10">
           <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 border-b dark:border-slate-800 pb-3 mb-1">
             <Smartphone className="w-5 h-5 text-indigo-600" />
-            Tạo App Mobile (Android APK) & Tải Tệp Nguồn ZIP
+            {language === "en" ? "Create Mobile App (Android APK) & Download ZIP Source File" : "Tạo App Mobile (Android APK) & Tải Tệp Nguồn ZIP"}
           </h3>
           
           <p className="text-xs text-gray-650 dark:text-gray-350 leading-relaxed">
-            Hệ thống đã tích hợp sẵn khung <strong className="text-slate-800 dark:text-slate-200">Capacitor</strong> và đồng bộ hóa biểu tượng ban tổ chức <strong className="text-rose-600 font-bold">VSC (Vietnam Slingshot Championship)</strong>. Bạn có thể xuất toàn bộ mã nguồn của trang web ghi điểm này thành một ứng dụng Android mượt mà cài đặt trực tiếp lên điện thoại của mình.
+            {language === "en" ? (
+              <>The system has pre-integrated the <strong className="text-slate-800 dark:text-slate-200">Capacitor</strong> framework and synchronized the <strong className="text-rose-600 font-bold">VSC (Vietnam Slingshot Championship)</strong> brand. You can export the entire source code of this scoring website into a smooth Android application to install directly on your phone.</>
+            ) : (
+              <>Hệ thống đã tích hợp sẵn khung <strong className="text-slate-800 dark:text-slate-200">Capacitor</strong> và đồng bộ hóa biểu tượng ban tổ chức <strong className="text-rose-600 font-bold">VSC (Vietnam Slingshot Championship)</strong>. Bạn có thể xuất toàn bộ mã nguồn của trang web ghi điểm này thành một ứng dụng Android mượt mà cài đặt trực tiếp lên điện thoại của mình.</>
+            )}
           </p>
 
           <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-gray-100 dark:border-slate-800/80 text-xs text-slate-750 dark:text-slate-350 space-y-1.5 font-medium shadow-inner">
             <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-extrabold text-[12.5px] uppercase mb-1">
               <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
-              Chi tiết gói nguồn biên dịch:
+              {language === "en" ? "Compilation Source Package Details:" : "Chi tiết gói nguồn biên dịch:"}
             </div>
-            <p>✓ <strong className="text-slate-905 dark:text-slate-105">Biểu tượng & Splash VSC:</strong> Đã tự động tạo các kích thước hình ảnh và đặt cấu hình mipmap trong thư mục Android.</p>
-            <p>✓ <strong className="text-slate-905 dark:text-slate-105">Tệp ZIP tự sinh:</strong> Đã nén đầy đủ mã nguồn, tập lệnh, và cấu hình Capacitor hoàn chỉnh sẵn sàng.</p>
-            <p>✓ <strong className="text-slate-905 dark:text-slate-105">Tích hợp sẵn:</strong> Offline-first, tự động cập nhật và lưu trữ điểm số mượt mà.</p>
+            <p>✓ <strong className="text-slate-905 dark:text-slate-105">{language === "en" ? "VSC Icon & Splash:" : "Biểu tượng & Splash VSC:"}</strong> {language === "en" ? "Automatically generated sizing and configured mipmaps in the Android folder." : "Đã tự động tạo các kích thước hình ảnh và đặt cấu hình mipmap trong thư mục Android."}</p>
+            <p>✓ <strong className="text-slate-905 dark:text-slate-105">{language === "en" ? "Auto-generated ZIP file:" : "Tệp ZIP tự sinh:"}</strong> {language === "en" ? "Fully compressed source code, scripts, and ready Capacitor configuration." : "Đã nén đầy đủ mã nguồn, tập lệnh, và cấu hình Capacitor hoàn chỉnh sẵn sàng."}</p>
+            <p>✓ <strong className="text-slate-905 dark:text-slate-105">{language === "en" ? "Pre-integrated:" : "Tích hợp sẵn:"}</strong> {language === "en" ? "Offline-first, automatic updates and smooth score tracking." : "Offline-first, tự động cập nhật và lưu trữ điểm số mượt mà."}</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -1899,7 +1920,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className="flex-1 py-1.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-indigo-500/25 active:scale-98 cursor-pointer text-center text-xs uppercase"
             >
               <FileDown className="w-5 h-5 shrink-0" />
-              Tải File ZIP Nguồn Android
+              {language === "en" ? "Download Android ZIP Source" : "Tải File ZIP Nguồn Android"}
             </a>
           </div>
         </div>
@@ -1908,53 +1929,70 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="md:w-[45%] bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-800/60 flex flex-col gap-3.5 z-10 font-medium">
           <h4 className="text-xs font-black text-indigo-700 dark:text-indigo-400 tracking-wider uppercase flex items-center gap-1.5">
             <CheckCircle className="w-4 h-4 text-emerald-500" />
-            3 Bước Build App APK Trên Máy Tính
+            {language === "en" ? "3 Steps to Build App APK on Computer" : "3 Bước Build App APK Trên Máy Tính"}
           </h4>
 
           <div className="space-y-4">
             <div className="flex gap-2.5">
               <span className="w-5.5 h-5.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-900/60 font-medium">1</span>
               <div className="text-xs">
-                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">Tải & Giải Nén</h5>
-                <p className="text-gray-500 dark:text-gray-400 leading-normal">Bấm nút "Tải File ZIP Nguồn Android" ở bên để tải gói nguồn `.zip` hoàn chỉnh của giải đấu về máy tính của bạn, sau đó giải nén ra một thư mục.</p>
+                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">{language === "en" ? "Download & Extract" : "Tải & Giải Nén"}</h5>
+                <p className="text-gray-500 dark:text-gray-400 leading-normal">
+                  {language === "en" ? "Click 'Download Android ZIP Source' to download the full .zip archive, then extract it into a folder on your computer." : "Bấm nút \"Tải File ZIP Nguồn Android\" ở bên để tải gói nguồn `.zip` hoàn chỉnh của giải đấu về máy tính của bạn, sau đó giải nén ra một thư mục."}
+                </p>
               </div>
             </div>
 
             <div className="flex gap-2.5">
               <span className="w-5.5 h-5.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-900/60 font-medium">2</span>
               <div className="text-xs">
-                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">Mở Bằng Android Studio</h5>
-                <p className="text-gray-500 dark:text-gray-400 leading-normal">Mở phần mềm <strong>Android Studio</strong> trên máy tính, chọn <strong>Open Project</strong>, sau đó điều hướng và chọn thư mục <code className="bg-gray-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono font-black border border-gray-300 dark:border-slate-700 text-rose-600">android</code> có trong thư mục đã giải nén.</p>
+                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">{language === "en" ? "Open with Android Studio" : "Mở Bằng Android Studio"}</h5>
+                <p className="text-gray-500 dark:text-gray-400 leading-normal">
+                  {language === "en" ? (
+                    <>Open <strong className="text-slate-800 dark:text-slate-200">Android Studio</strong> on your computer, choose <strong className="text-slate-800 dark:text-slate-200">Open Project</strong>, then navigate and select the <code className="bg-gray-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono font-black border border-gray-300 dark:border-slate-700 text-rose-600">android</code> directory inside the extracted folder.</>
+                  ) : (
+                    <>Mở phần mềm <strong>Android Studio</strong> trên máy tính, chọn <strong>Open Project</strong>, sau đó điều hướng và chọn thư mục <code className="bg-gray-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono font-black border border-gray-300 dark:border-slate-700 text-rose-600">android</code> có trong thư mục đã giải nén.</>
+                  )}
+                </p>
               </div>
             </div>
 
             <div className="flex gap-2.5">
               <span className="w-5.5 h-5.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-900/60 font-medium">3</span>
               <div className="text-xs">
-                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">Biên Dịch & Xuất File .APK</h5>
-                <p className="text-gray-500 dark:text-gray-400 leading-normal">Đợi Android Studio đồng bộ gradle xong. Trên thanh Menu đầu tiên của Android Studio, chọn: <br />
-                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">Build ➔ Build Bundle(s) / APK(s) ➔ Build APK(s)</span>. <br />
-                  Khi chạy xong, bấm <strong className="text-gray-700 dark:text-gray-300">"locate"</strong> ở góc dưới bên phải để nhận trực tiếp file <strong className="text-emerald-600 font-extrabold text-[12.5px]">app-debug.apk</strong> và cài lên điện thoại Android của bạn!
+                <h5 className="font-bold text-gray-800 dark:text-white mb-0.5">{language === "en" ? "Compile & Export .APK" : "Biên Dịch & Xuất File .APK"}</h5>
+                <p className="text-gray-500 dark:text-gray-400 leading-normal">
+                  {language === "en" ? (
+                    <>Wait for Android Studio to finish Gradle sync. From the top menu bar, select: <br />
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">Build ➔ Build Bundle(s) / APK(s) ➔ Build APK(s)</span>. <br />
+                      Once built, click <strong className="text-gray-700 dark:text-gray-300">"locate"</strong> at the bottom right corner to find the <strong className="text-emerald-600 font-extrabold text-[12.5px]">app-debug.apk</strong> file and install it on your Android phone!</>
+                  ) : (
+                    <>Đợi Android Studio đồng bộ gradle xong. Trên thanh Menu đầu tiên của Android Studio, chọn: <br />
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">Build ➔ Build Bundle(s) / APK(s) ➔ Build APK(s)</span>. <br />
+                      Khi chạy xong, bấm <strong className="text-gray-700 dark:text-gray-300">"locate"</strong> ở góc dưới bên phải để nhận trực tiếp file <strong className="text-emerald-600 font-extrabold text-[12.5px]">app-debug.apk</strong> và cài lên điện thoại Android của bạn!</>
+                  )}
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* MODAL CẤU HÌNH GIẢI ĐẤU MỚI (CREATOR MODAL) */}
       {isNewTournamentModalOpen && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
           <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-scaleIn text-slate-800 dark:text-slate-100 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="px-6 py-5 border-b border-gray-150 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-950">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-950/45 text-rose-600 dark:text-rose-450 flex items-center justify-center font-black">
+                <div className="w-9 h-9 rounded-full bg-rose-100 dark:bg-rose-955/45 text-rose-600 dark:text-rose-450 flex items-center justify-center font-black">
                   <Trophy className="w-5 h-5 animate-bounce-slow" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white tracking-wide">Khởi Tạo Giải Đấu Mới</h3>
-                  <p className="text-[10px] text-gray-500 font-extrabold uppercase">Thiết lập thông tin & cấu hình hệ thống</p>
+                  <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white tracking-wide">
+                    {language === "en" ? "Create New Tournament" : "Khởi Tạo Giải Đấu Mới"}
+                  </h3>
+                  <p className="text-[10px] text-gray-500 font-extrabold uppercase">
+                    {language === "en" ? "Set up information & system configuration" : "Thiết lập thông tin & cấu hình hệ thống"}
+                  </p>
                 </div>
               </div>
               <button
@@ -1972,23 +2010,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
-                    <span>Mã ID Giải Đấu *</span>
-                    <span className="text-[7px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1 py-0.2 rounded font-black font-mono">TỰ ĐỘNG</span>
+                    <span>{language === "en" ? "Tournament ID *" : "Mã ID Giải Đấu *"}</span>
+                    <span className="text-[7px] bg-indigo-950 text-indigo-400 border border-indigo-900 px-1 py-0.2 rounded font-black font-mono">{language === "en" ? "AUTO" : "TỰ ĐỘNG"}</span>
                   </label>
                   <input
                     type="text"
                     value={modalTournamentId}
                     readOnly
-                    className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-950 border border-gray-200 dark:border-slate-850 rounded-xl text-slate-500 font-black font-mono text-xs cursor-not-allowed outline-none select-none"
+                    className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-955 border border-gray-200 dark:border-slate-850 rounded-xl text-slate-500 font-black font-mono text-xs cursor-not-allowed outline-none select-none"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Tên Giải Đấu *</label>
+                  <label className="block text-[10px] font-black text-gray-555 uppercase tracking-widest mb-1">{language === "en" ? "Tournament Name *" : "Tên Giải Đấu *"}</label>
                   <input
                     type="text"
                     value={modalTournamentName}
                     onChange={(e) => setModalTournamentName(e.target.value)}
-                    placeholder="e.g. Giải Slingshot Việt Nam Cup"
+                    placeholder={language === "en" ? "e.g. Vietnam Slingshot Cup" : "e.g. Giải Slingshot Việt Nam Cup"}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-505 font-bold text-xs"
                   />
                 </div>
@@ -1997,7 +2035,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {/* Match Dates in Modal */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-550 uppercase tracking-widest mb-1">Ngày Thi Đấu</label>
+                  <label className="block text-[10px] font-black text-gray-550 uppercase tracking-widest mb-1">
+                    {language === "en" ? "Start Date" : "Ngày Thi Đấu"}
+                  </label>
                   <input
                     type="date"
                     value={modalStartDate}
@@ -2006,7 +2046,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-550 uppercase tracking-widest mb-1">Ngày Kết Thúc</label>
+                  <label className="block text-[10px] font-black text-gray-555 uppercase tracking-widest mb-1">
+                    {language === "en" ? "End Date" : "Ngày Kết Thúc"}
+                  </label>
                   <input
                     type="date"
                     value={modalEndDate}
@@ -2018,12 +2060,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
               {/* Description */}
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Diễn giải, Luật bắn & Chi tiết</label>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                  {language === "en" ? "Description, Rules & Details" : "Diễn giải, Luật bắn & Chi tiết"}
+                </label>
                 <textarea
                   value={modalTournamentDesc}
                   onChange={(e) => setModalTournamentDesc(e.target.value)}
                   rows={3}
-                  placeholder="Nhập chi tiết về điều lệ thi đấu, quy cách chấm điểm, cơ cấu giải thưởng, v.v..."
+                  placeholder={language === "en" ? "Enter details about tournament rules, scoring specifications, prize structure, etc..." : "Nhập chi tiết về điều lệ thi đấu, quy cách chấm điểm, cơ cấu giải thưởng, v.v..."}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-xs leading-relaxed"
                 />
               </div>

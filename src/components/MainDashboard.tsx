@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig } from "../types";
 import { VSCLogo, SlingshotIcon } from "./VSCLogo";
 import { Trophy, Medal, Award, Star, Users, Target, Zap, Shield, TrendingUp } from "lucide-react";
@@ -38,6 +39,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   teamDirectMaxPoints,
   tournamentType = "combined"
 }) => {
+  const { language, t } = useLanguage();
   // Resolve active source variables based on tournamentType
   const activeAthletesList = useMemo(() => {
     if (tournamentType === "team") {
@@ -1992,17 +1994,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             
             <div className="text-center md:text-left">
               <span className="text-[11px] font-extrabold tracking-widest text-[#f59e0b] uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
-                GIẢI ĐẤU QUỐC GIA CHUYÊN NGHIỆP
+                {language === "en" ? "PROFESSIONAL NATIONAL TOURNAMENT" : "GIẢI ĐẤU QUỐC GIA CHUYÊN NGHIỆP"}
               </span>
               <h1 className="text-2xl sm:text-3.5xl font-black font-sans leading-none text-white tracking-tight mt-2 uppercase">
                 Vietnam Slingshot Championship
               </h1>
               <div className="mt-2.5 bg-white/5 border border-white/10 rounded-2xl p-3 max-w-xl shadow-sm">
-                <span className="text-[10px] text-amber-400 font-extrabold tracking-widest block uppercase font-mono mb-0.5">GIẢI ĐẤU ĐANG DIỄN RA:</span>
+                <span className="text-[10px] text-amber-400 font-extrabold tracking-widest block uppercase font-mono mb-0.5">{language === "en" ? "ACTIVE TOURNAMENT:" : "GIẢI ĐẤU ĐANG DIỄN RA:"}</span>
                 <span className="text-sm sm:text-base font-black text-white block leading-tight">{matchName}</span>
               </div>
               <p className="text-gray-300 text-xs sm:text-sm font-medium mt-2 max-w-xl">
-                Bảng vàng Vinh Danh Tổng Hợp các danh thủ và câu lạc bộ bắn ná xuất sắc nhất giải đấu. Cập nhật thành tích thời gian thực và xếp hạng tự động.
+                {language === "en" 
+                  ? "Leaderboard honoring the best slingshot masters and clubs in the tournament. Real-time updates and automated rankings."
+                  : "Bảng vàng Vinh Danh Tổng Hợp các danh thủ và câu lạc bộ bắn ná xuất sắc nhất giải đấu. Cập nhật thành tích thời gian thực và xếp hạng tự động."}
               </p>
             </div>
           </div>
@@ -2010,9 +2014,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 p-3 rounded-2xl backdrop-blur-md">
             <SlingshotIcon size={64} className="shrink-0" />
             <div className="text-left shrink-0">
-              <span className="text-[9px] uppercase font-mono font-bold text-gray-400 block tracking-wider">Hệ Thống Tiêu Chuẩn</span>
-              <span className="text-sm font-black text-amber-300 block">NÁ CAO SU VIỆT NAM</span>
-              <span className="text-xs text-white/80 block mt-0.5">&bull; {distances.length} cự ly bắn chuyên dụng</span>
+              <span className="text-[9px] uppercase font-mono font-bold text-gray-400 block tracking-wider">{language === "en" ? "Standard System" : "Hệ Thống Tiêu Chuẩn"}</span>
+              <span className="text-sm font-black text-amber-300 block">{language === "en" ? "VIETNAM SLINGSHOT" : "NÁ CAO SU VIỆT NAM"}</span>
+              <span className="text-xs text-white/80 block mt-0.5">&bull; {distances.length} {language === "en" ? "specialized shooting distances" : "cự ly bắn chuyên dụng"}</span>
             </div>
           </div>
         </div>
@@ -2026,12 +2030,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <Trophy className="w-5 h-5 text-amber-500" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">Kỷ Lục Điểm</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">{language === "en" ? "Score Record" : "Kỷ Lục Điểm"}</span>
             <span className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-100 block">
-              {dashboardHighlights.highestScorer ? `${dashboardHighlights.highestScorer.totalScore}đ` : "0đ"}
+              {dashboardHighlights.highestScorer ? `${dashboardHighlights.highestScorer.totalScore}${language === "en" ? "pts" : "đ"}` : `0${language === "en" ? "pts" : "đ"}`}
             </span>
             <span className="text-[10px] text-slate-500 truncate block max-w-[120px]">
-              {dashboardHighlights.highestScorer ? dashboardHighlights.highestScorer.name : "Chưa lập"}
+              {dashboardHighlights.highestScorer ? dashboardHighlights.highestScorer.name : (language === "en" ? "Not set" : "Chưa lập")}
             </span>
           </div>
         </div>
@@ -2042,11 +2046,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <Shield className="w-5 h-5 text-indigo-500" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">Cơ Sở CLB</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">{language === "en" ? "Club Base" : "Cơ Sở CLB"}</span>
             <span className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-100 block">
-              {registeredClubsCount} CLB
+              {registeredClubsCount} {language === "en" ? "Clubs" : "CLB"}
             </span>
-            <span className="text-[10px] text-slate-500 block">Tham gia giải đấu</span>
+            <span className="text-[10px] text-slate-500 block">{language === "en" ? "Participating" : "Tham gia giải đấu"}</span>
           </div>
         </div>
 
@@ -2056,25 +2060,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <Target className="w-5 h-5 text-emerald-500" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">Độ Chính Xác</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">{language === "en" ? "Accuracy" : "Độ Chính Xác"}</span>
             <span className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-100 block">
               {dashboardHighlights.avgAccuracy.toFixed(1)}% Acc
             </span>
-            <span className="text-[10px] text-slate-500 block">Toàn giải thi đấu</span>
+            <span className="text-[10px] text-slate-500 block">{language === "en" ? "Entire tournament" : "Toàn giải thi đấu"}</span>
           </div>
         </div>
 
         {/* Item 4 */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
-          <div className="bg-rose-100 dark:bg-rose-950/40 p-2.5 rounded-xl">
+          <div className="bg-rose-100 dark:bg-rose-955/30 p-2.5 rounded-xl">
             <Users className="w-5 h-5 text-rose-500" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">Sĩ Số Đấu Thủ</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 block font-sans">{language === "en" ? "Athlete Count" : "Sĩ Số Đấu Thủ"}</span>
             <span className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-100 block">
-              {masterAthletes && masterAthletes.length > 0 ? masterAthletes.length : athletes.length} VĐV
+              {masterAthletes && masterAthletes.length > 0 ? masterAthletes.length : athletes.length} {language === "en" ? "Athletes" : "VĐV"}
             </span>
-            <span className="text-[10px] text-slate-500 block">Đã đăng ký thi đấu</span>
+            <span className="text-[10px] text-slate-500 block">{language === "en" ? "Registered to compete" : "Đã đăng ký thi đấu"}</span>
           </div>
         </div>
       </div>
@@ -2083,7 +2087,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-100/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl">
         <span className="text-xs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider px-3 flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-500 fill-amber-100" />
-          Khu Vực Bảng Vàng Danh Dự:
+          {language === "en" ? "Honor Leaderboard Zone:" : "Khu Vực Bảng Vàng Danh Dự:"}
         </span>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
@@ -2096,7 +2100,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             }`}
           >
             <Shield className="w-4 h-4" />
-            Trụ Lại Cuối Cùng
+            {language === "en" ? "Survival" : "Trụ Lại Cuối Cùng"}
           </button>
           <button
             type="button"
@@ -2108,7 +2112,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             }`}
           >
             <Trophy className="w-4 h-4" />
-            Toàn Giải (Cộng dồn)
+            {language === "en" ? "All-Round (Cumulative)" : "Toàn Giải (Cộng dồn)"}
           </button>
         </div>
       </div>
@@ -2122,26 +2126,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500 fill-amber-100 animate-pulse" />
               {tournamentType === "individual" ? (
-                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng (môi trường Cá Nhân)" : "Bảng Vàng Cá Nhân - Toàn Giải (môi trường Cá Nhân)"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Individual Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng (môi trường Cá Nhân)") 
+                  : (language === "en" ? "Individual Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Cá Nhân - Toàn Giải (môi trường Cá Nhân)")
               ) : tournamentType === "team" ? (
-                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân Team - Trụ Lại Cuối Cùng (môi trường Đồng Đội)" : "Bảng Vàng Cá Nhân Team - Toàn Giải (môi trường Đồng Đội)"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Team Athletes Leaderboard - Survival (Team Mode)" : "Bảng Vàng Cá Nhân Team - Trụ Lại Cuối Cùng (môi trường Đồng Đội)") 
+                  : (language === "en" ? "Team Athletes Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Cá Nhân Team - Toàn Giải (môi trường Đồng Đội)")
               ) : (
-                dashboardTab === "survival" ? "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng" : "Bảng Vàng Cá Nhân - Toàn Giải"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Individual Leaderboard - Survival" : "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng") 
+                  : (language === "en" ? "Individual Leaderboard - All-Round" : "Bảng Vàng Cá Nhân - Toàn Giải")
               )}
             </h2>
             <p className="text-xs text-gray-400 mt-1">
               {tournamentType === "individual" ? (
                 dashboardTab === "survival"
-                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại cá nhân."
-                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải cá nhân."
+                  ? (language === "en" ? "Top 3 athletes remaining longest through the individual elimination rounds." : "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại cá nhân.")
+                  : (language === "en" ? "Top 3 slingshot masters with the highest total combined score in individual tournament." : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải cá nhân.")
               ) : tournamentType === "team" ? (
                 dashboardTab === "survival"
-                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại đồng đội."
-                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải đồng đội."
+                  ? (language === "en" ? "Top 3 athletes remaining longest through the team elimination rounds." : "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại đồng đội.")
+                  : (language === "en" ? "Top 3 slingshot masters with the highest total combined score in team tournament." : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của giải đồng đội.")
               ) : (
                 dashboardTab === "survival"
-                  ? "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại của giải."
-                  : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của cả giải đấu."
+                  ? (language === "en" ? "Top 3 athletes remaining longest through the tournament elimination rounds." : "Top 3 VĐV còn trụ lại lâu nhất qua các vòng thi đấu loại của giải.")
+                  : (language === "en" ? "Top 3 slingshot masters with the highest total combined score in the entire tournament." : "Top 3 danh thủ sở hữu tổng điểm gộp cao nhất của cả giải đấu.")
               )}
             </p>
           </div>
@@ -2167,16 +2177,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {currentTop3Athletes[1].name}
                 </span>
                 <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={currentTop3Athletes[1].team}>
-                  {currentTop3Athletes[1].team || "Tự Do"}
+                  {currentTop3Athletes[1].team || (language === "en" ? "Independent" : "Tự Do")}
                 </span>
                 <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
-                  {currentTop3Athletes[1].displayScore} đ
+                  {currentTop3Athletes[1].displayScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-slate-250 via-slate-150 to-slate-100/90 dark:from-slate-800 dark:to-slate-700/80 border-t-2 border-slate-300 h-24 rounded-t-xl shadow-lg flex items-center justify-center relative">
                 <span className="font-black text-5xl font-mono text-slate-400/30">2</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">Hạng Nhì</span>
+                <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">{language === "en" ? "2nd Place" : "Hạng Nhì"}</span>
               </div>
             </div>
 
@@ -2196,21 +2206,21 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                     1
                   </div>
                 </div>
-                <span className="text-sm font-black text-slate-900 dark:text-slate-100 block truncate leading-tight tracking-tight mt-2 w-full text-center" title={currentTop3Athletes[0].name}>
+                <span className="text-sm font-black text-slate-900 dark:text-slate-101 block truncate leading-tight tracking-tight mt-2 w-full text-center" title={currentTop3Athletes[0].name}>
                   {currentTop3Athletes[0].name}
                 </span>
                 <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[120px] text-center" title={currentTop3Athletes[0].team}>
-                  {currentTop3Athletes[0].team || "Tự Do"}
+                  {currentTop3Athletes[0].team || (language === "en" ? "Independent" : "Tự Do")}
                 </span>
                 <span className="font-mono text-sm font-extrabold text-amber-600 block leading-tight mt-1">
-                  {currentTop3Athletes[0].displayScore} đ
+                  {currentTop3Athletes[0].displayScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-amber-400/90 via-amber-300/85 to-amber-200/90 border-t-4 border-amber-400 h-36 rounded-t-2xl shadow-xl flex items-center justify-center relative ring-4 ring-amber-500/10">
                 <span className="font-black text-6xl font-mono text-amber-600/40">1</span>
                 <span className="absolute bottom-2 text-[10px] sm:text-xs font-black uppercase text-amber-700 flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" /> Quán Quân <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
+                  <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" /> {language === "en" ? "Champion" : "Quán Quân"} <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
                 </span>
               </div>
             </div>
@@ -2234,16 +2244,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {currentTop3Athletes[2].name}
                 </span>
                 <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={currentTop3Athletes[2].team}>
-                  {currentTop3Athletes[2].team || "Tự Do"}
+                  {currentTop3Athletes[2].team || (language === "en" ? "Independent" : "Tự Do")}
                 </span>
                 <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
-                  {currentTop3Athletes[2].displayScore} đ
+                  {currentTop3Athletes[2].displayScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-amber-800/15 via-amber-700/10 to-amber-600/10 dark:from-slate-850 dark:to-slate-800/80 border-t-2 border-amber-700/30 h-16 rounded-t-xl shadow-lg flex items-center justify-center relative">
                 <span className="font-black text-4xl font-mono text-amber-700/20">3</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">Hạng Ba</span>
+                <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">{language === "en" ? "3rd Place" : "Hạng Ba"}</span>
               </div>
             </div>
           </div>
@@ -2251,8 +2261,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div className="mt-4 text-center">
             <span className="text-[10px] text-gray-400 italic block">
               {dashboardTab === "survival"
-                ? "Danh hiệu cá nhân vinh danh các tuyển thủ kiên trì đồng hành qua các vòng đấu tiếp theo."
-                : "Danh hiệu cá nhân tôn vinh tuyển thủ có tổng điểm thành tích cao nhất xuyên suốt các vòng đấu."}
+                ? (language === "en" ? "Individual title honoring athletes who persistently accompany through the next rounds." : "Danh hiệu cá nhân vinh danh các tuyển thủ kiên trì đồng hành qua các vòng đấu tiếp theo.")
+                : (language === "en" ? "Individual title honoring the athlete with the highest performance score throughout the rounds." : "Danh hiệu cá nhân tôn vinh tuyển thủ có tổng điểm thành tích cao nhất xuyên suốt các vòng đấu.")}
             </span>
           </div>
         </div>
@@ -2263,26 +2273,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-indigo-600" />
               {tournamentType === "individual" ? (
-                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Cá Nhân)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Cá Nhân)"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Team Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Cá Nhân)") 
+                  : (language === "en" ? "Team Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Cá Nhân)")
               ) : tournamentType === "team" ? (
-                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Đồng Đội)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Đồng Đội)"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Team Leaderboard - Survival (Team Mode)" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Đồng Đội)") 
+                  : (language === "en" ? "Team Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Đồng Đội)")
               ) : (
-                dashboardTab === "survival" ? "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng" : "Bảng Vàng Đồng Đội - Toàn Giải"
+                dashboardTab === "survival" 
+                  ? (language === "en" ? "Team Leaderboard - Survival" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng") 
+                  : (language === "en" ? "Team Leaderboard - All-Round" : "Bảng Vàng Đồng Đội - Toàn Giải")
               )}
             </h2>
             <p className="text-xs text-gray-400 mt-1 font-sans">
               {tournamentType === "individual" ? (
                 dashboardTab === "survival"
-                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng cá nhân."
-                  : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải cá nhân."
+                  ? (language === "en" ? "Top 3 Collective representatives based on individual Survival performance." : "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng cá nhân.")
+                  : (language === "en" ? "Top 3 Collectives with the highest combined score from members in individual tournament." : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải cá nhân.")
               ) : tournamentType === "team" ? (
                 dashboardTab === "survival"
-                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng đồng đội."
-                  : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải đồng đội."
+                  ? (language === "en" ? "Top 3 Collective representatives based on team Survival performance." : "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng đồng đội.")
+                  : (language === "en" ? "Top 3 Collectives with the highest combined score from members in team tournament." : "Top 3 Tập Thể có tổng điểm gộp cao nhất từ các thành viên trong giải đồng đội.")
               ) : (
                 dashboardTab === "survival"
-                  ? "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng của đội hình Bắn chính."
-                  : "Top 3 Tập Thể sở hữu tổng điểm tích lũy thành viên cao nhất toàn giải."
+                  ? (language === "en" ? "Top 3 Collective representatives based on the Survival performance of the Main Roster." : "Top 3 đại diện Tập Thể dựa trên thành tích Trụ Lại Cuối Cùng của đội hình Bắn chính.")
+                  : (language === "en" ? "Top 3 Collectives with the highest accumulated member score overall." : "Top 3 Tập Thể sở hữu tổng điểm tích lũy thành viên cao nhất toàn giải.")
               )}
             </p>
           </div>
@@ -2298,13 +2314,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {currentTop3Teams[1].teamName}
                 </span>
                 <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 block leading-tight mt-1">
-                  {currentTop3Teams[1].totalScore} đ
+                  {currentTop3Teams[1].totalScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-slate-200 via-slate-150 to-slate-100/90 dark:from-slate-800 dark:to-slate-700/80 border-t-2 border-slate-300 h-24 rounded-t-xl shadow-lg flex items-center justify-center relative">
                 <span className="font-black text-5xl font-mono text-slate-400/30">2</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">Hạng Nhì</span>
+                <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">{language === "en" ? "2nd Place" : "Hạng Nhì"}</span>
               </div>
             </div>
 
@@ -2317,14 +2333,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {currentTop3Teams[0].teamName}
                 </span>
                 <span className="font-mono text-sm font-extrabold text-amber-600 block leading-tight mt-1">
-                  {currentTop3Teams[0].totalScore} đ
+                  {currentTop3Teams[0].totalScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-amber-400/90 via-amber-300/85 to-amber-200/90 border-t-4 border-amber-400 h-36 rounded-t-2.5xl shadow-xl flex items-center justify-center relative ring-4 ring-amber-500/10">
                 <span className="font-black text-6xl font-mono text-amber-600/40">1</span>
                 <span className="absolute bottom-2 text-xs font-black uppercase text-amber-700 flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 stroke-amber-500" /> Quán Quân <Star className="w-3.5 h-3.5 fill-amber-500 stroke-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500 stroke-amber-500" /> {language === "en" ? "Champion" : "Quán Quân"} <Star className="w-3.5 h-3.5 fill-amber-500 stroke-amber-500" />
                 </span>
               </div>
             </div>
@@ -2338,13 +2354,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                   {currentTop3Teams[2].teamName}
                 </span>
                 <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 block leading-tight mt-1">
-                  {currentTop3Teams[2].totalScore} đ
+                  {currentTop3Teams[2].totalScore} {language === "en" ? "pts" : "đ"}
                 </span>
               </div>
               {/* Podium Column Box */}
               <div className="w-full bg-gradient-to-t from-amber-800/15 via-amber-700/10 to-amber-600/10 dark:from-slate-850 dark:to-slate-800/80 border-t-2 border-amber-700/30 h-16 rounded-t-xl shadow-lg flex items-center justify-center relative">
                 <span className="font-black text-4xl font-mono text-amber-700/20">3</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">Hạng Ba</span>
+                <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">{language === "en" ? "3rd Place" : "Hạng Ba"}</span>
               </div>
             </div>
           </div>
@@ -2352,8 +2368,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div className="mt-4 text-center">
             <span className="text-[10px] text-gray-400 italic block">
               {tournamentType === "individual"
-                ? "Thành tích cộng tích luỹ điểm từ tất cả vận động viên cá nhân thuộc mỗi đội hình/câu lạc bộ."
-                : "Thành tích chỉ cộng tích luỹ điểm từ các đấu thủ được tick bắn chính thức thuộc mỗi đội hình Trụ Lại Cuối Cùng."}
+                ? (language === "en" ? "Accumulated score from all individual athletes belonging to each roster/club." : "Thành tích cộng tích luỹ điểm từ tất cả vận động viên cá nhân thuộc mỗi đội hình/câu lạc bộ.")
+                : (language === "en" ? "Scores only accumulated from players checked as official roster belonging to each Survival team." : "Thành tích chỉ cộng tích luỹ điểm từ các đấu thủ được tick bắn chính thức thuộc mỗi đội hình Trụ Lại Cuối Cùng.")}
             </span>
           </div>
         </div>
@@ -2368,12 +2384,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
               <Star className="w-5 h-5 text-amber-500 fill-amber-100" />
-              Danh Sách TOP {topXCount} - {dashboardTab === "survival" ? "Trụ Lại Cuối Cùng" : "Toàn Giải"}
+              {language === "en" 
+                ? `TOP ${topXCount} List - ${dashboardTab === "survival" ? "Survival" : "All-Round"}` 
+                : `Danh Sách TOP ${topXCount} - ${dashboardTab === "survival" ? "Trụ Lại Cuối Cùng" : "Toàn Giải"}`}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {dashboardTab === "survival" 
-                ? "Xếp hạng dựa trên thành tích kiên cường trụ lại và tồn tại cao nhất qua các vòng loại." 
-                : "Xếp hạng dựa trên tổng điểm luỹ kế tích luỹ từ đầu giải đấu đến hiện tại."}
+                ? (language === "en" ? "Rankings based on the highest resilience and survival performance through elimination rounds." : "Xếp hạng dựa trên thành tích kiên cường trụ lại và tồn tại cao nhất qua các vòng loại.") 
+                : (language === "en" ? "Rankings based on accumulated total score from the beginning of the tournament to present." : "Xếp hạng dựa trên tổng điểm luỹ kế tích luỹ từ đầu giải đấu đến hiện tại.")}
             </p>
           </div>
 
@@ -2396,7 +2414,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             </div>
             
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-lg">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Tự nhập:</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase">{language === "en" ? "Custom:" : "Tự nhập:"}</span>
               <input
                 type="number"
                 min="1"
@@ -2425,7 +2443,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         <div className="flex-1 mt-4 flex flex-col gap-2.5">
             {pagedAthletes.length === 0 ? (
               <div className="text-center py-12 text-gray-400 border border-dashed border-gray-150 rounded-2xl">
-                Không tìm thấy xạ thủ nào đang tranh giải.
+                {language === "en" ? "No shooters found competing for the prize." : "Không tìm thấy xạ thủ nào đang tranh giải."}
               </div>
             ) : (
               pagedAthletes.map((athlete, index) => {
@@ -2466,18 +2484,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                         </span>
                         
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-gray-400 mt-0.5">
-                          <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded font-bold text-slate-650">Mã số: {athlete.id}</span>
+                          <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded font-bold text-slate-650">{language === "en" ? "ID:" : "Mã số:"} {athlete.id}</span>
                           {athlete.team && (
                             <span className="text-indigo-600 dark:text-indigo-400 font-bold max-w-[100px] truncate" title={athlete.team}>{athlete.team}</span>
                           )}
                           {athlete.isPrimaryTeam && (
                             <span className="px-1 text-[8.5px] font-extrabold uppercase bg-emerald-50 text-emerald-700 rounded border border-emerald-200 shadow-xs shrink-0 select-none">
-                              Bắn chính
+                              {language === "en" ? "Main" : "Bắn chính"}
                             </span>
                           )}
                           {dashboardTab === "survival" && (
                             <span className="px-1 text-[8.5px] font-extrabold uppercase bg-indigo-50 text-indigo-700 rounded border border-indigo-200 shrink-0">
-                              Vòng sống sót: {athlete.survivalVal === distances.length ? "Toàn bộ" : `${athlete.survivalVal}`} {athlete.survivalVal < distances.length && distances[athlete.survivalVal] ? `(Loại ở ${distances[athlete.survivalVal].distance}m)` : ""}
+                              {language === "en" ? "Survival Round:" : "Vòng sống sót:"} {athlete.survivalVal === distances.length ? (language === "en" ? "All" : "Toàn bộ") : `${athlete.survivalVal}`} {athlete.survivalVal < distances.length && distances[athlete.survivalVal] ? (language === "en" ? `(Eliminated at ${distances[athlete.survivalVal].distance}m)` : `(Loại ở ${distances[athlete.survivalVal].distance}m)`) : ""}
                             </span>
                           )}
                         </div>
@@ -2487,13 +2505,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                     {/* Score detail block */}
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <span className="text-[9px] text-gray-400 font-bold block leading-none font-sans uppercase">Độ Trúng</span>
+                        <span className="text-[9px] text-gray-400 font-bold block leading-none font-sans uppercase">{language === "en" ? "Accuracy" : "Độ Trúng"}</span>
                         <span className="text-xs sm:text-sm font-bold font-mono text-emerald-600 block leading-tight">
                           {athlete.displayAccuracy.toFixed(1)}%
                         </span>
                       </div>
                       <div className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-100/50 text-right min-w-[70px]">
-                        <span className="text-[8px] text-blue-500 font-black block leading-none font-sans uppercase tracking-wider">Tổng Điểm</span>
+                        <span className="text-[8px] text-blue-500 font-black block leading-none font-sans uppercase tracking-wider">{language === "en" ? "Total Points" : "Tổng Điểm"}</span>
                         <span className="text-sm sm:text-base font-black font-mono text-blue-700 dark:text-blue-400 block leading-none mt-1">
                           {athlete.displayScore}
                         </span>
@@ -2515,7 +2533,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               className="px-3 py-1.5 rounded-lg text-xs font-black bg-slate-100 dark:bg-slate-805 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-all border border-slate-250 dark:border-slate-700 cursor-pointer"
             >
-              Trước
+              {language === "en" ? "Prev" : "Trước"}
             </button>
             
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
@@ -2552,13 +2570,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
               className="px-3 py-1.5 rounded-lg text-xs font-black bg-slate-100 dark:bg-slate-805 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-all border border-slate-250 dark:border-slate-700 cursor-pointer"
             >
-              Tiếp
+              {language === "en" ? "Next" : "Tiếp"}
             </button>
           </div>
         )}
 
         <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-400 font-bold block text-center uppercase tracking-wide">
-          CÂU LẠC BỘ BẮN NÁ CAO SU VIỆT NAM (VSC / Vietnam.Slingshot)
+          {language === "en" ? "VIETNAM SLINGSHOT CLUB (VSC / Vietnam.Slingshot)" : "CÂU LẠC BỘ BẮN NÁ CAO SU VIỆT NAM (VSC / Vietnam.Slingshot)"}
         </div>
 
       </div>

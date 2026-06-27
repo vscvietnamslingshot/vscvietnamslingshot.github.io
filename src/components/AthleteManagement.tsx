@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig, StoredAthleteList, Club } from "../types";
 import { getUserProfileByEmail, saveVscSystemAthletes, subscribeToVscSystemAthletes } from "../lib/firebaseService";
 import * as XLSX from "xlsx";
@@ -135,6 +136,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   setClubs,
   currentUser,
 }) => {
+  const { language, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [leftTab, setLeftTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
   const [vscSystemAthletes, setVscSystemAthletes] = useState<Athlete[]>(() => {
@@ -923,7 +925,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
             }`}
           >
-            👥 VĐV giải ({athletes.length})
+            👥 {language === "en" ? "Roster" : "VĐV giải"} ({athletes.length})
           </button>
           <button
             type="button"
@@ -934,7 +936,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
             }`}
           >
-            🏢 Câu Lạc Bộ ({clubs.length})
+            🏢 {language === "en" ? "Clubs" : "Câu Lạc Bộ"} ({clubs.length})
           </button>
           <button
             type="button"
@@ -945,7 +947,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
             }`}
           >
-            🎖️ Hệ thống VSC ({vscSystemAthletes.length})
+            🎖️ {language === "en" ? "VSC Database" : "Hệ thống VSC"} ({vscSystemAthletes.length})
           </button>
         </div>
 
@@ -954,16 +956,20 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
             <div className="flex justify-between items-center pb-2 border-b">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 dark:text-slate-100">
                 <Users className="w-5 h-5 text-blue-600" />
-                {isVscTab ? "VĐV Hệ Thống VSC" : "Vận Động Viên Giải"} ({currentRoster.length})
+                {isVscTab 
+                  ? (language === "en" ? "VSC Database Athletes" : "VĐV Hệ Thống VSC") 
+                  : (language === "en" ? "Tournament Athletes" : "Vận Động Viên Giải")} ({currentRoster.length})
               </h2>
               
               <button
                 type="button"
                 onClick={handleStartCreate}
                 className="p-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md font-bold flex items-center gap-1 transition-all cursor-pointer"
-                title={isVscTab ? "Thêm lý lịch VĐV Hệ thống cố định mới" : "Thêm VĐV giải mới"}
+                title={isVscTab 
+                  ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
+                  : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
               >
-                <UserPlus className="w-3.5 h-3.5" /> Thêm mới
+                <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
               </button>
             </div>
 
@@ -972,7 +978,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Tìm theo Tên, Mã, Tỉnh..."
+            placeholder={language === "en" ? "Search by Name, ID, Province..." : "Tìm theo Tên, Mã, Tỉnh..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all"
@@ -982,7 +988,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         {/* Import/Export Data Panel */}
         <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Quản Lý File VĐV</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+              {language === "en" ? "Roster File Manager" : "Quản Lý File VĐV"}
+            </span>
             <span className="text-[9px] text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold font-mono">XLSX & JSON</span>
           </div>
           
@@ -990,11 +998,14 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
             {/* Excel Group */}
             <div className="flex flex-col gap-1">
               <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                <FileSpreadsheet className="w-3 h-3 text-emerald-600" /> Bảng Excel (.xlsx)
+                <FileSpreadsheet className="w-3 h-3 text-emerald-600" /> {language === "en" ? "Excel Table (.xlsx)" : "Bảng Excel (.xlsx)"}
               </span>
               <div className="flex gap-1">
-                <label className="flex-1 text-center bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-emerald-950/20 text-emerald-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-emerald-200 dark:border-emerald-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" title="Chọn file Excel để tải danh sách vận động viên">
-                  <Upload className="w-3 h-3" /> Nhập
+                <label 
+                  className="flex-1 text-center bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-emerald-950/20 text-emerald-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-emerald-200 dark:border-emerald-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
+                  title={language === "en" ? "Choose Excel file to import athlete list" : "Chọn file Excel để tải danh sách vận động viên"}
+                >
+                  <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
                   <input
                     type="file"
                     accept=".xlsx, .xls"
@@ -1006,9 +1017,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   type="button"
                   onClick={exportToExcel}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                  title="Tải về file Excel chứa danh sách VĐV hiện hành"
+                  title={language === "en" ? "Download Excel file containing current athletes" : "Tải về file Excel chứa danh sách VĐV hiện hành"}
                 >
-                  <Download className="w-3 h-3" /> Xuất
+                  <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
                 </button>
               </div>
             </div>
@@ -1016,11 +1027,14 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
             {/* JSON Group */}
             <div className="flex flex-col gap-1">
               <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                <span className="text-violet-600 font-mono font-black text-xs leading-none">{"{}"}</span> Dữ liệu JSON (.json)
+                <span className="text-violet-600 font-mono font-black text-xs leading-none">{"{}"}</span> {language === "en" ? "JSON Data (.json)" : "Dữ liệu JSON (.json)"}
               </span>
               <div className="flex gap-1">
-                <label className="flex-1 text-center bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 text-violet-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-violet-200 dark:border-violet-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" title="Chọn file JSON để tải lên đầy đủ VĐV và điểm số">
-                  <Upload className="w-3 h-3" /> Nhập
+                <label 
+                  className="flex-1 text-center bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 text-violet-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-violet-200 dark:border-violet-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
+                  title={language === "en" ? "Choose JSON file to import athletes" : "Chọn file JSON để tải lên đầy đủ VĐV và điểm số"}
+                >
+                  <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
                   <input
                     type="file"
                     accept=".json"
@@ -1032,9 +1046,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   type="button"
                   onClick={exportToJson}
                   className="flex-1 bg-violet-600 hover:bg-violet-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                  title="Tải về file JSON"
+                  title={language === "en" ? "Download JSON file" : "Tải về file JSON"}
                 >
-                  <Download className="w-3 h-3" /> Xuất
+                  <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
                 </button>
               </div>
             </div>
