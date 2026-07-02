@@ -47,6 +47,8 @@ interface AthleteManagementProps {
   clubs: Club[];
   setClubs: React.Dispatch<React.SetStateAction<Club[]>>;
   currentUser?: any;
+  forceTab?: "athletes" | "clubs" | "vsc_system";
+  hideVscSystemTab?: boolean;
 }
 
 export function deduplicateAthletes(list: Athlete[]): Athlete[] {
@@ -135,10 +137,18 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   clubs,
   setClubs,
   currentUser,
+  forceTab,
+  hideVscSystemTab
 }) => {
   const { language, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
-  const [leftTab, setLeftTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
+  const [leftTab, setLeftTab] = useState<"athletes" | "clubs" | "vsc_system">(forceTab || "athletes");
+
+  useEffect(() => {
+    if (forceTab) {
+      setLeftTab(forceTab);
+    }
+  }, [forceTab]);
   const [vscSystemAthletes, setVscSystemAthletes] = useState<Athlete[]>(() => {
     try {
       const saved = localStorage.getItem("slingshot_vsc_system_athletes");
@@ -938,17 +948,19 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           >
             🏢 {language === "en" ? "Clubs" : "Câu Lạc Bộ"} ({clubs.length})
           </button>
-          <button
-            type="button"
-            onClick={() => setLeftTab("vsc_system")}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
-              leftTab === "vsc_system"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-805/80 font-extrabold"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
-            }`}
-          >
-            🎖️ {language === "en" ? "VSC Database" : "Hệ thống VSC"} ({vscSystemAthletes.length})
-          </button>
+          {!hideVscSystemTab && (
+            <button
+              type="button"
+              onClick={() => setLeftTab("vsc_system")}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
+                leftTab === "vsc_system"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-805/80 font-extrabold"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
+              }`}
+            >
+              🎖️ {language === "en" ? "VSC Database" : "Hệ thống VSC"} ({vscSystemAthletes.length})
+            </button>
+          )}
         </div>
 
         {(leftTab === "athletes" || leftTab === "vsc_system") ? (
@@ -1225,9 +1237,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                           handleAddVscToTournament(ath);
                         }}
                         className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold gap-0.5 shadow-sm hover:scale-105 active:scale-95"
-                        title="Thêm VĐV này vào danh sách giải thi đấu hiện tại"
+                        title={language === "en" ? "Add this athlete to the current active tournament roster" : "Thêm VĐV này vào danh sách giải thi đấu hiện tại"}
                       >
-                        <PlusCircle className="w-3.5 h-3.5" /> Thêm vào giải
+                        <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Tournament" : "Thêm vào giải"}
                       </button>
                     )}
                   </div>
@@ -2468,14 +2480,14 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                       }}
                       className="py-1 px-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-black cursor-pointer leading-none transition-colors"
                     >
-                      Xóa
+                      {language === "en" ? "Delete" : "Xóa"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsConfirmingDelete(false)}
                       className="py-1 px-2.5 bg-gray-200 hover:bg-gray-300 text-slate-700 rounded text-[11px] font-bold cursor-pointer leading-none transition-colors"
                     >
-                      Hủy
+                      {language === "en" ? "Cancel" : "Hủy"}
                     </button>
                   </div>
                 ) : (
@@ -2485,9 +2497,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                         type="button"
                         onClick={() => handleAddVscToTournament(selectedAthlete)}
                         className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
-                        title="Thêm VĐV này vào danh sách giải thi đấu hiện tại"
+                        title={language === "en" ? "Add this athlete to the current active tournament roster" : "Thêm VĐV này vào danh sách giải thi đấu hiện tại"}
                       >
-                        <PlusCircle className="w-3.5 h-3.5" /> Thêm vào giải hiện hành
+                        <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Active" : "Thêm vào giải hiện hành"}
                       </button>
                     )}
                     
@@ -2496,7 +2508,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                       onClick={() => handleStartEdit(selectedAthlete)}
                       className="py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1 border border-indigo-150 transition-colors cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa hồ sơ
+                      <Edit3 className="w-3.5 h-3.5" /> {language === "en" ? "Edit Profile" : "Chỉnh sửa hồ sơ"}
                     </button>
                     
                     <button

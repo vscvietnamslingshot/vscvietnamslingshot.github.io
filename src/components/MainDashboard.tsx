@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
-import { Athlete, DistanceConfig } from "../types";
+import { Athlete, DistanceConfig, Club } from "../types";
 import { VSCLogo, SlingshotIcon } from "./VSCLogo";
-import { Trophy, Medal, Award, Star, Users, Target, Zap, Shield, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Award, Star, Users, Target, Zap, Shield, TrendingUp, Tv } from "lucide-react";
 import { AVATAR_MALE } from "./AthleteManagement";
 import { calculateRounds, getHitCount } from "../utils/qualification";
 
@@ -21,6 +21,8 @@ interface MainDashboardProps {
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
   tournamentType?: "individual" | "team" | "combined";
+  clubs?: Club[];
+  onOpenLiveBoard?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ 
@@ -37,7 +39,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   teamDirectMaxShots,
   directMaxPoints,
   teamDirectMaxPoints,
-  tournamentType = "combined"
+  tournamentType = "combined",
+  clubs,
+  onOpenLiveBoard
 }) => {
   const { language, t } = useLanguage();
   // Resolve active source variables based on tournamentType
@@ -1975,6 +1979,38 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     return uniqueClubs.size;
   }, [masterAthletes, teamStats]);
 
+  const getTeamAvatar = (teamName: string, place: 1 | 2 | 3) => {
+    const club = clubs?.find(c => c.name.trim().toLowerCase() === teamName.trim().toLowerCase());
+    const badgeColor = place === 1 ? "text-amber-500 fill-amber-100" : place === 2 ? "text-slate-300 fill-slate-100" : "text-amber-700/80 fill-orange-50";
+    const borderColor = place === 1 ? "border-amber-400 ring-4 ring-amber-500/10" : place === 2 ? "border-slate-300 ring-2 ring-slate-400/5" : "border-amber-700/30 ring-2 ring-amber-800/5";
+    const size = place === 1 ? "w-14 h-14" : "w-11 h-11";
+    const badgeSize = place === 1 ? "w-5 h-5" : "w-4 h-4";
+    const Icon = place === 1 ? Trophy : place === 2 ? Medal : Award;
+
+    if (club && club.avatarUrl) {
+      return (
+        <div className="relative flex justify-center items-center mb-1">
+          <img 
+            src={club.avatarUrl} 
+            alt={teamName} 
+            className={`${size} rounded-full object-cover border-2 ${borderColor} shadow-md`}
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-950 rounded-full p-0.5 shadow-xs border border-slate-100 dark:border-slate-800">
+            <Icon className={`${badgeSize} ${badgeColor}`} />
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback if no avatar
+    return (
+      <div className="flex justify-center items-center mb-1">
+        <Icon className={`${place === 1 ? "w-10 h-10" : place === 2 ? "w-7 h-7" : "w-6 h-6"} ${badgeColor} drop-shadow-md animate-bounce`} />
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-fadeIn" id="vsc-main-dashboard">
       
@@ -2090,6 +2126,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           {language === "en" ? "Honor Leaderboard Zone:" : "Khu Vực Bảng Vàng Danh Dự:"}
         </span>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {onOpenLiveBoard && (
+            <button
+              type="button"
+              onClick={onOpenLiveBoard}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-755 hover:to-teal-805 text-white text-xs sm:text-sm font-black uppercase rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2 tracking-wider"
+              id="btn-liveboard-dashboard"
+            >
+              <Tv className="w-4 h-4" />
+              LIVE BOARD
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setDashboardTab("survival")}
@@ -2309,7 +2356,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
               {/* Cup & Team details */}
               <div className="text-center mb-1.5 px-1 w-full flex flex-col items-center">
-                <Medal className="w-7 h-7 text-slate-300 fill-slate-100 mx-auto drop-shadow-sm animate-bounce duration-1000" />
+                {getTeamAvatar(currentTop3Teams[1].teamName, 2)}
                 <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center" title={currentTop3Teams[1].teamName}>
                   {currentTop3Teams[1].teamName}
                 </span>
@@ -2328,7 +2375,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <div className="flex flex-col items-center flex-1 max-w-[150px] z-20 -mx-1">
               {/* Cup & Team details */}
               <div className="text-center mb-3 px-1 w-full flex flex-col items-center">
-                <Trophy className="w-10 h-10 text-amber-500 fill-amber-100 mx-auto drop-shadow-md animate-bounce" />
+                {getTeamAvatar(currentTop3Teams[0].teamName, 1)}
                 <span className="text-sm font-black text-slate-900 dark:text-slate-101 block truncate leading-tight tracking-tight mt-1.5 w-full text-center" title={currentTop3Teams[0].teamName}>
                   {currentTop3Teams[0].teamName}
                 </span>
@@ -2349,7 +2396,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
               {/* Cup & Team details */}
               <div className="text-center mb-1 px-1 w-full flex flex-col items-center">
-                <Award className="w-6 h-6 text-amber-700/80 fill-orange-50 mx-auto drop-shadow-sm animate-bounce duration-1500" />
+                {getTeamAvatar(currentTop3Teams[2].teamName, 3)}
                 <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center" title={currentTop3Teams[2].teamName}>
                   {currentTop3Teams[2].teamName}
                 </span>

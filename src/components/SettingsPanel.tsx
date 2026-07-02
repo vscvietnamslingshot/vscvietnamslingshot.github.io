@@ -31,6 +31,10 @@ interface SettingsPanelProps {
   setStartDate: (date: string) => void;
   endDate: string;
   setEndDate: (date: string) => void;
+  bannerUrl: string;
+  setBannerUrl: (url: string) => void;
+  avatarUrl: string;
+  setAvatarUrl: (url: string) => void;
   
   // New Team mode configurations
   teamDistances: DistanceConfig[];
@@ -60,6 +64,45 @@ interface SettingsPanelProps {
   setTournamentType?: (type: "individual" | "team" | "combined") => void;
 }
 
+const compressImage = (base64Str: string, maxWidth = 150, maxHeight = 150): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith("data:image")) {
+      resolve(base64Str);
+      return;
+    }
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   matchName,
   setMatchName,
@@ -84,6 +127,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setStartDate,
   endDate,
   setEndDate,
+  bannerUrl,
+  setBannerUrl,
+  avatarUrl,
+  setAvatarUrl,
   setClubs,
   teamDistances,
   setTeamDistances,
@@ -671,6 +718,107 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 placeholder={language === "en" ? "Enter rules, formats, or notes..." : "Nhập luật bắn, thể thức, hoặc lưu ý..."}
                 className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-505 font-medium leading-relaxed"
               />
+            </div>
+
+            {/* Banner & Avatar Upload Configuration */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-indigo-50 dark:border-slate-800/80 p-4 rounded-xl bg-indigo-50/10 dark:bg-slate-950/20">
+              {/* Avatar upload */}
+              <div>
+                <label className="block text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1.5">
+                  {language === "en" ? "Tournament Logo / Avatar" : "Logo / Avatar Giải Đấu"}
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-14 h-14 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Tournament Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <Trophy className="w-6 h-6 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 text-[11px] text-white hover:bg-indigo-700 font-bold bg-indigo-600 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                      <span>{language === "en" ? "Upload Logo" : "Tải Logo Lên"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === "string") {
+                                compressImage(reader.result, 180, 180).then((compressed) => {
+                                  setAvatarUrl(compressed);
+                                });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl("")}
+                        className="text-[10px] text-red-600 hover:text-red-700 font-bold text-left pl-1"
+                      >
+                        {language === "en" ? "Remove" : "Xóa bỏ"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner upload */}
+              <div>
+                <label className="block text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1.5">
+                  {language === "en" ? "Tournament Banner" : "Banner Giải Đấu"}
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-24 h-14 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                    {bannerUrl ? (
+                      <img src={bannerUrl} alt="Tournament Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <Calendar className="w-6 h-6 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 text-[11px] text-white hover:bg-indigo-700 font-bold bg-indigo-600 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                      <span>{language === "en" ? "Upload Banner" : "Tải Banner Lên"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === "string") {
+                                compressImage(reader.result, 1000, 400).then((compressed) => {
+                                  setBannerUrl(compressed);
+                                });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    {bannerUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setBannerUrl("")}
+                        className="text-[10px] text-red-600 hover:text-red-700 font-bold text-left pl-1"
+                      >
+                        {language === "en" ? "Remove" : "Xóa bỏ"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Show lane capacity selector as an editable element when unlocked */}

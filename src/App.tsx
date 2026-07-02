@@ -48,7 +48,7 @@ import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subsc
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
-import { Home, LogOut, Sliders, SlidersHorizontal } from "lucide-react";
+import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
   DEFAULT_SHOTS_COUNT,
@@ -390,6 +390,14 @@ export default function App() {
     return localStorage.getItem("slingshot_end_date") || "";
   });
 
+  const [bannerUrl, setBannerUrl] = useState<string>(() => {
+    return localStorage.getItem("slingshot_banner_url") || "";
+  });
+
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => {
+    return localStorage.getItem("slingshot_avatar_url") || "";
+  });
+
   const [headerTempName, setHeaderTempName] = useState<string>(matchName);
 
   const restoreAllData = async () => {
@@ -413,6 +421,8 @@ export default function App() {
         clubsVal,
         startDateVal,
         endDateVal,
+        bannerUrlVal,
+        avatarUrlVal,
       ] = await Promise.all([
         deviceStorage.get("slingshot_avatars"),
         deviceStorage.get("slingshot_match_name"),
@@ -432,6 +442,8 @@ export default function App() {
         deviceStorage.get("slingshot_clubs"),
         deviceStorage.get("slingshot_start_date"),
         deviceStorage.get("slingshot_end_date"),
+        deviceStorage.get("slingshot_banner_url"),
+        deviceStorage.get("slingshot_avatar_url"),
       ]);
 
       if (avatars) {
@@ -448,6 +460,8 @@ export default function App() {
       }
       if (startDateVal) setStartDate(startDateVal);
       if (endDateVal) setEndDate(endDateVal);
+      if (bannerUrlVal) setBannerUrl(bannerUrlVal);
+      if (avatarUrlVal) setAvatarUrl(avatarUrlVal);
       if (distancesVal) setDistances(distancesVal);
       if (shotsCountVal) setShotsCount(Number(shotsCountVal));
       if (athletesVal) setAthletes(restoreBase64Avatars(athletesVal));
@@ -792,6 +806,25 @@ export default function App() {
   }, [masterAthletes]);
 
   const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel">("home");
+  const [athleteForceTab, setAthleteForceTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
+  const [settingsSubTab, setSettingsSubTab] = useState<"config" | "athletes">("config");
+  const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "created" | "referee">("profile");
+  const [rankingSubTab, setRankingSubTab] = useState<"individual" | "team">("individual");
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // Click-outside handler to close user menu dropdown
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const container = document.getElementById("user-header-menu-container");
+      if (container && !container.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isUserMenuOpen]);
 
   // Keep non-logged in guests restricted to public-facing viewing tabs
   useEffect(() => {
@@ -968,6 +1001,24 @@ export default function App() {
       console.error("Failed to save end date to storage:", e);
     }
   }, [endDate]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("slingshot_banner_url", bannerUrl);
+      deviceStorage.set("slingshot_banner_url", bannerUrl);
+    } catch (e) {
+      console.error("Failed to save banner url to storage:", e);
+    }
+  }, [bannerUrl]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("slingshot_avatar_url", avatarUrl);
+      deviceStorage.set("slingshot_avatar_url", avatarUrl);
+    } catch (e) {
+      console.error("Failed to save avatar url to storage:", e);
+    }
+  }, [avatarUrl]);
 
   useEffect(() => {
     try {
@@ -1522,6 +1573,8 @@ export default function App() {
         }
         if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
         if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
+        if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || "");
+        if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || "");
         if (docVal.tournamentType) {
           setTournamentType(docVal.tournamentType);
           localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
@@ -1576,7 +1629,9 @@ export default function App() {
       !deepEqual(teamDirectMaxPoints, currentTournamentDoc?.teamDirectMaxPoints) ||
       !deepEqual(directMaxShots, currentTournamentDoc?.directMaxShots) ||
       !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
-      !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes)
+      !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
+      !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
+      !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl)
     );
 
     if (!isDifferent) return;
@@ -1599,7 +1654,9 @@ export default function App() {
           teamDirectMaxPoints,
           directMaxShots,
           teamDirectMaxShots,
-          masterAthletes
+          masterAthletes,
+          bannerUrl,
+          avatarUrl
         });
       } catch (err) {
         console.error("Cloud synchronization failed:", err);
@@ -1626,6 +1683,8 @@ export default function App() {
     directMaxShots,
     teamDirectMaxShots,
     masterAthletes,
+    bannerUrl,
+    avatarUrl,
     currentTournamentDoc
   ]);
 
@@ -3177,504 +3236,321 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Main Banner Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg border-b border-indigo-950 relative" id="app-header">
-        {/* Language selector buttons at the very top right of the header */}
-        <div className="absolute top-2 right-4 flex items-center gap-1.5 z-30">
-          <button
-            onClick={() => setLanguage("vi")}
-            className={`px-2 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
-              language === "vi"
-                ? "bg-amber-500 text-slate-950 shadow-sm"
-                : "bg-white/10 text-slate-300 hover:bg-white/20"
-            }`}
-          >
-            VIE
-          </button>
-          <button
-            onClick={() => setLanguage("en")}
-            className={`px-2 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
-              language === "en"
-                ? "bg-amber-500 text-slate-950 shadow-sm"
-                : "bg-white/10 text-slate-300 hover:bg-white/20"
-            }`}
-          >
-            ENG
-          </button>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner shrink-0">
-              <VSCLogo size={60} />
+      {/* Top Header & Main Navigation Menu (VSC Style Redesign) */}
+      <header className="w-full flex flex-col font-sans" id="app-header">
+        
+        {/* 1. Top slim bar (bg-[#002e6e]) */}
+        <div className="bg-[#002e6e] text-white text-[11px] font-bold py-2 px-4 shadow-xs border-b border-white/5 relative z-50">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            {/* Left side text */}
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span>{language === "en" ? "System developed by VSC" : "Hệ thống được phát triển bởi VSC"}</span>
+              {activeHistoryId && activeHistoryId.startsWith("tour-") && (
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ml-2 ${
+                  networkStatus === "offline"
+                    ? "bg-rose-500/20 text-rose-300"
+                    : dbHasPendingWrites
+                    ? "bg-amber-500/20 text-amber-300 animate-pulse"
+                    : "bg-emerald-500/20 text-emerald-300"
+                }`}>
+                  {networkStatus === "offline" 
+                    ? (language === "en" ? "Offline" : "Ngoại tuyến") 
+                    : dbHasPendingWrites 
+                    ? (language === "en" ? "Syncing..." : "Đang đồng bộ...") 
+                    : (language === "en" ? "Cloud Sync OK" : "Đồng bộ Cloud OK")}
+                </span>
+              )}
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] uppercase font-serif font-black tracking-widest bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow-sm">
-                  {t("app.vsc_official", "VSC OFFICIAL")}
-                </span>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-indigo-300 font-black">
-                  {t("app.version", "App v2.5 Premium")}
-                </span>
-                {activeHistoryId && activeHistoryId.startsWith("tour-") && (
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                    networkStatus === "offline"
-                      ? "bg-rose-500/15 text-rose-300 border border-rose-500/25"
-                      : dbHasPendingWrites
-                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/25 animate-pulse"
-                      : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
-                  }`}>
-                    {networkStatus === "offline" ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shrink-0" />
-                        {t("app.offline_mode", "Ngoại tuyến (Lưu Cache)")}
-                      </>
-                    ) : dbHasPendingWrites ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-spin shrink-0" />
-                        {t("app.syncing", "Đang đồng bộ Cloud...")}
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        {t("app.sync_ok", "Đồng bộ Cloud OK")}
-                      </>
-                    )}
-                  </span>
-                )}
+
+            {/* Right side options: Lang selection & Auth drop-down */}
+            <div className="flex items-center gap-4">
+              {/* Language Selection Toggle */}
+              <div className="flex items-center gap-1 border-r border-white/20 pr-3 mr-1">
+                <button
+                  onClick={() => setLanguage("vi")}
+                  className={`px-1.5 py-0.5 rounded-sm text-[9px] font-black transition-all cursor-pointer ${
+                    language === "vi" ? "bg-amber-500 text-slate-950 font-black shadow-xs" : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  VIE
+                </button>
+                <button
+                  onClick={() => setLanguage("en")}
+                  className={`px-1.5 py-0.5 rounded-sm text-[9px] font-black transition-all cursor-pointer ${
+                    language === "en" ? "bg-amber-500 text-slate-950 font-black shadow-xs" : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  ENG
+                </button>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black mt-1 tracking-tight text-white font-sans uppercase leading-none">
-                {t("app.title", "Vietnam Slingshot Championship")}
-              </h1>
-              {/* Select mode Switch: Cá nhân / Đồng Đội dưới tên App */}
-              {(tournamentType === "combined" || tournamentType === "individual" || tournamentType === "team") && (
-                <div className="flex flex-col gap-1.5 mt-2.5">
-                  <div className="flex bg-black/30 border border-white/10 rounded-lg p-0.5 max-w-[220px]">
-                    {(tournamentType === "combined" || tournamentType === "individual") && (
+
+              {/* Login dropdown if authenticated */}
+              {currentUser ? (
+                <div className="relative" id="user-header-menu-container">
+                  <button
+                    type="button"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-1.5 cursor-pointer hover:opacity-90 transition-all text-left font-bold"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-white font-black uppercase shrink-0">
+                      {currentUser.displayName?.[0] || currentUser.email?.[0] || "U"}
+                    </div>
+                    <span className="truncate max-w-[120px] text-white">
+                      {currentUser.displayName || currentUser.email}
+                    </span>
+                    <ChevronDown className="w-3 h-3 text-zinc-300 shrink-0" />
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-905 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-50 p-1 flex flex-col text-slate-700 dark:text-slate-200">
                       <button
                         type="button"
                         onClick={() => {
-                          setCompetitionMode("individual");
-                          if (activeHistoryId !== null && userRole !== "admin") {
-                            setIsSpectatorModeOverridden(true);
-                          }
-                          if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                            updateOnlineTournament(activeHistoryId, { competitionMode: "individual" })
-                              .catch(err => console.error("Cloud update mode failed:", err));
-                          }
+                          setActiveTab("control_panel");
+                          setControlPanelSubTab("profile");
+                          setIsUserMenuOpen(false);
                         }}
-                        className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                          competitionMode === "individual"
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                            : "text-indigo-200 hover:text-white"
-                        }`}
-                        title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Cá Nhân trên thiết bị của bạn" : ""}
+                        className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        {t("dashboard.individual", "Cá Nhân")}
+                        👤 {language === "en" ? "My Athlete Bio" : "Hồ Sơ VĐV của Tôi"}
                       </button>
-                    )}
-                    {(tournamentType === "combined" || tournamentType === "team") && (
                       <button
                         type="button"
                         onClick={() => {
-                          setCompetitionMode("team");
-                          if (activeHistoryId !== null && userRole !== "admin") {
-                            setIsSpectatorModeOverridden(true);
-                          }
-                          if (activeHistoryId && activeHistoryId.startsWith("tour-") && userRole === "admin") {
-                            updateOnlineTournament(activeHistoryId, { competitionMode: "team" })
-                              .catch(err => console.error("Cloud update mode failed:", err));
-                          }
+                          setActiveTab("control_panel");
+                          setControlPanelSubTab("created");
+                          setIsUserMenuOpen(false);
                         }}
-                        className={`flex-1 text-center py-1 px-3.5 text-[11px] uppercase font-black tracking-wider rounded-md transition-all cursor-pointer ${
-                          competitionMode === "team"
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/35 font-extrabold scale-102"
-                            : "text-indigo-200 hover:text-white"
-                        }`}
-                        title={activeHistoryId !== null && userRole !== "admin" ? "Xem hình thức Đồng Đội trên thiết bị của bạn" : ""}
+                        className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        {t("dashboard.team", "Đồng Đội")}
+                        🏆 {language === "en" ? "My Created Tournaments" : "Giải Tôi Tạo"}
                       </button>
-                    )}
-                  </div>
-                  {activeHistoryId !== null && userRole !== "admin" && isSpectatorModeOverridden && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSpectatorModeOverridden(false);
-                        if (currentTournamentDoc && currentTournamentDoc.competitionMode) {
-                          setCompetitionMode(currentTournamentDoc.competitionMode);
-                        }
-                      }}
-                      className="text-[9px] text-amber-400 hover:text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded w-fit"
-                      title="Nhấn để đồng bộ lại hình thức thi đấu theo Ban Tổ Chức"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
-                      Chế độ tự chọn (Đồng bộ lại)
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("control_panel");
+                          setControlPanelSubTab("referee");
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        ⏱️ {language === "en" ? "Tournaments I Referee" : "Giải Tôi Làm Trọng Tài"}
+                      </button>
+                      <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          auth.signOut();
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        🚪 {language === "en" ? "Logout" : "Thoát"}
+                      </button>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Real-Time Edit match name string directly in navbar with Export button underneath */}
-          <div className="flex flex-col gap-2 max-w-sm w-full md:w-auto">
-            {/* User Cloud Authenticated Status Mini Board */}
-            <div className="flex items-center justify-between gap-3 bg-black/20 px-3 py-1.5 rounded-xl border border-white/5 text-xs text-indigo-200">
-              {currentUser ? (
-                <div className="flex items-center gap-1.5 max-w-[240px] truncate">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-black uppercase shrink-0">
-                    {currentUser.displayName?.[0] || currentUser.email?.[0] || "U"}
-                  </div>
-                  <span className="font-extrabold truncate text-[11px] text-zinc-100 font-sans">
-                    {currentUser.displayName || currentUser.email}
-                  </span>
-                </div>
               ) : (
-                <span className="text-[10px] font-bold text-gray-400 font-sans uppercase">{t("app.guest_mode", "Chế độ Khách (Spectator)")}</span>
-              )}
-
-              {currentUser ? (
-                <button 
-                  type="button"
-                  onClick={() => auth.signOut()}
-                  className="text-[10px] font-black text-rose-450 hover:text-rose-300 uppercase underline cursor-pointer hover:scale-102 transition-all p-0.5 font-sans"
-                  title={t("btn.logout", "Thoát tài khoản")}
-                >
-                  {t("btn.logout_short", "Thoát")}
-                </button>
-              ) : (
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="text-[11px] font-black text-indigo-300 hover:text-indigo-100 uppercase underline cursor-pointer hover:scale-102 transition-all p-0.5 shrink-0 font-sans"
+                  className="hover:text-yellow-400 font-extrabold uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1"
                 >
-                  {t("btn.login", "Đăng Nhập")}
+                  {language === "en" ? "REGISTER | LOGIN" : "ĐĂNG KÝ | ĐĂNG NHẬP"}
                 </button>
               )}
             </div>
+          </div>
+        </div>
 
-            {activeHistoryId ? (
-              <div className="flex items-center gap-2 bg-black/15 p-2 rounded-lg border border-white/10 w-full">
-                <span className="text-xs text-blue-200 font-semibold px-2 shrink-0">{t("app.viewing_tournament", "Giải đấu: ")}</span>
+        {/* 2. Main Navigation Red Bar (bg-[#9c0c13]) */}
+        <div className="bg-[#9c0c13] text-white relative shadow-md z-40">
+          <div className="max-w-7xl mx-auto flex justify-between items-stretch">
+            
+            {/* Logo Brand Box on the left with blue slanted design */}
+            <div 
+              className="relative bg-[#004ca3] px-5 sm:px-8 py-3.5 flex items-center shrink-0 pr-10 cursor-pointer hover:opacity-95 transition-all select-none"
+              style={{ clipPath: 'polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)' }}
+              onClick={() => setActiveTab("home")}
+            >
+              <div className="flex items-center gap-2">
+                <div className="bg-white/10 p-1 rounded-lg border border-white/20 shadow-inner">
+                  <VSCLogo size={24} />
+                </div>
+                <span className="font-extrabold tracking-tight text-white text-base sm:text-lg italic uppercase">
+                  VSCS<span className="text-yellow-400">.ASIA</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Menu Items on the right */}
+            <div className="flex items-center overflow-x-auto scrollbar-none whitespace-nowrap scroll-smooth max-w-full font-sans select-none pr-4">
+              <button
+                onClick={() => setActiveTab("home")}
+                className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                  activeTab === "home" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                {language === "en" ? "Home" : "Trang Chủ"}
+              </button>
+
+              {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
+                <button
+                  onClick={() => setActiveTab("input_scores")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "input_scores" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <ClipboardCheck className="w-4 h-4" />
+                  {competitionMode === "team" ? (language === "en" ? "Enter Team Scores" : "Nhập Điểm Team") : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
+                </button>
+              )}
+
+              {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
+                <button
+                  onClick={() => setActiveTab("scoring")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "scoring" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <Target className="w-4 h-4" />
+                  {competitionMode === "team" ? (language === "en" ? "Record Team Scores" : "Ghi Điểm Team") : (language === "en" ? "Record Scores" : "Ghi Điểm")}
+                </button>
+              )}
+
+              {activeHistoryId && (
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "dashboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  {language === "en" ? "Overview" : "Tổng Hợp"}
+                </button>
+              )}
+
+              {activeHistoryId && (
+                <button
+                  onClick={() => setActiveTab("leaderboard")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "leaderboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <Trophy className="w-4 h-4" />
+                  Ranking
+                </button>
+              )}
+
+              {activeHistoryId && userRole === "admin" && (
+                <button
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setSettingsSubTab("athletes");
+                  }}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "settings" && settingsSubTab === "athletes" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  {language === "en" ? "Athletes" : "Quản Lý VĐV"}
+                </button>
+              )}
+
+              {activeHistoryId && userRole === "admin" && (
+                <button
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setSettingsSubTab("config");
+                  }}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "settings" && settingsSubTab === "config" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  {language === "en" ? "Settings" : "Cài Đặt"}
+                </button>
+              )}
+
+              {userRole === "admin" && (
+                <button
+                  onClick={() => setActiveTab("history")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 relative ${
+                    activeTab === "history" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <History className="w-4 h-4" />
+                  {language === "en" ? "Backups" : "Lịch Sử"}
+                  {history.length > 0 && (
+                    <span className="absolute top-2 right-1.5 bg-amber-500 text-white border border-[#9c0c13] rounded-full text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center font-sans">
+                      {history.length}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Hero Banner Background (below header, visible ONLY on "home" screen) */}
+        {activeTab === "home" && (
+          <div 
+            className="w-full relative py-20 px-4 flex flex-col justify-center items-center shadow-inner text-center select-none overflow-hidden"
+            style={{
+              backgroundImage: 'linear-gradient(to right, rgba(139, 92, 26, 0.92), rgba(120, 10, 15, 0.95), rgba(15, 23, 42, 0.95)), url("https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            {/* Ambient gold glow effect overlay */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+
+            <div className="max-w-4xl w-full flex flex-col items-center relative z-10">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
+                {language === "en" ? "PROFESSIONAL LEAGUE MANAGEMENT SYSTEM" : "HỆ THỐNG QUẢN LÝ GIẢI ĐẤU CHUYÊN NGHIỆP"}
+              </h2>
+
+              {/* Big prominent white search bar with yellow search button */}
+              <div className="w-full max-w-2xl flex items-stretch bg-white rounded-xl shadow-2xl overflow-hidden focus-within:ring-4 focus-within:ring-amber-500/30 transition-all border-4 border-white/10">
                 <input
                   type="text"
-                  value={headerTempName}
-                  onChange={(e) => setHeaderTempName(e.target.value)}
-                  placeholder={language === "en" ? "Enter tournament name..." : "Nhập tên giải..."}
-                  className="bg-transparent text-sm font-bold focus:outline-none placeholder-blue-300 w-full text-white min-w-[120px] flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && headerTempName.trim() !== matchName.trim() && headerTempName.trim().length > 0) {
-                      handleSaveHeaderMatchName();
-                    }
-                  }}
+                  placeholder={language === "en" ? "Search online tournaments..." : "Tìm giải đấu của bạn..."}
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  className="px-5 py-4 w-full text-slate-900 text-sm sm:text-base focus:outline-none placeholder-slate-400 font-sans"
                 />
-                {headerTempName.trim() !== matchName.trim() && headerTempName.trim().length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleSaveHeaderMatchName}
-                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-black uppercase rounded transition-all shrink-0 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {t("btn.confirm", "Xác nhận")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="bg-[#f7c000] hover:bg-[#e0ad00] text-slate-950 px-6 sm:px-8 font-extrabold flex items-center justify-center transition-all cursor-pointer shadow-inner shrink-0"
+                >
+                  <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950 stroke-[2.5]" />
+                </button>
               </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 bg-black/15 p-2 rounded-lg border border-white/5 w-full">
-                <span className="text-[11px] text-zinc-400 font-semibold italic text-center leading-tight">
-                  {currentUser 
-                    ? (language === "en" ? "No tournament selected. Select one from the list below or create a new one." : "Chưa chọn giải đấu. Chọn một giải từ danh sách bên dưới hoặc tạo mới.")
-                    : (language === "en" ? "You are in Spectator Mode. Please select a tournament from the list below to watch live standings & logs. Login to host your own tournament!" : "Bạn đang xem ở chế độ Public. Vui lòng chọn một giải đấu từ danh sách bên dưới để xem trực tiếp (Live Board & Leaderboard). Đăng nhập để tự tạo giải của riêng mình!")
-                  }
-                </span>
-                {currentUser && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("settings");
-                      setIsNewTournamentModalOpen(true);
-                    }}
-                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase rounded-md transition-all shrink-0 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Tạo giải đấu mới
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          {activeHistoryId && (
-            <div className="flex gap-2 w-full max-w-sm">
-              <button
-                onClick={() => setIsExportModalOpen(true)}
-                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-750 hover:to-indigo-750 text-white text-[11px] font-black uppercase rounded-lg active:scale-95 transition-all shadow-md cursor-pointer tracking-wider"
-                id="btn-export-poster-header"
-              >
-                <Share2 className="w-3.5 h-3.5" /> Xuất Ảnh
-              </button>
-              <button
-                onClick={() => setIsLiveBoardOpen(true)}
-                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-emerald-650 to-teal-700 hover:from-emerald-755 hover:to-teal-805 text-white text-[11px] font-black uppercase rounded-lg active:scale-95 transition-all shadow-md cursor-pointer tracking-wider"
-                id="btn-liveboard-header"
-              >
-                <Tv className="w-3.5 h-3.5" /> LIVE BOARD
-              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {/* Main Core Container */}
       <main className="max-w-7xl mx-auto px-4 mt-6 flex flex-col gap-6" id="app-main">
 
-        {/* Active Tournament Role & Control Board Banner */}
-        {activeHistoryId && (
-          <div className={`p-4 rounded-2xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all shadow-xs ${
-            userRole === "admin"
-              ? "bg-slate-50/75 dark:bg-slate-900 border-emerald-300 dark:border-emerald-800"
-              : userRole === "referee"
-                ? "bg-slate-50/75 dark:bg-slate-900 border-amber-300 dark:border-amber-800"
-                : "bg-slate-50/75 dark:bg-slate-900 border-blue-300 dark:border-blue-800"
-          }`}>
-            <div className="flex items-start gap-3.5 pr-2">
-              <div className={`p-2.5 rounded-xl text-white ${
-                userRole === "admin"
-                  ? "bg-emerald-600"
-                  : userRole === "referee"
-                    ? "bg-amber-500"
-                    : "bg-blue-600"
-              }`}>
-                {userRole === "admin" ? (
-                  <Settings className="w-5 h-5 pointer-events-none" />
-                ) : userRole === "referee" ? (
-                  <ClipboardCheck className="w-5 h-5 pointer-events-none" />
-                ) : (
-                  <Eye className="w-5 h-5 pointer-events-none" />
-                )}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center flex-wrap gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-501 dark:text-slate-400">
-                    {isOnlineTournament 
-                      ? (language === "en" ? "Online Tournament (Cloud)" : "Giải đấu trực tuyến (Cloud)") 
-                      : (language === "en" ? "Local Tournament (Offline)" : "Giải đấu nội bộ (Offline)")}
-                  </span>
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                    userRole === "admin"
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                      : userRole === "referee"
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                  }`}>
-                    {userRole === "admin" 
-                      ? (language === "en" ? "Admin Board (Organizer)" : "Admin Board (Ban Tổ Chức)") 
-                      : userRole === "referee" 
-                        ? (language === "en" ? "Referee Board (Referee)" : "Referee Board (Trọng Tài)") 
-                        : (language === "en" ? "Spectator Board (Spectator)" : "User Board (Người Xem / Spectator)")}
-                  </span>
-                </div>
-                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-1">
-                  {language === "en" ? "Active Tournament: " : "Đang xem giải: "}<strong className="text-indigo-650 dark:text-indigo-400">{matchName}</strong>
-                </h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal mt-1 max-w-4xl">
-                  {userRole === "admin" 
-                    ? (language === "en" ? "You are viewing as the Organizing Committee (Admin Board), with full authority to manage configurations, distances, athletes, assign referees, and edit scores." : "Thầy cô đang xem dưới tư cách Ban Tổ Chức (Admin Board), có toàn quyền quản lý cấu hình, thêm bớt cự ly, danh sách vận động viên, chỉ định trọng tài và sửa đổi điểm số.")
-                    : userRole === "referee"
-                      ? (language === "en" ? "You are viewing under Referee rights (Referee Board), authorized to input and record scores directly at the tournament distances, but cannot change tournament configuration parameters." : "Bạn đang xem dưới quyền Trọng Tài (Referee Board), được quyền nhập điểm và ghi điểm trực tiếp ở các cự ly của giải đấu nhưng không thể thay đổi thông số cấu hình giải.")
-                      : (language === "en" ? "You are viewing as a Spectator (User Board / Spectator View). The leaderboard is Read-Only and updates live in real-time whenever a referee saves new scores." : "Bạn đang xem dưới tư cách Khán Giả (User Board / Spectator View). Bảng điểm hiển thị chế độ Chỉ Xem và cập nhật trực tiếp thời gian thực siêu tốc mỗi khi trọng tài lưu điểm mới.")
-                  }
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-slate-200 dark:border-slate-800">
-              <button
-                onClick={() => setShowExitConfirmModal(true)}
-                className="w-full md:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-350 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-705 dark:text-slate-250 text-xs font-black uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-transparent shadow-xs"
-              >
-                <Home className="w-3.5 h-3.5" /> {language === "en" ? "Exit Tournament" : "Thoát Giải Đấu"}
-              </button>
-              {activeHistoryId.startsWith("tour-") && (
-                <button
-                  onClick={handleShareActiveTournament}
-                  className={`w-full md:w-auto px-4 py-2 text-xs font-black uppercase tracking-wide rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs border border-transparent ${
-                    isShareCopied
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  }`}
-                  title={language === "en" ? "Copy link to share this online tournament" : "Copy link chia sẻ giải đấu trực tuyến này"}
-                >
-                  <Share2 className="w-3.5 h-3.5" /> {isShareCopied ? (language === "en" ? "Link Copied!" : "Đã copy link!") : (language === "en" ? "Share Tournament" : "Chia sẻ giải đấu")}
-                </button>
-              )}
+        {/* Athlete Search query on scoring tabs */}
+        {(activeTab === "scoring" || activeTab === "input_scores") && (
+          <div className="flex justify-end mb-2 animate-fadeIn" id="athlete-search-context-container">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={language === "en" ? "Search athlete (Name, ID, Club)..." : "Tìm vận động viên (Tên, Mã, Đội)..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-3 py-2 w-full text-xs sm:text-sm bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-white border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-xs"
+              />
             </div>
           </div>
         )}
-
-        {/* Tab switcher navigation bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-2 shadow-sm gap-2">
-          
-          {/* Tabs buttons slider direction */}
-          <div className="flex flex-wrap gap-1 font-sans">
-            <button
-              onClick={() => setActiveTab("home")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                activeTab === "home"
-                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
-                  : "text-gray-600 hover:text-gray-905 hover:bg-slate-50"
-              }`}
-              id="tab-home-btn"
-            >
-              <Home className="w-4 h-4 text-indigo-505" /> {language === "en" ? "Home" : "Trang Chủ"}
-            </button>
-
-            {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
-              <button
-                onClick={() => setActiveTab("input_scores")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "input_scores"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-input-scores-btn"
-              >
-                <ClipboardCheck className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Enter Team Scores" : "Nhập Điểm Team") : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
-              </button>
-            )}
-
-            {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
-              <button
-                onClick={() => setActiveTab("scoring")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "scoring"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-scoring-btn"
-              >
-                <Target className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Record Team Scores" : "Ghi Điểm Team") : (language === "en" ? "Record Scores" : "Ghi Điểm")}
-              </button>
-            )}
-
-            {activeHistoryId && (
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "dashboard"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-dashboard-btn"
-              >
-                <TrendingUp className="w-4 h-4" /> {language === "en" ? "Overview" : "Tổng Hợp"}
-              </button>
-            )}
-
-            {activeHistoryId && (
-              <button
-                onClick={() => setActiveTab("leaderboard")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "leaderboard"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-leaderboard-btn"
-              >
-                <Trophy className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Team Individual Standings" : "Bảng Cá Nhân Team") : (language === "en" ? "Individual Standings" : "Bảng Cá Nhân")}
-              </button>
-            )}
-
-            {activeHistoryId && (
-              <button
-                onClick={() => setActiveTab("teams")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "teams"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-950 hover:bg-slate-50"
-                }`}
-                id="tab-teams-btn"
-              >
-                <Shield className="w-4 h-4" /> {competitionMode === "team" ? (language === "en" ? "Team Standings" : "Bảng Đồng Đội Team") : (language === "en" ? "Club Standings" : "Bảng Đồng Đội")}
-              </button>
-            )}
-
-            {activeHistoryId && userRole === "admin" && (
-              <button
-                onClick={() => setActiveTab("settings")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "settings"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-settings-btn"
-              >
-                <Settings className="w-4 h-4" /> {language === "en" ? "Settings" : "Cấu Hình"}
-              </button>
-            )}
-
-            {activeHistoryId && userRole === "admin" && (
-              <button
-                onClick={() => setActiveTab("athletes")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "athletes"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-athletes-btn"
-              >
-                <Users className="w-4 h-4" /> {language === "en" ? "Roster" : "Quản Lý VĐV"}
-              </button>
-            )}
-
-            {userRole === "admin" && (
-              <button
-                onClick={() => setActiveTab("history")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all relative ${
-                  activeTab === "history"
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-history-btn"
-              >
-                <History className="w-4 h-4" /> {language === "en" ? "Backups" : "Lịch Sử"}
-                {history.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-amber-500 text-white border-2 border-white rounded-full text-[9px] font-bold w-4.5 h-4.5 flex items-center justify-center">
-                    {history.length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {currentUser && (
-              <button
-                onClick={() => setActiveTab("control_panel")}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all ${
-                  activeTab === "control_panel"
-                    ? "bg-indigo-650 text-white shadow-sm shadow-indigo-200"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-slate-55"
-                }`}
-                id="tab-control-panel-btn"
-              >
-                <Sliders className="w-4 h-4" /> Bảng Điều Khiển
-              </button>
-            )}
-          </div>
-
-          {/* Contextual tools on the right of tab-switcher */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto self-stretch sm:self-auto shrink-0">
-            {(activeTab === "scoring" || activeTab === "input_scores") && (
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm vận động viên (Tên, Mã, Đội)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-1.5 w-full h-10 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all"
-                />
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Tab content area logic */}
         <div className="tab-content translate-y-0" id="active-tab-panel">
@@ -3709,7 +3585,11 @@ export default function App() {
                 startDate,
                 endDate,
                 tournamentType,
+                bannerUrl,
+                avatarUrl,
               }}
+              externalSearch={globalSearch}
+              onExternalSearchChange={setGlobalSearch}
             />
           )}
 
@@ -3730,6 +3610,8 @@ export default function App() {
               directMaxPoints={directMaxPoints}
               teamDirectMaxPoints={teamDirectMaxPoints}
               tournamentType={tournamentType}
+              clubs={clubs}
+              onOpenLiveBoard={() => setIsLiveBoardOpen(true)}
             />
           )}
 
@@ -4082,7 +3964,8 @@ export default function App() {
                     Ý kiến: Nếu chưa đăng ký VĐV này, hãy chuyển qua tab{" "}
                     <button
                       onClick={() => {
-                        setActiveTab("athletes");
+                        setActiveTab("settings");
+                        setSettingsSubTab("athletes");
                         setIsAddingAthleteToTournament(false);
                         setSelectedTourAthleteIds([]);
                       }}
@@ -4549,7 +4432,8 @@ export default function App() {
                     Ý kiến: Nếu chưa đăng ký VĐV này, hãy chuyển qua tab{" "}
                     <button
                       onClick={() => {
-                        setActiveTab("athletes");
+                        setActiveTab("settings");
+                        setSettingsSubTab("athletes");
                         setIsAddingAthleteToInputBoard(false);
                         setSelectedInputBoardAthleteIds([]);
                       }}
@@ -4588,116 +4472,183 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: LIVE TOURNAMENT RANKING LEADERBOARD */}
+          {/* TAB 2: LIVE TOURNAMENT RANKING LEADERBOARD (COMBINED RANKING TAB) */}
           {activeTab === "leaderboard" && (
-            <Leaderboard 
-              athletes={competitionMode === "individual" ? leaderboardAthletes : leaderboardTeamAthletes} 
-              distances={currentDistances} 
-              shotsCount={currentShotsCount} 
-              competitionMode={competitionMode}
-              directMaxShots={directMaxShots}
-              teamDirectMaxShots={teamDirectMaxShots}
-              directMaxPoints={directMaxPoints}
-              teamDirectMaxPoints={teamDirectMaxPoints}
-            />
+            <div className="flex flex-col gap-5 animate-fadeIn" id="ranking-tab-container">
+              {/* Sub-tabs to toggle between Individual and Team/Club rankings */}
+              <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-2 self-start" id="ranking-sub-tabs">
+                <button
+                  type="button"
+                  onClick={() => setRankingSubTab("individual")}
+                  className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
+                    rankingSubTab === "individual"
+                      ? "bg-blue-600 text-white shadow-md font-extrabold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                  id="ranking-subtab-ind-btn"
+                >
+                  <Trophy className="w-4 h-4" />
+                  {language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRankingSubTab("team")}
+                  className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
+                    rankingSubTab === "team"
+                      ? "bg-blue-600 text-white shadow-md font-extrabold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                  id="ranking-subtab-team-btn"
+                >
+                  <Users className="w-4 h-4" />
+                  {language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}
+                </button>
+              </div>
+
+              {rankingSubTab === "individual" ? (
+                <Leaderboard 
+                  athletes={competitionMode === "individual" ? leaderboardAthletes : leaderboardTeamAthletes} 
+                  distances={currentDistances} 
+                  shotsCount={currentShotsCount} 
+                  competitionMode={competitionMode}
+                  directMaxShots={directMaxShots}
+                  teamDirectMaxShots={teamDirectMaxShots}
+                  directMaxPoints={directMaxPoints}
+                  teamDirectMaxPoints={teamDirectMaxPoints}
+                />
+              ) : (
+                <TeamLeaderboard
+                  athletes={competitionMode === "individual" ? leaderboardAthletes : leaderboardTeamAthletes}
+                  distances={currentDistances}
+                  shotsCount={currentShotsCount}
+                  competitionMode={competitionMode}
+                  directMaxShots={directMaxShots}
+                  teamDirectMaxShots={teamDirectMaxShots}
+                  directMaxPoints={directMaxPoints}
+                  teamDirectMaxPoints={teamDirectMaxPoints}
+                />
+              )}
+            </div>
           )}
 
-          {/* TAB NEW: LIVE TEAM ACCUMULATED SCOREBOARD */}
-          {activeTab === "teams" && (
-            <TeamLeaderboard
-              athletes={competitionMode === "individual" ? leaderboardAthletes : leaderboardTeamAthletes}
-              distances={currentDistances}
-              shotsCount={currentShotsCount}
-              competitionMode={competitionMode}
-              directMaxShots={directMaxShots}
-              teamDirectMaxShots={teamDirectMaxShots}
-              directMaxPoints={directMaxPoints}
-              teamDirectMaxPoints={teamDirectMaxPoints}
-            />
-          )}
-
-          {/* TAB NEW: ATHLETE BIO AND DOCUMENTS MANAGER */}
-          {activeTab === "athletes" && (
-            <AthleteManagement
-              athletes={masterAthletes}
-              setAthletes={setMasterAthletes}
-              distances={currentDistances}
-              shotsCount={currentShotsCount}
-              storedAthleteLists={storedAthleteLists}
-              setStoredAthleteLists={setStoredAthleteLists}
-              currentActiveAthletes={currentAthletes}
-              setCurrentActiveAthletes={competitionMode === "individual" ? setAthletes : setTeamAthletes}
-              matchName={matchName}
-              clubs={clubs}
-              setClubs={setClubs}
-              currentUser={currentUser}
-            />
-          )}
-
-          {/* TAB 3: SETTINGS CONFIGURATION MATRIX */}
+          {/* TAB 3: SETTINGS CONFIGURATION MATRIX (CONTAINS ATHLETE MANAGEMENT SUBTAB) */}
           {activeTab === "settings" && (
-            <SettingsPanel
-              matchName={matchName}
-              setMatchName={setMatchName}
-              distances={distances}
-              setDistances={setDistances}
-              shotsCount={shotsCount}
-              setShotsCount={setShotsCount}
-              athletes={athletes}
-              setAthletes={setAthletes}
-              masterAthletes={masterAthletes}
-              setMasterAthletes={setMasterAthletes}
-              history={history}
-              setHistory={setHistory}
-              onSaveCurrentSessionToHistory={handleSaveCurrentSessionToHistory}
-              onResetSession={handleResetSession}
-              onImportBackup={handleImportSingleBackup}
-              storedAthleteLists={storedAthleteLists}
-              setStoredAthleteLists={setStoredAthleteLists}
-              activeHistoryId={activeHistoryId}
-              setActiveHistoryId={setActiveHistoryId}
-              setInputAthletes={setInputAthletes}
-              setTeamInputAthletes={setTeamInputAthletes}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              setClubs={setClubs}
-              
-              // Team modes
-              teamDistances={teamDistances}
-              setTeamDistances={setTeamDistances}
-              teamShotsCount={teamShotsCount}
-              setTeamShotsCount={setTeamShotsCount}
-              teamAthletes={teamAthletes}
-              setTeamAthletes={setTeamAthletes}
-              directMaxShots={directMaxShots}
-              setDirectMaxShots={setDirectMaxShots}
-              teamDirectMaxShots={teamDirectMaxShots}
-              setTeamDirectMaxShots={setTeamDirectMaxShots}
-              directMaxPoints={directMaxPoints}
-              setDirectMaxPoints={setDirectMaxPoints}
-              teamDirectMaxPoints={teamDirectMaxPoints}
-              setTeamDirectMaxPoints={setTeamDirectMaxPoints}
-              referees={currentTournamentDoc?.referees || []}
-              onUpdateReferees={(rList) => {
-                if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
-                  updateOnlineTournament(activeHistoryId, { referees: rList })
-                    .catch(err => console.error("Cloud referee update failed:", err));
-                }
-              }}
-              subAdmins={currentTournamentDoc?.subAdmins || []}
-              onUpdateSubAdmins={(subList) => {
-                if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
-                  updateOnlineTournament(activeHistoryId, { subAdmins: subList })
-                    .catch(err => console.error("Cloud subAdmin update failed:", err));
-                }
-              }}
-              isNewTournamentModalOpen={isNewTournamentModalOpen}
-              setIsNewTournamentModalOpen={setIsNewTournamentModalOpen}
-              tournamentType={tournamentType}
-              setTournamentType={setTournamentType}
-            />
+            <div className="flex flex-col gap-6 animate-fadeIn" id="settings-tab-container">
+              {/* Sub-tabs navigation bar inside Settings */}
+              <div className="flex border-b border-gray-250 dark:border-slate-800 gap-4" id="settings-sub-tabs">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("config")}
+                  className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsSubTab === "config"
+                      ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+                  }`}
+                  id="subtab-config-btn"
+                >
+                  <Settings className="w-4 h-4" />
+                  {language === "en" ? "Tournament Parameters" : "Cấu Hình Tham Số Giải"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab("athletes")}
+                  className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                    settingsSubTab === "athletes"
+                      ? "border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+                  }`}
+                  id="subtab-athletes-btn"
+                >
+                  <Users className="w-4 h-4" />
+                  {language === "en" ? "Manage Athletes & Clubs" : "Quản Lý VĐV & Câu Lạc Bộ"}
+                </button>
+              </div>
+
+              {settingsSubTab === "config" ? (
+                <SettingsPanel
+                  matchName={matchName}
+                  setMatchName={setMatchName}
+                  bannerUrl={bannerUrl}
+                  setBannerUrl={setBannerUrl}
+                  avatarUrl={avatarUrl}
+                  setAvatarUrl={setAvatarUrl}
+                  distances={distances}
+                  setDistances={setDistances}
+                  shotsCount={shotsCount}
+                  setShotsCount={setShotsCount}
+                  athletes={athletes}
+                  setAthletes={setAthletes}
+                  masterAthletes={masterAthletes}
+                  setMasterAthletes={setMasterAthletes}
+                  history={history}
+                  setHistory={setHistory}
+                  onSaveCurrentSessionToHistory={handleSaveCurrentSessionToHistory}
+                  onResetSession={handleResetSession}
+                  onImportBackup={handleImportSingleBackup}
+                  storedAthleteLists={storedAthleteLists}
+                  setStoredAthleteLists={setStoredAthleteLists}
+                  activeHistoryId={activeHistoryId}
+                  setActiveHistoryId={setActiveHistoryId}
+                  setInputAthletes={setInputAthletes}
+                  setTeamInputAthletes={setTeamInputAthletes}
+                  startDate={startDate}
+                  setStartDate={setStartDate}
+                  endDate={endDate}
+                  setEndDate={setEndDate}
+                  setClubs={setClubs}
+                  
+                  // Team modes
+                  teamDistances={teamDistances}
+                  setTeamDistances={setTeamDistances}
+                  teamShotsCount={teamShotsCount}
+                  setTeamShotsCount={setTeamShotsCount}
+                  teamAthletes={teamAthletes}
+                  setTeamAthletes={setTeamAthletes}
+                  directMaxShots={directMaxShots}
+                  setDirectMaxShots={setDirectMaxShots}
+                  teamDirectMaxShots={teamDirectMaxShots}
+                  setTeamDirectMaxShots={setTeamDirectMaxShots}
+                  directMaxPoints={directMaxPoints}
+                  setDirectMaxPoints={setDirectMaxPoints}
+                  teamDirectMaxPoints={teamDirectMaxPoints}
+                  setTeamDirectMaxPoints={setTeamDirectMaxPoints}
+                  referees={currentTournamentDoc?.referees || []}
+                  onUpdateReferees={(rList) => {
+                    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                      updateOnlineTournament(activeHistoryId, { referees: rList })
+                        .catch(err => console.error("Cloud referee update failed:", err));
+                    }
+                  }}
+                  subAdmins={currentTournamentDoc?.subAdmins || []}
+                  onUpdateSubAdmins={(subList) => {
+                    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                      updateOnlineTournament(activeHistoryId, { subAdmins: subList })
+                        .catch(err => console.error("Cloud subAdmin update failed:", err));
+                    }
+                  }}
+                  isNewTournamentModalOpen={isNewTournamentModalOpen}
+                  setIsNewTournamentModalOpen={setIsNewTournamentModalOpen}
+                  tournamentType={tournamentType}
+                  setTournamentType={setTournamentType}
+                />
+              ) : (
+                <AthleteManagement
+                  athletes={masterAthletes}
+                  setAthletes={setMasterAthletes}
+                  distances={currentDistances}
+                  shotsCount={currentShotsCount}
+                  storedAthleteLists={storedAthleteLists}
+                  setStoredAthleteLists={setStoredAthleteLists}
+                  currentActiveAthletes={currentAthletes}
+                  setCurrentActiveAthletes={competitionMode === "individual" ? setAthletes : setTeamAthletes}
+                  matchName={matchName}
+                  clubs={clubs}
+                  setClubs={setClubs}
+                  currentUser={currentUser}
+                  forceTab={athleteForceTab}
+                />
+              )}
+            </div>
           )}
 
           {/* TAB 4: SAVED HISTORY SNAPSHOTS RECORD */}
@@ -4725,6 +4676,7 @@ export default function App() {
               activeHistoryId={activeHistoryId}
               onSelectTournament={(id, tournament) => handleSelectTournament(id, tournament, "dashboard")}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              forceSubTab={controlPanelSubTab}
             />
           )}
 

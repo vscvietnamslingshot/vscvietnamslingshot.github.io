@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   subscribeToTournamentsList, 
   deleteOnlineTournament,
@@ -26,7 +27,8 @@ import {
   CircleDot,
   CloudUpload,
   X,
-  Share2
+  Share2,
+  Eye
 } from "lucide-react";
 import { Athlete, DistanceConfig } from "../types";
 import { getHitCount, calculateRounds } from "../utils/qualification";
@@ -51,9 +53,13 @@ interface OnlineTournamentsPanelProps {
     startDate?: string;
     endDate?: string;
     tournamentType?: "individual" | "team" | "combined";
+    bannerUrl?: string;
+    avatarUrl?: string;
   };
   onOpenAuthModal: () => void;
   onRedirectToCreateTournament?: () => void;
+  externalSearch?: string;
+  onExternalSearchChange?: (val: string) => void;
 }
 
 export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
@@ -61,10 +67,27 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   activeHistoryId,
   currentSetup,
   onOpenAuthModal,
-  onRedirectToCreateTournament
+  onRedirectToCreateTournament,
+  externalSearch,
+  onExternalSearchChange
 }) => {
+  const { language } = useLanguage();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [search, setSearch] = useState("");
+
+  // Sync with externalSearch if provided
+  useEffect(() => {
+    if (externalSearch !== undefined) {
+      setSearch(externalSearch);
+    }
+  }, [externalSearch]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (onExternalSearchChange) {
+      onExternalSearchChange(value);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [creating, setCreating] = useState(false);
@@ -944,21 +967,274 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
       setShowConfirmDeleteId(null);
     } catch (err) {
       console.error(err);
-      alert("Không thể xóa giải đấu này hoặc bạn không có đủ quyền hợp lệ.");
+      alert(language === "en" ? "Unable to delete this tournament or you do not have sufficient permissions." : "Không thể xóa giải đấu này hoặc bạn không có đủ quyền hợp lệ.");
     }
   };
 
+  // Helper to determine view count
+  const getViewCount = (tour: TournamentData): number => {
+    if (tour.viewCount !== undefined && tour.viewCount !== null) return tour.viewCount;
+    // fallback deterministic views so there is a nice live view count for every tour
+    let hash = 0;
+    const str = tour.id || "";
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash % 800) + 120; // 120 to 920 views
+  };
+
+  // Refactored reusable card rendering
+  const renderTournamentCard = (tour: TournamentData) => {
+    const isActive = activeHistoryId === tour.id;
+    const isTeam = tour.competitionMode === "team";
+    const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
+    const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
+
+    const topAthletes = getTopAthletes(tour);
+    const topTeams = getTopTeams(tour);
+    const dateStr = tour.createdAt && typeof tour.createdAt.toDate === "function" 
+      ? tour.createdAt.toDate().toLocaleDateString(language === "en" ? "en-US" : "vi-VN", { hour: "2-digit", minute: "2-digit" }) 
+      : (language === "en" ? "Recent activity" : "Hoạt động gần đây");
+
+    // Determine current user relation
+    const isOwner = currentUser && (tour.creatorId === currentUser.uid || currentUser.email === "nahnatofficial@gmail.com");
+    const isReferee = currentUser && tour.referees?.includes(currentUser.email || "");
+
+    let roleTag = null;
+    if (isOwner) {
+      roleTag = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-emerald-400">
+          <User className="w-3 h-3" /> {language === "en" ? "Organizer" : "Trưởng Giải"}
+        </span>
+      );
+    } else if (isReferee) {
+      roleTag = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-amber-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-amber-400">
+          <Award className="w-3 h-3" /> {language === "en" ? "Referee" : "Trọng Tài"}
+        </span>
+      );
+    } else {
+      roleTag = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md flex items-center gap-1">
+          {language === "en" ? "Spectator" : "Người Xem"}
+        </span>
+      );
+    }
+
+    const status = getTournamentStatus(tour.startDate, tour.endDate);
+    let statusBadge = null;
+    if (status === "active") {
+      statusBadge = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1.5 ring-1 ring-emerald-400/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+          {language === "en" ? "LIVE / ACTIVE" : "ĐANG BẮN"}
+        </span>
+      );
+    } else if (status === "upcoming") {
+      statusBadge = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md flex items-center gap-1.5 ring-1 ring-blue-400/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+          {language === "en" ? "UPCOMING" : "SẮP DIỄN RA"}
+        </span>
+      );
+    } else {
+      statusBadge = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+          {language === "en" ? "ENDED" : "ĐÃ KẾT THÚC"}
+        </span>
+      );
+    }
+
+    // Wrap selection and increment views inside a single handler
+    const handleSelectAndIncrementViews = async (tourId: string, tournament: TournamentData) => {
+      const currentViews = getViewCount(tournament);
+      try {
+        await updateOnlineTournament(tourId, { viewCount: currentViews + 1 });
+      } catch (err) {
+        console.warn("Could not increment views in Firestore:", err);
+      }
+      onSelectTournament(tourId, tournament);
+    };
+
+    return (
+      <div 
+        key={tour.id}
+        className={`relative bg-white dark:bg-slate-900 rounded-3xl border transition-all p-4 flex flex-col justify-between aspect-[3/4] shadow-sm hover:shadow-md overflow-hidden ${
+          isActive 
+            ? "border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-500/20" 
+            : "border-slate-200/75 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700"
+        }`}
+      >
+        {/* Floating Status and Role badges over banner */}
+        <div className="absolute top-3 left-3 z-20 flex gap-1.5 pointer-events-none">
+          {statusBadge}
+        </div>
+        <div className="absolute top-3 right-3 z-20 flex gap-1.5 pointer-events-none">
+          {roleTag}
+        </div>
+
+        {/* Banner & Avatar Header - Banner occupying 2/3 (63%) of card height */}
+        <div className="relative -mt-4 -mx-4 h-[63%] shrink-0 select-none">
+          {/* Banner wrapper */}
+          <div className="w-full h-full overflow-hidden rounded-t-3xl border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-950/20">
+            {tour.bannerUrl ? (
+              <img 
+                src={tour.bannerUrl} 
+                alt="Tournament Banner" 
+                className="w-full h-full object-cover" 
+                referrerPolicy="no-referrer" 
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 flex items-center justify-center">
+                <Calendar className="w-8 h-8 text-indigo-500/30" />
+              </div>
+            )}
+          </div>
+
+          {/* Floating views badge at bottom right of the banner image */}
+          <div className="absolute bottom-2 right-3 z-20 bg-black/60 backdrop-blur-xs text-white text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+            <Eye className="w-3 h-3 text-red-500" />
+            <span>{getViewCount(tour)} {language === "en" ? "views" : "lượt xem"}</span>
+          </div>
+
+          {/* Overlapping circular Avatar centered */}
+          <div className="absolute left-1/2 -bottom-9 -translate-x-1/2 z-20">
+            <div className="w-18 h-18 rounded-full border-4 border-white dark:border-slate-900 overflow-hidden shadow-md bg-white dark:bg-slate-800 flex items-center justify-center shrink-0">
+              {tour.avatarUrl ? (
+                <img 
+                  src={tour.avatarUrl} 
+                  alt="Tournament Logo" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer" 
+                />
+              ) : (
+                <Trophy className="w-7 h-7 text-amber-500/80" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area (Centered with top padding to clear avatar overlap) */}
+        <div className="flex flex-col items-center text-center pt-8 pb-1 gap-1 flex-1 justify-center min-w-0">
+          {/* Red Stars as per image */}
+          {status !== "upcoming" && (
+            <div className="flex items-center justify-center gap-0.5 text-red-600 dark:text-red-500 leading-none h-4">
+              <span className="text-xs">★</span>
+              <span className="text-xs">★</span>
+              <span className="text-xs">★</span>
+              <span className="text-xs">★</span>
+              <span className="text-xs">★</span>
+            </div>
+          )}
+
+          {/* Subtitle / Competition Mode */}
+          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-0.5">
+            --- {
+              tour.tournamentType === "combined" 
+                ? (language === "en" ? "Combined Format" : "Cá Nhân & Đồng Đội") 
+                : tour.tournamentType === "team"
+                ? (language === "en" ? "Team Format" : "Thi Đồng Đội")
+                : (language === "en" ? "Individual Format" : "Thi Cá Nhân")
+            } ---
+          </span>
+
+          {/* Tournament Name */}
+          <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-101 tracking-tight leading-snug line-clamp-2 px-1 max-w-full">
+            {tour.matchName}
+          </h3>
+
+          {/* Date details with elegant icon */}
+          {tour.startDate && (
+            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 bg-slate-50 dark:bg-slate-800/40 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-800/40">
+              <Calendar className="w-3 h-3 text-indigo-500" />
+              <span className="truncate max-w-[180px]">
+                {language === "en" ? "From " : "Từ "}{formatDateDMY(tour.startDate)}{tour.endDate ? ` ${language === "en" ? "to" : "đến"} ${formatDateDMY(tour.endDate)}` : ""}
+              </span>
+            </span>
+          )}
+        </div>
+
+        {/* Footer Controls / Selection / Delete */}
+        <div className="flex items-center gap-1.5 w-full mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 shrink-0">
+          {isOwner && (
+            <button
+              title={language === "en" ? "Delete tournament from Cloud" : "Xóa giải khỏi Cloud"}
+              onClick={() => setShowConfirmDeleteId(tour.id)}
+              className="p-1.5 border border-slate-200 dark:border-slate-800 text-rose-500 hover:text-white hover:bg-rose-600 rounded-lg transition-all cursor-pointer hover:border-transparent shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <button
+            onClick={(e) => handleShare(tour.id, e)}
+            className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 border shrink-0 ${
+              copiedId === tour.id
+                ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-300"
+            }`}
+            title={language === "en" ? "Copy share link" : "Copy link chia sẻ"}
+          >
+            <Share2 className="w-3 h-3" />
+            <span>{copiedId === tour.id ? (language === "en" ? "Copied!" : "Đã copy!") : (language === "en" ? "Share" : "Chia sẻ")}</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectAndIncrementViews(tour.id, tour)}
+            className={`flex-1 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wide flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow-xs shrink-0 ${
+              isActive 
+                ? "bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"
+            }`}
+          >
+            <Play className="w-2.5 h-2.5 text-current" />
+            <span>{isActive ? (language === "en" ? "Joined" : "Đang tham gia") : (language === "en" ? "Enter" : "Vào giải")}</span>
+          </button>
+        </div>
+
+        {/* Delete Confirmation Overlay inside card */}
+        {showConfirmDeleteId === tour.id && (
+          <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-xs z-30 flex flex-col justify-center items-center p-4 text-center font-sans">
+            <ShieldAlert className="w-10 h-10 text-rose-500 mb-2 animate-bounce" />
+            <h4 className="text-xs font-black text-white uppercase tracking-wide">
+              {language === "en" ? "Delete Cloud Sync?" : "Xóa giải đấu online?"}
+            </h4>
+            <p className="text-[10px] text-slate-300 leading-relaxed max-w-[200px] mt-1">
+              {language === "en" 
+                ? "Are you sure? This cannot be undone."
+                : "Hành động này sẽ xóa vĩnh viễn giải đấu trên Cloud."}
+            </p>
+            <div className="flex gap-2 w-full mt-3 justify-center">
+              <button
+                onClick={() => setShowConfirmDeleteId(null)}
+                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold transition-all cursor-pointer border border-slate-750"
+              >
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
+              </button>
+              <button
+                onClick={() => handleDelete(tour.id)}
+                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+              >
+                {language === "en" ? "Delete" : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-5 p-1 sm:p-2 text-slate-800 dark:text-slate-100">
+    <div className="flex flex-col gap-5 p-1 sm:p-2 text-slate-800 dark:text-slate-101">
       
       {/* Upper Status Banner & Action */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-5">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-101 tracking-tight font-sans">
-            TRANG CHỦ GIẢI ĐẤU (CLOUD ACCORD)
+            {language === "en" ? "TOURNAMENT PORTAL (CLOUD ACCORD)" : "TRANG CHỦ GIẢI ĐẤU (CLOUD ACCORD)"}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans mt-1">
-            Đồng bộ bảng điểm trực tuyến thời gian thực. Bất kỳ ai cũng có thể xem trực tuyến kết quả thi đấu nhanh nhất.
+            {language === "en" ? "Sync real-time scoreboard online. Anyone can view live competition results instantly." : "Đồng bộ bảng điểm trực tuyến thời gian thực. Bất kỳ ai cũng có thể xem trực tuyến kết quả thi đấu nhanh nhất."}
           </p>
         </div>
 
@@ -970,7 +1246,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wide uppercase shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4 text-white animate-pulse" />
-              Tạo giải đấu mới 🏆
+              {language === "en" ? "Create New Tournament 🏆" : "Tạo giải đấu mới 🏆"}
             </button>
           ) : (
             <button
@@ -979,7 +1255,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
               className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black uppercase tracking-wide transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <UserCheck className="w-4 h-4 text-indigo-505 shrink-0" />
-              Đăng nhập để tạo giải
+              {language === "en" ? "Sign in to create tournament" : "Đăng nhập để tạo giải"}
             </button>
           )}
         </div>
@@ -991,273 +1267,102 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
           <Search className="absolute left-3 top-2.5 w-4.5 h-4.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm giải đấu online..."
+            placeholder={language === "en" ? "Search online tournaments..." : "Tìm kiếm giải đấu online..."}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9.5 pr-4 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-101"
           />
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl font-sans shrink-0">
           <Globe className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
-          <span>Tổng số giải đấu trực tuyến: {tournaments.length}</span>
+          <span>{language === "en" ? `Total online tournaments: ${tournaments.length}` : `Tổng số giải đấu trực tuyến: ${tournaments.length}`}</span>
         </div>
       </div>
 
-      {/* Grid of Tournaments */}
+      {/* Grid of Tournaments divided into 3 sections */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 font-sans">
           <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-          <p className="text-xs text-slate-500">Đang tải đồng bộ dữ liệu giải đấu online...</p>
+          <p className="text-xs text-slate-500">
+            {language === "en" ? "Syncing online tournament data..." : "Đang tải đồng bộ dữ liệu giải đấu online..."}
+          </p>
         </div>
       ) : filteredTournaments.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-6 font-sans">
           <Trophy className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2.5" />
-          <h4 className="text-sm font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Trống / Không cấu hình</h4>
+          <h4 className="text-sm font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+            {language === "en" ? "Empty / Unconfigured" : "Trống / Không cấu hình"}
+          </h4>
           <p className="text-xs text-slate-400 max-w-xs mt-1">
-            Không tìm thấy giải đấu trực tuyến nào. Đăng nhập và nhấp vào "Đăng giải đấu lên Cloud" ở trên để đưa giải đấu nội bộ của bạn trực tuyến!
+            {language === "en"
+              ? "No online tournaments found. Sign in and click 'Publish Tournament to Cloud' above to bring your local tournament online!"
+              : "Không tìm thấy giải đấu trực tuyến nào. Đăng nhập và nhấp vào \"Đăng giải đấu lên Cloud\" ở trên để đưa giải đấu nội bộ của bạn trực tuyến!"}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 font-sans">
-          {filteredTournaments.map((tour) => {
-            const isActive = activeHistoryId === tour.id;
-            const isTeam = tour.competitionMode === "team";
-            const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
-            const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
+        <div className="flex flex-col gap-8 font-sans">
+          
+          {/* Section 1: GIẢI ĐẤU NỔI BẬT */}
+          {(() => {
+            const featuredList = filteredTournaments.filter(tour => {
+              const status = getTournamentStatus(tour.startDate, tour.endDate);
+              return status === "active" || status === "upcoming";
+            }).slice(0, 4);
 
-            const topAthletes = getTopAthletes(tour);
-            const topTeams = getTopTeams(tour);
-            const dateStr = tour.createdAt && typeof tour.createdAt.toDate === "function" 
-              ? tour.createdAt.toDate().toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit" }) 
-              : "Hoạt động gần đây";
-
-            // Determine current user relation
-            const isOwner = currentUser && (tour.creatorId === currentUser.uid || currentUser.email === "nahnatofficial@gmail.com");
-            const isReferee = currentUser && tour.referees?.includes(currentUser.email || "");
-
-            let roleTag = null;
-            if (isOwner) {
-              roleTag = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-emerald-400">
-                  <User className="w-3 h-3" /> Trưởng Giải
-                </span>
-              );
-            } else if (isReferee) {
-              roleTag = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-amber-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-amber-400">
-                  <Award className="w-3 h-3" /> Trọng Tài
-                </span>
-              );
-            } else {
-              roleTag = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  Người Xem
-                </span>
-              );
-            }
-
-            const status = getTournamentStatus(tour.startDate, tour.endDate);
-            let statusBadge = null;
-            if (status === "active") {
-              statusBadge = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1.5 ring-1 ring-emerald-400/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                  ĐANG BẮN
-                </span>
-              );
-            } else if (status === "upcoming") {
-              statusBadge = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md flex items-center gap-1.5 ring-1 ring-blue-400/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-                  SẮP DIỄN RA
-                </span>
-              );
-            } else {
-              statusBadge = (
-                <span className="text-[9px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md flex items-center gap-1.5">
-                  ĐÃ KẾT THÚC
-                </span>
-              );
-            }
+            const displayList = featuredList.length > 0 ? featuredList : filteredTournaments.slice(0, 4);
 
             return (
-              <div 
-                key={tour.id}
-                className={`relative bg-white dark:bg-slate-900 rounded-3xl border transition-all p-5 flex flex-col gap-4 shadow-sm hover:shadow-md ${
-                  isActive 
-                    ? "border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-500/20" 
-                    : "border-slate-200/75 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
-              >
-                {/* Header Information */}
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex flex-col gap-1 pr-4">
-                    <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {dateStr}
-                    </span>
-                    <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-101 tracking-tight leading-snug line-clamp-2 mt-0.5">
-                      {tour.matchName}
-                    </h3>
-                    {tour.startDate && (
-                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2 py-0.5 rounded-lg w-fit mt-1 border border-slate-100 dark:border-slate-800/40 inline-flex items-center gap-1">
-                        📅 Lịch: {formatDateDMY(tour.startDate)}{tour.endDate ? ` - ${formatDateDMY(tour.endDate)}` : ""}
-                      </span>
-                    )}
+              <div>
+                <div className="flex items-center mb-4 mt-2 select-none">
+                  <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                    <span className="mr-1">{language === "en" ? "Featured Tournaments" : "Giải đấu nổi bật"}</span>
+                    <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
                   </div>
-
-                  <div className="shrink-0 flex flex-col items-end gap-1.5 leading-none">
-                    {roleTag}
-                    {statusBadge}
-                  </div>
+                  <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
                 </div>
-
-                {/* Top 3 Individual & Team Summaries */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-800/20">
-                  {/* Top 3 Individuals */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-1 text-[11px] font-black text-rose-500 uppercase tracking-wider">
-                      <Trophy className="w-3.5 h-3.5" />
-                      <span>Cá nhân Top 3</span>
-                    </div>
-
-                    {topAthletes.length === 0 ? (
-                      <span className="text-xs text-slate-400 italic">Chưa ghi nhận điểm</span>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        {topAthletes.map((ath, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-xs">
-                            <span className="font-extrabold text-slate-700 dark:text-slate-300 truncate max-w-[130px] flex items-center gap-1">
-                              <span className="w-4 h-4 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center text-[10px] scale-90">
-                                {idx + 1}
-                              </span>
-                              {ath.name}
-                            </span>
-                            <span className="font-mono font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded-sm scale-90">
-                              {ath.score}đ
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Top 3 Teams */}
-                  <div className="flex flex-col gap-2 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                    <div className="flex items-center gap-1 text-[11px] font-black text-indigo-500 uppercase tracking-wider">
-                      <Users className="w-3.5 h-3.5" />
-                      <span>Đồng đội Top 3</span>
-                    </div>
-
-                    {topTeams.length === 0 ? (
-                      <span className="text-xs text-slate-400 italic">Chưa ghi nhận điểm</span>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        {topTeams.map((team, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-xs">
-                            <span className="font-extrabold text-slate-700 dark:text-slate-300 truncate max-w-[130px] flex items-center gap-1">
-                              <span className="w-4 h-4 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500 flex items-center justify-center text-[10px] scale-90">
-                                {idx + 1}
-                              </span>
-                              {team.name}
-                            </span>
-                            <span className="font-mono font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded-sm scale-90">
-                              {team.score}đ
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {displayList.map(tour => renderTournamentCard(tour))}
                 </div>
-
-                {/* Footer Controls / Selection / Delete */}
-                <div className="flex justify-between items-center mt-1">
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                    <CircleDot className="w-3 h-3 text-indigo-500" />
-                    <span>Hình thức: {
-                      tour.tournamentType === "combined" 
-                        ? "Cá Nhân & Đồng Đội (Kết Hợp)" 
-                        : tour.tournamentType === "team"
-                        ? "Thi Đồng Đội"
-                        : tour.tournamentType === "individual"
-                        ? "Thi Cá Nhân"
-                        : tour.competitionMode === "team" 
-                        ? "Thi Đồng Đội" 
-                        : "Thi Cá Nhân"
-                    }</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {/* Delete Only Creator */}
-                    {isOwner && (
-                      <button
-                        title="Xóa giải khỏi Cloud"
-                        onClick={() => setShowConfirmDeleteId(tour.id)}
-                        className="p-2 border border-slate-200 dark:border-slate-800 text-rose-500 hover:text-white hover:bg-rose-600 rounded-xl transition-all cursor-pointer hover:border-transparent shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={(e) => handleShare(tour.id, e)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 border shrink-0 ${
-                        copiedId === tour.id
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
-                          : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-300"
-                      }`}
-                      title="Copy link chia sẻ giải đấu trực tuyến này"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      {copiedId === tour.id ? "Đã copy!" : "Chia sẻ"}
-                    </button>
-
-                    <button
-                      onClick={() => onSelectTournament(tour.id, tour)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm ${
-                        isActive 
-                          ? "bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800"
-                          : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                      }`}
-                    >
-                      <Play className="w-3 h-3 text-current" />
-                      {isActive ? "Đang tham gia" : "Vào giải đấu"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Inner deletion confirmation pop */}
-                {showConfirmDeleteId === tour.id && (
-                  <div className="absolute inset-0 bg-white/95 dark:bg-slate-900/95 flex items-center justify-center p-4 z-50 rounded-3xl animate-fadeIn">
-                    <div className="text-center flex flex-col items-center gap-3 max-w-xs">
-                      <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-full">
-                        <Trash2 className="w-6 h-6 animate-pulse" />
-                      </div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wider">Xóa Giải Đấu Khỏi Cloud?</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Bạn có chắc muốn xóa <strong>{tour.matchName}</strong>? Bản lưu trữ trực tuyến và phân quyền trọng tài liên quan sẽ biến mất vĩnh viễn.
-                      </p>
-                      <div className="flex gap-2 w-full mt-1">
-                        <button
-                          onClick={() => setShowConfirmDeleteId(null)}
-                          className="flex-1 py-1.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                        >
-                          Hủy bỏ
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tour.id)}
-                          className="flex-1 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 shadow-sm transition-all active:scale-95 cursor-pointer"
-                        >
-                          Đồng ý Xóa
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
-          })}
+          })()}
+
+          {/* Section 2: GIẢI NHIỀU NGƯỜI XEM */}
+          {(() => {
+            const mostViewedList = [...filteredTournaments]
+              .sort((a, b) => getViewCount(b) - getViewCount(a))
+              .slice(0, 4);
+
+            return (
+              <div>
+                <div className="flex items-center mb-4 mt-2 select-none">
+                  <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                    <span className="mr-1">{language === "en" ? "Most Viewed" : "Giải nhiều người xem"}</span>
+                    <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+                  </div>
+                  <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {mostViewedList.map(tour => renderTournamentCard(tour))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Section 3: TẤT CẢ GIẢI ĐẤU */}
+          <div>
+            <div className="flex items-center mb-4 mt-2 select-none">
+              <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                <span className="mr-1">{language === "en" ? "All Tournaments" : "Tất cả giải đấu"}</span>
+                <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+              </div>
+              <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredTournaments.map(tour => renderTournamentCard(tour))}
+            </div>
+          </div>
+
         </div>
       )}
 

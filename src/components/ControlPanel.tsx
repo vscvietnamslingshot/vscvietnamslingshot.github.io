@@ -41,12 +41,14 @@ interface ControlPanelProps {
   onSelectTournament: (id: string, tournament: TournamentData) => void;
   activeHistoryId: string | null;
   onOpenAuthModal: () => void;
+  forceSubTab?: "profile" | "created" | "referee";
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   onSelectTournament,
   activeHistoryId,
-  onOpenAuthModal
+  onOpenAuthModal,
+  forceSubTab
 }) => {
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [search, setSearch] = useState("");
@@ -56,6 +58,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   
   // Tab can be profile (hồ sơ của tôi), created (giải tôi tạo), referee (giải tôi trọng tài)
   const [subTab, setSubTab] = useState<"profile" | "created" | "referee">("profile");
+
+  // Sync subtab if forceSubTab changes
+  useEffect(() => {
+    if (forceSubTab) {
+      setSubTab(forceSubTab);
+    }
+  }, [forceSubTab]);
 
   // Profile management state
   const [profile, setProfile] = useState<any>(null);

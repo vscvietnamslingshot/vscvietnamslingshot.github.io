@@ -49,6 +49,9 @@ export interface TournamentData {
   startDate?: string;
   endDate?: string;
   tournamentType?: "individual" | "team" | "combined";
+  bannerUrl?: string;
+  avatarUrl?: string;
+  viewCount?: number;
 }
 
 export enum OperationType {
