@@ -3532,12 +3532,12 @@ export default function App() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none" />
 
             <div className="max-w-4xl w-full flex flex-col items-center relative z-10">
-              <h2 className="text-[18px] leading-[150px] h-[130px] font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
+              <h2 className="text-[1px] leading-[150px] h-[130px] font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
                 {language === "en" ? "PROFESSIONAL LEAGUE MANAGEMENT SYSTEM" : "HỆ THỐNG QUẢN LÝ GIẢI ĐẤU CHUYÊN NGHIỆP"}
               </h2>
 
               {/* Big prominent white search bar with yellow search button */}
-              <div className="w-full max-w-[488px] h-10 flex items-stretch bg-white rounded-xl shadow-2xl overflow-hidden focus-within:ring-4 focus-within:ring-amber-500/30 transition-all border-4 border-white/10">
+              <div className="w-full max-w-[488px] h-8 flex items-stretch bg-white rounded-xl shadow-2xl overflow-hidden focus-within:ring-4 focus-within:ring-amber-500/30 transition-all border-4 border-white/10">
                 <input
                   type="text"
                   placeholder={language === "en" ? "Search online tournaments..." : "Tìm giải đấu của bạn..."}
