@@ -52,6 +52,7 @@ export interface TournamentData {
   bannerUrl?: string;
   avatarUrl?: string;
   viewCount?: number;
+  laneCapacity?: number;
 }
 
 export enum OperationType {
@@ -177,6 +178,7 @@ export async function createOnlineTournament(
     tournamentType?: "individual" | "team" | "combined";
     shotsCount: number;
     teamShotsCount: number;
+    laneCapacity?: number;
     directMaxPoints?: number;
     teamDirectMaxPoints?: number;
     distances: DistanceConfig[];

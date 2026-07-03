@@ -17,6 +17,7 @@ import {
   Info,
   Shield,
   Users,
+  User,
   X,
   TrendingUp,
   ClipboardCheck,
@@ -48,7 +49,7 @@ import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subsc
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
-import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
   DEFAULT_SHOTS_COUNT,
@@ -637,6 +638,11 @@ export default function App() {
     return saved && saved !== "undefined" && saved !== "null" ? Number(saved) : undefined;
   });
 
+  const [laneCapacity, setLaneCapacity] = useState<number>(() => {
+    const saved = localStorage.getItem("slingshot_active_tournament_lane_capacity");
+    return saved ? Number(saved) : 10;
+  });
+
   const [teamAthletes, setTeamAthletes] = useState<Athlete[]>(() => {
     const saved = localStorage.getItem("slingshot_team_athletes");
     const parsed = saved ? restoreBase64Avatars(JSON.parse(saved)) : [];
@@ -806,6 +812,7 @@ export default function App() {
   }, [masterAthletes]);
 
   const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel">("home");
+  const [homeFilter, setHomeFilter] = useState<"all" | "all_list" | "active" | "followed">("all");
   const [athleteForceTab, setAthleteForceTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
   const [settingsSubTab, setSettingsSubTab] = useState<"config" | "athletes">("config");
   const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "created" | "referee">("profile");
@@ -1590,6 +1597,10 @@ export default function App() {
         }
         if (docVal.shotsCount) setShotsCount(docVal.shotsCount);
         if (docVal.teamShotsCount) setTeamShotsCount(docVal.teamShotsCount);
+        if (docVal.laneCapacity !== undefined && docVal.laneCapacity !== null) {
+          setLaneCapacity(docVal.laneCapacity);
+          localStorage.setItem("slingshot_active_tournament_lane_capacity", docVal.laneCapacity.toString());
+        }
         if (docVal.distances) setDistances(docVal.distances);
         if (docVal.teamDistances) setTeamDistances(docVal.teamDistances);
         setAthletes(docVal.athletes || []);
@@ -1631,7 +1642,8 @@ export default function App() {
       !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
       !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
       !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
-      !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl)
+      !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
+      laneCapacity !== currentTournamentDoc?.laneCapacity
     );
 
     if (!isDifferent) return;
@@ -1656,7 +1668,8 @@ export default function App() {
           teamDirectMaxShots,
           masterAthletes,
           bannerUrl,
-          avatarUrl
+          avatarUrl,
+          laneCapacity
         });
       } catch (err) {
         console.error("Cloud synchronization failed:", err);
@@ -1685,6 +1698,7 @@ export default function App() {
     masterAthletes,
     bannerUrl,
     avatarUrl,
+    laneCapacity,
     currentTournamentDoc
   ]);
 
@@ -2680,7 +2694,7 @@ export default function App() {
   };
 
   // Exit current tournament and reset all tournament state variables back to defaults
-  const handleExitTournament = () => {
+  const handleExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
     // Auto-save roster to stored athlete lists on exit for admin/creator/sub-admin
     const rosterToSave = (masterAthletes && masterAthletes.length > 0) ? masterAthletes : athletes;
     if (userRole === "admin" && matchName && matchName.trim() && rosterToSave && rosterToSave.length > 0) {
@@ -2729,6 +2743,7 @@ export default function App() {
     localStorage.removeItem("slingshot_active_history_id");
     deviceStorage.remove("slingshot_active_history_id");
 
+    setHomeFilter(filter);
     setActiveTab("home");
   };
 
@@ -3387,14 +3402,38 @@ export default function App() {
             {/* Menu Items on the right */}
             <div className="flex items-center overflow-x-auto scrollbar-none whitespace-nowrap scroll-smooth max-w-full font-sans select-none pr-4">
               <button
-                onClick={() => setActiveTab("home")}
+                onClick={() => handleExitTournament("all")}
                 className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                  activeTab === "home" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  activeTab === "home" && homeFilter === "all" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                 }`}
               >
                 <Home className="w-4 h-4" />
                 {language === "en" ? "Home" : "Trang Chủ"}
               </button>
+
+              {activeTab === "home" && (
+                <>
+                  <button
+                    onClick={() => handleExitTournament("active")}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                      homeFilter === "active" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <Play className="w-4 h-4 text-emerald-400 fill-emerald-400/25" />
+                    {language === "en" ? "Live Tournaments" : "Giải Đang Diễn Ra"}
+                  </button>
+
+                  <button
+                    onClick={() => handleExitTournament("followed")}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                      homeFilter === "followed" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <Heart className="w-4 h-4 text-rose-500 fill-rose-500/25" />
+                    {language === "en" ? "Followed" : "Giải Đang Theo Dõi"}
+                  </button>
+                </>
+              )}
 
               {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
                 <button
@@ -3448,21 +3487,6 @@ export default function App() {
                 <button
                   onClick={() => {
                     setActiveTab("settings");
-                    setSettingsSubTab("athletes");
-                  }}
-                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                    activeTab === "settings" && settingsSubTab === "athletes" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  {language === "en" ? "Athletes" : "Quản Lý VĐV"}
-                </button>
-              )}
-
-              {activeHistoryId && userRole === "admin" && (
-                <button
-                  onClick={() => {
-                    setActiveTab("settings");
                     setSettingsSubTab("config");
                   }}
                   className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
@@ -3499,7 +3523,7 @@ export default function App() {
           <div 
             className="w-full relative py-20 px-4 flex flex-col justify-center items-center shadow-inner text-center select-none overflow-hidden"
             style={{
-              backgroundImage: 'linear-gradient(to right, rgba(139, 92, 26, 0.92), rgba(120, 10, 15, 0.95), rgba(15, 23, 42, 0.95)), url("https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=1200")',
+              backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.65)), url("https://lh3.googleusercontent.com/d/1sEes6o_PO8DTO4ZQa3IcvDcMK_2kwoPC")',
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}
@@ -3508,7 +3532,7 @@ export default function App() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none" />
 
             <div className="max-w-4xl w-full flex flex-col items-center relative z-10">
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
+              <h2 className="text-[18px] leading-[150px] h-[130px] font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
                 {language === "en" ? "PROFESSIONAL LEAGUE MANAGEMENT SYSTEM" : "HỆ THỐNG QUẢN LÝ GIẢI ĐẤU CHUYÊN NGHIỆP"}
               </h2>
 
@@ -3590,6 +3614,11 @@ export default function App() {
               }}
               externalSearch={globalSearch}
               onExternalSearchChange={setGlobalSearch}
+              onGoToManageTournaments={() => {
+                setHomeFilter("all_list");
+                setActiveTab("home");
+              }}
+              tabFilter={homeFilter}
             />
           )}
 
@@ -3618,6 +3647,40 @@ export default function App() {
           {/* TAB 1: SCORING WORKSPACE BOARD */}
           {activeTab === "scoring" && (
             <div className="flex flex-col gap-6">
+
+              {/* Environment Switcher for Combined Tournament */}
+              {tournamentType === "combined" && (
+                <div className="flex bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl self-start mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
+                  <button
+                    onClick={() => {
+                      setCompetitionMode("individual");
+                      localStorage.setItem("slingshot_competition_mode", "individual");
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      competitionMode === "individual"
+                        ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
+                        : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    {language === "en" ? "Individual" : "Cá Nhân"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCompetitionMode("team");
+                      localStorage.setItem("slingshot_competition_mode", "team");
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      competitionMode === "team"
+                        ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
+                        : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    {language === "en" ? "Team" : "Đồng Đội"}
+                  </button>
+                </div>
+              )}
 
               {/* Protection Indicator Banner */}
               <div className={`p-4 rounded-2xl border-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all ${
@@ -3996,6 +4059,40 @@ export default function App() {
           {/* TAB 1B: NHẬP ĐIỂM DRAFT BOARD */}
           {activeTab === "input_scores" && (
             <div className="flex flex-col gap-6">
+
+              {/* Environment Switcher for Combined Tournament */}
+              {tournamentType === "combined" && (
+                <div className="flex bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl self-start mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
+                  <button
+                    onClick={() => {
+                      setCompetitionMode("individual");
+                      localStorage.setItem("slingshot_competition_mode", "individual");
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      competitionMode === "individual"
+                        ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
+                        : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    {language === "en" ? "Individual" : "Cá Nhân"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCompetitionMode("team");
+                      localStorage.setItem("slingshot_competition_mode", "team");
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      competitionMode === "team"
+                        ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
+                        : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    {language === "en" ? "Team" : "Đồng Đội"}
+                  </button>
+                </div>
+              )}
 
               {/* Informative explanation tip */}
               <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 flex gap-3 text-xs text-amber-800 dark:text-amber-300">
@@ -4630,6 +4727,8 @@ export default function App() {
                   setIsNewTournamentModalOpen={setIsNewTournamentModalOpen}
                   tournamentType={tournamentType}
                   setTournamentType={setTournamentType}
+                  laneCapacity={laneCapacity}
+                  setLaneCapacity={setLaneCapacity}
                 />
               ) : (
                 <AthleteManagement

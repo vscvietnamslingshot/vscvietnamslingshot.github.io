@@ -62,6 +62,8 @@ interface SettingsPanelProps {
   setClubs?: React.Dispatch<React.SetStateAction<any[]>>;
   tournamentType?: "individual" | "team" | "combined";
   setTournamentType?: (type: "individual" | "team" | "combined") => void;
+  laneCapacity?: number;
+  setLaneCapacity?: (capacity: number) => void;
 }
 
 const compressImage = (base64Str: string, maxWidth = 150, maxHeight = 150): Promise<string> => {
@@ -156,6 +158,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setTeamInputAthletes,
   tournamentType = "combined",
   setTournamentType,
+  laneCapacity: propLaneCapacity,
+  setLaneCapacity: propSetLaneCapacity,
 }) => {
   const { language } = useLanguage();
   const [tempMatchName, setTempMatchName] = useState(matchName);
@@ -237,10 +241,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     const saved = localStorage.getItem("slingshot_active_tournament_is_locked");
     return saved !== "false"; // default to locked (true)
   });
-  const [laneCapacity, setLaneCapacityValue] = useState<number>(() => {
+  const [localLaneCapacity, setLocalLaneCapacity] = useState<number>(() => {
     const saved = localStorage.getItem("slingshot_active_tournament_lane_capacity");
     return saved ? Number(saved) : 10;
   });
+  const laneCapacity = propLaneCapacity !== undefined ? propLaneCapacity : localLaneCapacity;
+  const setLaneCapacityValue = (val: number) => {
+    if (propSetLaneCapacity) {
+      propSetLaneCapacity(val);
+    } else {
+      setLocalLaneCapacity(val);
+    }
+    localStorage.setItem("slingshot_active_tournament_lane_capacity", val.toString());
+  };
 
   // Modal State for started tournament
   const [localIsNewTournamentModalOpen, setLocalIsNewTournamentModalOpen] = useState(false);
@@ -2356,6 +2369,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         tournamentType: modalTournamentType,
                         shotsCount: modalShotsCount,
                         teamShotsCount: modalTeamShotsCount,
+                        laneCapacity: modalLaneCapacity,
                         distances: defaultDistances,
                         teamDistances: defaultTeamDistances,
                         athletes: [],
@@ -2399,6 +2413,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setClubs?.([]);
                     setStartDate(modalStartDate);
                     setEndDate(modalEndDate);
+                    setAvatarUrl("");
+                    setBannerUrl("");
+                    localStorage.removeItem("slingshot_avatar_url");
+                    localStorage.removeItem("slingshot_banner_url");
 
                     // Track creation time of new tournament to delay roster auto-save
                     localStorage.setItem("slingshot_new_tournament_created_at", Date.now().toString());

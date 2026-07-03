@@ -60,6 +60,8 @@ interface OnlineTournamentsPanelProps {
   onRedirectToCreateTournament?: () => void;
   externalSearch?: string;
   onExternalSearchChange?: (val: string) => void;
+  onGoToManageTournaments?: () => void;
+  tabFilter?: "all" | "all_list" | "active" | "followed";
 }
 
 export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
@@ -69,7 +71,9 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   onOpenAuthModal,
   onRedirectToCreateTournament,
   externalSearch,
-  onExternalSearchChange
+  onExternalSearchChange,
+  onGoToManageTournaments,
+  tabFilter = "all",
 }) => {
   const { language } = useLanguage();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
@@ -93,6 +97,75 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const [creating, setCreating] = useState(false);
   const [showConfirmDeleteId, setShowConfirmDeleteId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Followed Tournaments LocalStorage State
+  const [followedTourIds, setFollowedTourIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("vsc_followed_tournaments");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFollow = (tourId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setFollowedTourIds(prev => {
+      const updated = prev.includes(tourId)
+        ? prev.filter(id => id !== tourId)
+        : [...prev, tourId];
+      try {
+        localStorage.setItem("vsc_followed_tournaments", JSON.stringify(updated));
+      } catch (err) {
+        console.error("Failed to save followed tournaments:", err);
+      }
+      return updated;
+    });
+  };
+
+  // Infinite Scroll & Responsive Width Detection for section 3
+  const [isDesktop, setIsDesktop] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(40);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(isDesktop ? 40 : 10);
+  }, [isDesktop]);
+
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount(prev => {
+          const maxLimit = (tabFilter === "all_list" || tabFilter === "active" || tabFilter === "followed")
+            ? Math.max(tournaments.length, 1000)
+            : (isDesktop ? 160 : 60);
+          if (prev >= maxLimit) return prev;
+          const increment = isDesktop ? 20 : 10;
+          return Math.min(prev + increment, maxLimit);
+        });
+      }
+    }, {
+      rootMargin: "200px",
+    });
+
+    observer.observe(sentinel);
+    return () => {
+      if (sentinel) observer.unobserve(sentinel);
+    };
+  }, [isDesktop, tournaments.length, tabFilter]);
 
   const handleShare = (tourId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -194,9 +267,33 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   // Filtered and sorted list based on Status priority, then time descending
   const filteredTournaments = useMemo(() => {
     let list = [...tournaments];
+    if (tabFilter === "active") {
+      list = list.filter(t => getTournamentStatus(t.startDate, t.endDate) === "active");
+    } else if (tabFilter === "followed") {
+      list = list.filter(t => followedTourIds.includes(t.id));
+    }
+
     if (search.trim()) {
       const query = search.toLowerCase();
       list = list.filter(t => t.matchName.toLowerCase().includes(query));
+    }
+
+    const getTimestamp = (t: TournamentData, useCreatedOnly = false) => {
+      if (!useCreatedOnly && t.updatedAt) {
+        if (typeof t.updatedAt.toDate === "function") return t.updatedAt.toDate().getTime();
+        if (t.updatedAt.seconds) return t.updatedAt.seconds * 1000;
+        return new Date(t.updatedAt).getTime();
+      }
+      if (t.createdAt) {
+        if (typeof t.createdAt.toDate === "function") return t.createdAt.toDate().getTime();
+        if (t.createdAt.seconds) return t.createdAt.seconds * 1000;
+        return new Date(t.createdAt).getTime();
+      }
+      return 0;
+    };
+
+    if (tabFilter === "all_list") {
+      return list.sort((a, b) => getTimestamp(b, true) - getTimestamp(a, true));
     }
 
     return list.sort((a, b) => {
@@ -207,24 +304,9 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
         return statusPriority[statusA] - statusPriority[statusB];
       }
 
-      // same status, compare updated time/created time descending
-      const getTimestamp = (t: TournamentData) => {
-        if (t.updatedAt) {
-          if (typeof t.updatedAt.toDate === "function") return t.updatedAt.toDate().getTime();
-          if (t.updatedAt.seconds) return t.updatedAt.seconds * 1000;
-          return new Date(t.updatedAt).getTime();
-        }
-        if (t.createdAt) {
-          if (typeof t.createdAt.toDate === "function") return t.createdAt.toDate().getTime();
-          if (t.createdAt.seconds) return t.createdAt.seconds * 1000;
-          return new Date(t.createdAt).getTime();
-        }
-        return 0;
-      };
-
       return getTimestamp(b) - getTimestamp(a);
     });
-  }, [tournaments, search]);
+  }, [tournaments, search, tabFilter, followedTourIds]);
 
   // Helper to calculate total individual score for ranking matching MainDashboard logic
   const getTopAthletes = (tour: TournamentData): { name: string; team: string; score: number }[] => {
@@ -974,13 +1056,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   // Helper to determine view count
   const getViewCount = (tour: TournamentData): number => {
     if (tour.viewCount !== undefined && tour.viewCount !== null) return tour.viewCount;
-    // fallback deterministic views so there is a nice live view count for every tour
-    let hash = 0;
-    const str = tour.id || "";
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return Math.abs(hash % 800) + 120; // 120 to 920 views
+    return 0;
   };
 
   // Refactored reusable card rendering
@@ -1059,7 +1135,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
     return (
       <div 
         key={tour.id}
-        className={`relative bg-white dark:bg-slate-900 rounded-3xl border transition-all p-4 flex flex-col justify-between aspect-[3/4] shadow-sm hover:shadow-md overflow-hidden ${
+        className={`relative bg-white dark:bg-slate-900 rounded-3xl border transition-all p-4 flex flex-col justify-between h-[460px] shadow-sm hover:shadow-md overflow-hidden ${
           isActive 
             ? "border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-500/20" 
             : "border-slate-200/75 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700"
@@ -1073,8 +1149,8 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
           {roleTag}
         </div>
 
-        {/* Banner & Avatar Header - Banner occupying 2/3 (63%) of card height */}
-        <div className="relative -mt-4 -mx-4 h-[63%] shrink-0 select-none">
+        {/* Banner & Avatar Header - Banner with fixed height */}
+        <div className="relative -mt-4 -mx-4 h-[184px] shrink-0 select-none">
           {/* Banner wrapper */}
           <div className="w-full h-full overflow-hidden rounded-t-3xl border-b border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-950/20">
             {tour.bannerUrl ? (
@@ -1152,6 +1228,32 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
               </span>
             </span>
           )}
+        </div>
+
+        {/* Follow Button */}
+        <div className="flex justify-center mt-1.5 shrink-0 w-full">
+          <button
+            onClick={(e) => toggleFollow(tour.id, e)}
+            className={`px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border ${
+              followedTourIds.includes(tour.id)
+                ? "bg-rose-50 border-rose-200 text-red-600 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-red-400 shadow-xs"
+                : "bg-white hover:bg-slate-50 border-slate-200 text-slate-750 dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-200"
+            }`}
+          >
+            <Heart 
+              className={`w-3.5 h-3.5 transition-all duration-300 ${
+                followedTourIds.includes(tour.id) 
+                  ? "fill-red-600 text-red-600 dark:fill-red-500 dark:text-red-500 scale-110" 
+                  : "fill-white text-slate-400 dark:text-slate-500"
+              }`} 
+            />
+            <span>
+              {followedTourIds.includes(tour.id)
+                ? (language === "en" ? "FOLLOWED" : "ĐÃ THEO DÕI")
+                : (language === "en" ? "Follow" : "Theo dõi")
+              }
+            </span>
+          </button>
         </div>
 
         {/* Footer Controls / Selection / Delete */}
@@ -1299,6 +1401,36 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
               : "Không tìm thấy giải đấu trực tuyến nào. Đăng nhập và nhấp vào \"Đăng giải đấu lên Cloud\" ở trên để đưa giải đấu nội bộ của bạn trực tuyến!"}
           </p>
         </div>
+      ) : tabFilter !== "all" ? (
+        <div className="flex flex-col gap-8 font-sans">
+          <div>
+            <div className="flex items-center mb-4 mt-2 select-none">
+              <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                <span className="mr-1">
+                  {tabFilter === "active" 
+                    ? (language === "en" ? "Active Tournaments" : "Giải đang diễn ra")
+                    : tabFilter === "followed"
+                    ? (language === "en" ? "Followed Tournaments" : "Giải đang theo dõi")
+                    : (language === "en" ? "All Tournaments" : "Tất cả giải đấu")
+                  }
+                </span>
+                <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+              </div>
+              <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredTournaments.slice(0, visibleCount).map(tour => renderTournamentCard(tour))}
+            </div>
+
+            {/* Sentinel for infinite scroll */}
+            {filteredTournaments.length > visibleCount && (
+              <div ref={sentinelRef} className="h-12 w-full flex items-center justify-center mt-6">
+                <RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" />
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-8 font-sans">
           
@@ -1307,9 +1439,13 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
             const featuredList = filteredTournaments.filter(tour => {
               const status = getTournamentStatus(tour.startDate, tour.endDate);
               return status === "active" || status === "upcoming";
-            }).slice(0, 4);
-
-            const displayList = featuredList.length > 0 ? featuredList : filteredTournaments.slice(0, 4);
+            });
+            const displayFeatured = [...featuredList];
+            if (displayFeatured.length < 8) {
+              const remaining = filteredTournaments.filter(t => !displayFeatured.some(d => d.id === t.id));
+              displayFeatured.push(...remaining.slice(0, 8 - displayFeatured.length));
+            }
+            const finalFeatured = displayFeatured.slice(0, 8);
 
             return (
               <div>
@@ -1320,8 +1456,19 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   </div>
                   <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {displayList.map(tour => renderTournamentCard(tour))}
+                
+                {/* Mobile view: Swipe horizontally */}
+                <div className="flex sm:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1">
+                  {finalFeatured.map(tour => (
+                    <div key={tour.id} className="w-[280px] shrink-0 snap-center">
+                      {renderTournamentCard(tour)}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop view: 2 rows of up to 4 columns */}
+                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {finalFeatured.map(tour => renderTournamentCard(tour))}
                 </div>
               </div>
             );
@@ -1331,7 +1478,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
           {(() => {
             const mostViewedList = [...filteredTournaments]
               .sort((a, b) => getViewCount(b) - getViewCount(a))
-              .slice(0, 4);
+              .slice(0, 8);
 
             return (
               <div>
@@ -1342,7 +1489,18 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   </div>
                   <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                
+                {/* Mobile view: Swipe horizontally */}
+                <div className="flex sm:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1">
+                  {mostViewedList.map(tour => (
+                    <div key={tour.id} className="w-[280px] shrink-0 snap-center">
+                      {renderTournamentCard(tour)}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop view: 2 rows of up to 4 columns */}
+                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {mostViewedList.map(tour => renderTournamentCard(tour))}
                 </div>
               </div>
@@ -1358,8 +1516,27 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
               </div>
               <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredTournaments.map(tour => renderTournamentCard(tour))}
+              {filteredTournaments.slice(0, visibleCount).map(tour => renderTournamentCard(tour))}
+            </div>
+
+            {/* Sentinel for infinite scroll */}
+            {filteredTournaments.length > visibleCount && visibleCount < (isDesktop ? 160 : 60) && (
+              <div ref={sentinelRef} className="h-12 w-full flex items-center justify-center mt-6">
+                <RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" />
+              </div>
+            )}
+
+            {/* Xem thêm button */}
+            <div className="mt-8 flex justify-center pb-2">
+              <button
+                onClick={onGoToManageTournaments}
+                className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 border border-indigo-700"
+              >
+                <Trophy className="w-4 h-4 text-yellow-400 animate-pulse" />
+                {language === "en" ? "See more...." : "Xem thêm...."}
+              </button>
             </div>
           </div>
 
