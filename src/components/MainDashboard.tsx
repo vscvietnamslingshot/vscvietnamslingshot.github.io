@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig, Club } from "../types";
 import { VSCLogo, SlingshotIcon } from "./VSCLogo";
-import { Trophy, Medal, Award, Star, Users, Target, Zap, Shield, TrendingUp, Tv } from "lucide-react";
+import { Trophy, Medal, Award, Star, Users, Target, Zap, Shield, TrendingUp, Tv, Share2 } from "lucide-react";
 import { AVATAR_MALE } from "./AthleteManagement";
 import { calculateRounds, getHitCount } from "../utils/qualification";
 
@@ -23,6 +23,7 @@ interface MainDashboardProps {
   tournamentType?: "individual" | "team" | "combined";
   clubs?: Club[];
   onOpenLiveBoard?: () => void;
+  onOpenExportModal?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ 
@@ -41,7 +42,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   teamDirectMaxPoints,
   tournamentType = "combined",
   clubs,
-  onOpenLiveBoard
+  onOpenLiveBoard,
+  onOpenExportModal
 }) => {
   const { language, t } = useLanguage();
   // Resolve active source variables based on tournamentType
@@ -452,7 +454,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const list = rankedSurvivalAthletes.filter(a => a.status !== "Bỏ thi");
     const matched: any[] = [];
 
-    const gold = list.find(a => a.dashboardRank === 1);
+    const gold = list[0];
     matched.push(gold ? { ...gold, displayScore: gold.survivalScore, displayAccuracy: gold.survivalAccuracy } : {
       id: `empty-0`,
       name: "Chưa Có VĐV",
@@ -470,7 +472,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       displayAccuracy: 0,
     });
 
-    const silver = list.find(a => a.dashboardRank === 2);
+    const silver = list[1];
     matched.push(silver ? { ...silver, displayScore: silver.survivalScore, displayAccuracy: silver.survivalAccuracy } : {
       id: `empty-1`,
       name: "Chưa Có VĐV",
@@ -488,7 +490,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       displayAccuracy: 0,
     });
 
-    const bronze = list.find(a => a.dashboardRank === 3);
+    const bronze = list[2];
     matched.push(bronze ? { ...bronze, displayScore: bronze.survivalScore, displayAccuracy: bronze.survivalAccuracy } : {
       id: `empty-2`,
       name: "Chưa Có VĐV",
@@ -514,7 +516,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     const list = rankedAllRoundAthletes.filter(a => a.status !== "Bỏ thi");
     const matched: any[] = [];
 
-    const gold = list.find(a => a.dashboardRank === 1);
+    const gold = list[0];
     matched.push(gold ? { ...gold, displayScore: gold.totalScore, displayAccuracy: gold.accuracy } : {
       id: `empty-0`,
       name: "Chưa Có VĐV",
@@ -532,7 +534,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       displayAccuracy: 0,
     });
 
-    const silver = list.find(a => a.dashboardRank === 2);
+    const silver = list[1];
     matched.push(silver ? { ...silver, displayScore: silver.totalScore, displayAccuracy: silver.accuracy } : {
       id: `empty-1`,
       name: "Chưa Có VĐV",
@@ -550,7 +552,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
       displayAccuracy: 0,
     });
 
-    const bronze = list.find(a => a.dashboardRank === 3);
+    const bronze = list[2];
     matched.push(bronze ? { ...bronze, displayScore: bronze.totalScore, displayAccuracy: bronze.accuracy } : {
       id: `empty-2`,
       name: "Chưa Có VĐV",
@@ -2126,6 +2128,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           {language === "en" ? "Honor Leaderboard Zone:" : "Khu Vực Bảng Vàng Danh Dự:"}
         </span>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {onOpenExportModal && (
+            <button
+              type="button"
+              onClick={onOpenExportModal}
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-black uppercase rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2 tracking-wider"
+              id="btn-export-share-dashboard"
+            >
+              <Share2 className="w-4 h-4" />
+              {language === "en" ? "SHARE IMAGE" : "CHIA SẺ ẢNH"}
+            </button>
+          )}
           {onOpenLiveBoard && (
             <button
               type="button"

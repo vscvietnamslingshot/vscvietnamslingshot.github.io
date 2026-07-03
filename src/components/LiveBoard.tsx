@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Athlete, DistanceConfig } from "../types";
+import { Athlete, DistanceConfig, Club } from "../types";
 import { calculateRounds, getHitCount } from "../utils/qualification";
 import { 
   X, 
@@ -14,6 +14,7 @@ import {
   CheckCircle2, 
   TrendingUp, 
   Medal, 
+  Award,
   Sparkles,
   Zap
 } from "lucide-react";
@@ -34,6 +35,8 @@ interface LiveBoardProps {
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
   tournamentType?: "individual" | "team" | "combined";
+  clubs?: Club[];
+  laneCapacity?: number;
 }
 
 export const LiveBoard: React.FC<LiveBoardProps> = ({
@@ -51,7 +54,9 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
   teamDirectMaxShots,
   directMaxPoints,
   teamDirectMaxPoints,
-  tournamentType = "combined"
+  tournamentType = "combined",
+  clubs = [],
+  laneCapacity: propLaneCapacity
 }) => {
   // Resolve active source variables based on tournamentType
   const activeAthletesList = useMemo(() => {
@@ -95,17 +100,19 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
   const effectiveShotsCount = isDirectMode ? activeDirectMaxShots : activeShotsCountVal;
   const effectiveTeamShotsCount = isTeamDirectMode ? (teamDirectMaxShots || 10) : (teamShotsCount !== undefined ? teamShotsCount : shotsCount);
 
-  const [laneCapacity, setLaneCapacity] = useState<number>(() => {
+  const [localLaneCapacity, setLocalLaneCapacity] = useState<number>(() => {
     const saved = localStorage.getItem("slingshot_active_tournament_lane_capacity");
     return saved ? Number(saved) : 10;
   });
+
+  const laneCapacity = propLaneCapacity !== undefined ? propLaneCapacity : localLaneCapacity;
 
   // Keep laneCapacity synchronized with changes in Settings
   useEffect(() => {
     if (isOpen) {
       const saved = localStorage.getItem("slingshot_active_tournament_lane_capacity");
       if (saved) {
-        setLaneCapacity(Number(saved));
+        setLocalLaneCapacity(Number(saved));
       }
     }
   }, [isOpen]);
@@ -402,15 +409,15 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
     const matched: any[] = [];
     
     // Position 1 (Gold)
-    const gold = list.find(a => a.dashboardRank === 1);
+    const gold = list[0];
     matched.push(gold || null);
 
     // Position 2 (Silver)
-    const silver = list.find(a => a.dashboardRank === 2);
+    const silver = list[1];
     matched.push(silver || null);
 
     // Position 3 (Bronze)
-    const bronze = list.find(a => a.dashboardRank === 3);
+    const bronze = list[2];
     matched.push(bronze || null);
 
     return matched;
@@ -930,6 +937,44 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
     return top3;
   }, [teamLeaderboardSurvivalData]);
 
+  const getTeamAvatar = (teamName: string, place: 1 | 2 | 3) => {
+    const club = clubs?.find(c => c.name.trim().toLowerCase() === teamName.trim().toLowerCase());
+    const badgeColor = place === 1 ? "text-teal-400 fill-teal-450/20" : place === 2 ? "text-slate-300 fill-slate-400/20" : "text-amber-500 fill-amber-600/20";
+    const borderColor = place === 1 ? "border-teal-400 ring-4 ring-teal-500/10" : place === 2 ? "border-slate-500 ring-2 ring-slate-400/5" : "border-amber-700/50 ring-2 ring-amber-800/5";
+    const size = place === 1 ? "w-12 h-12" : "w-10 h-10";
+    const badgeSize = place === 1 ? "w-4 h-4" : "w-3.5 h-3.5";
+    const Icon = place === 1 ? Trophy : place === 2 ? Medal : Award;
+
+    if (club && club.avatarUrl) {
+      return (
+        <div className="relative flex justify-center items-center mb-2">
+          <img 
+            src={club.avatarUrl} 
+            alt={teamName} 
+            className={`${size} rounded-full object-cover border ${borderColor} shadow-md`}
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute -bottom-1 -right-1 bg-[#0b1329] rounded-full p-0.5 shadow-xs border border-[#1f2d50]">
+            <Icon className={`${badgeSize} ${badgeColor}`} />
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback if no avatar
+    const initialText = teamName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+    return (
+      <div className="relative flex justify-center items-center mb-2">
+        <div className={`${size} rounded-full bg-[#111a2e] border ${borderColor} flex items-center justify-center shadow-md font-sans text-xs font-black text-slate-300 uppercase tracking-wide`}>
+          {initialText}
+        </div>
+        <div className="absolute -bottom-1 -right-1 bg-[#0b1329] rounded-full p-0.5 shadow-xs border border-[#1f2d50]">
+          <Icon className={`${badgeSize} ${badgeColor}`} />
+        </div>
+      </div>
+    );
+  };
+
 
   // -----------------------------------------------------------------
   // ACTIVE LANE FLIGHT PARTITIONING & SEQUENCING
@@ -1159,9 +1204,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                 <div className="flex-1 flex flex-col items-center">
                   {top3SurvivalTeams[1] ? (
                     <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-400 flex items-center justify-center mb-2 shadow-sm text-slate-400">
-                        <span className="text-sm font-black">2</span>
-                      </div>
+                      {getTeamAvatar(top3SurvivalTeams[1].teamName, 2)}
                       <span className="text-[11px] font-black text-slate-100 uppercase truncate max-w-[95px] text-center">{top3SurvivalTeams[1].teamName}</span>
                       <span className="text-[10px] font-black text-slate-300 mt-1">{top3SurvivalTeams[1].totalScore} điểm</span>
                     </div>
@@ -1180,9 +1223,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                       <div className="absolute -top-7 text-teal-400 animate-bounce">
                         <Sparkles className="w-5 h-5 fill-teal-300/30" />
                       </div>
-                      <div className="w-12 h-12 rounded-full bg-slate-900 border-2 border-teal-400 flex items-center justify-center mb-2 shadow-md shadow-teal-500/10 text-teal-400">
-                        <span className="text-sm font-black">1</span>
-                      </div>
+                      {getTeamAvatar(top3SurvivalTeams[0].teamName, 1)}
                       <span className="text-xs font-extrabold text-teal-300 uppercase truncate max-w-[105px] text-center tracking-wide">{top3SurvivalTeams[0].teamName}</span>
                       <span className="text-xs font-black text-teal-400 mt-1 px-1.5 py-0.2 bg-teal-950/40 border border-teal-900/40 rounded">{top3SurvivalTeams[0].totalScore} điểm</span>
                     </div>
@@ -1198,9 +1239,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                 <div className="flex-1 flex flex-col items-center">
                   {top3SurvivalTeams[2] ? (
                     <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-slate-900 border border-amber-700 flex items-center justify-center mb-2 shadow-sm text-amber-700">
-                        <span className="text-sm font-black">3</span>
-                      </div>
+                      {getTeamAvatar(top3SurvivalTeams[2].teamName, 3)}
                       <span className="text-[11px] font-black text-slate-100 uppercase truncate max-w-[95px] text-center">{top3SurvivalTeams[2].teamName}</span>
                       <span className="text-[10px] font-black text-[#d97706] mt-1">{top3SurvivalTeams[2].totalScore} điểm</span>
                     </div>
@@ -1305,7 +1344,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                         }}
                       >
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-black shrink-0 shadow-inner ${rankBadge}`}>
-                          {idx + 1}
+                          {ath.dashboardRank || (idx + 1)}
                         </div>
                         
                         <div className="relative w-8 h-8 rounded-full border border-slate-700 overflow-hidden bg-slate-900 shrink-0 group-hover:scale-105 transition-transform duration-300">

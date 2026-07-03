@@ -424,6 +424,7 @@ export default function App() {
         endDateVal,
         bannerUrlVal,
         avatarUrlVal,
+        laneCapacityVal,
       ] = await Promise.all([
         deviceStorage.get("slingshot_avatars"),
         deviceStorage.get("slingshot_match_name"),
@@ -445,6 +446,7 @@ export default function App() {
         deviceStorage.get("slingshot_end_date"),
         deviceStorage.get("slingshot_banner_url"),
         deviceStorage.get("slingshot_avatar_url"),
+        deviceStorage.get("slingshot_active_tournament_lane_capacity"),
       ]);
 
       if (avatars) {
@@ -484,6 +486,7 @@ export default function App() {
       if (teamShotsCountVal) setTeamShotsCount(Number(teamShotsCountVal));
       if (teamAthletesVal) setTeamAthletes(restoreBase64Avatars(teamAthletesVal));
       if (teamInputAthletesVal) setTeamInputAthletes(restoreBase64Avatars(teamInputAthletesVal));
+      if (laneCapacityVal) setLaneCapacity(Number(laneCapacityVal));
 
     } catch (e) {
       console.error("Critical error during device storage restoration:", e);
@@ -577,6 +580,7 @@ export default function App() {
 
   const [isSpectatorModeOverridden, setIsSpectatorModeOverridden] = useState(false);
   const isSpectatorModeOverriddenRef = useRef(false);
+  const loadedTournamentIdRef = useRef<string | null>(null);
   useEffect(() => {
     isSpectatorModeOverriddenRef.current = isSpectatorModeOverridden;
   }, [isSpectatorModeOverridden]);
@@ -968,9 +972,7 @@ export default function App() {
   const [clubs, setClubs] = useState<Club[]>(() => {
     const saved = localStorage.getItem("slingshot_clubs");
     if (saved) return JSON.parse(saved);
-    return [
-      { id: "club-1", name: "CLB Bắn Ná Việt Nam", avatarUrl: "", province: "Hà Nội" }
-    ];
+    return [];
   });
   const [isAddingAthleteToInputBoard, setIsAddingAthleteToInputBoard] = useState(false);
   const [inputBoardAddSearch, setInputBoardAddSearch] = useState("");
@@ -1044,6 +1046,15 @@ export default function App() {
       console.error("Failed to save shots count to storage:", e);
     }
   }, [shotsCount]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("slingshot_active_tournament_lane_capacity", laneCapacity.toString());
+      deviceStorage.set("slingshot_active_tournament_lane_capacity", laneCapacity);
+    } catch (e) {
+      console.error("Failed to save lane capacity to storage:", e);
+    }
+  }, [laneCapacity]);
 
   useEffect(() => {
     try {
@@ -1566,6 +1577,7 @@ export default function App() {
     setIsSpectatorModeOverridden(false);
 
     if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) {
+      loadedTournamentIdRef.current = null;
       return;
     }
 
@@ -1573,36 +1585,68 @@ export default function App() {
       setDbHasPendingWrites(pending);
       if (docVal) {
         setCurrentTournamentDoc(docVal);
-        // Direct propagation of server states to current active variables
-        if (docVal.matchName) {
-          setMatchName(docVal.matchName);
-          setHeaderTempName(docVal.matchName);
+        
+        const isNewLoad = loadedTournamentIdRef.current !== activeHistoryId;
+        if (isNewLoad) {
+          loadedTournamentIdRef.current = activeHistoryId;
         }
-        if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
-        if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
-        if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || "");
-        if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || "");
-        if (docVal.tournamentType) {
-          setTournamentType(docVal.tournamentType);
-          localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
-        } else if (docVal.competitionMode) {
-          const fallback = docVal.competitionMode === "team" ? "team" : "combined";
-          setTournamentType(fallback);
-          localStorage.setItem("slingshot_tournament_type", fallback);
-        }
-        if (docVal.competitionMode) {
-          if (!isSpectatorModeOverriddenRef.current) {
-            setCompetitionMode(docVal.competitionMode);
+
+        // Calculate role dynamically for the incoming document to avoid stale state and dependency-array loops
+        const isOwner = currentUser && (docVal.creatorId === currentUser.uid || isGlobalAdmin);
+        const isSubAdmin = currentUser && (docVal.subAdmins?.some((email: string) => email.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()));
+        const isReferee = currentUser && (docVal.referees?.includes(currentUser.email || ""));
+        const isOnlineTour = activeHistoryId?.startsWith("tour-");
+        const hasEnded = isOnlineTour && isTournamentEndedPast30Days(docVal.endDate, docVal.startDate);
+
+        const calcRole = isGlobalAdmin
+          ? "admin"
+          : hasEnded
+            ? "spectator"
+            : !currentUser
+              ? "spectator"
+              : (isOwner || isSubAdmin) 
+                ? "admin" 
+                : isReferee 
+                  ? "referee" 
+                  : "spectator";
+
+        // Only overwrite administrative configurations if it is the first load of this tournament,
+        // or if the user is a spectator (who should always sync real-time configuration changes from the admin).
+        const shouldOverwriteConfig = isNewLoad || (calcRole !== "admin" && calcRole !== "referee");
+
+        if (shouldOverwriteConfig) {
+          if (docVal.matchName) {
+            setMatchName(docVal.matchName);
+            setHeaderTempName(docVal.matchName);
           }
+          if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
+          if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
+          if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || "");
+          if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || "");
+          if (docVal.tournamentType) {
+            setTournamentType(docVal.tournamentType);
+            localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
+          } else if (docVal.competitionMode) {
+            const fallback = docVal.competitionMode === "team" ? "team" : "combined";
+            setTournamentType(fallback);
+            localStorage.setItem("slingshot_tournament_type", fallback);
+          }
+          if (docVal.competitionMode) {
+            if (!isSpectatorModeOverriddenRef.current) {
+              setCompetitionMode(docVal.competitionMode);
+            }
+          }
+          if (docVal.shotsCount) setShotsCount(docVal.shotsCount);
+          if (docVal.teamShotsCount) setTeamShotsCount(docVal.teamShotsCount);
+          if (docVal.laneCapacity !== undefined && docVal.laneCapacity !== null) {
+            setLaneCapacity(docVal.laneCapacity);
+            localStorage.setItem("slingshot_active_tournament_lane_capacity", docVal.laneCapacity.toString());
+          }
+          if (docVal.distances) setDistances(docVal.distances);
+          if (docVal.teamDistances) setTeamDistances(docVal.teamDistances);
         }
-        if (docVal.shotsCount) setShotsCount(docVal.shotsCount);
-        if (docVal.teamShotsCount) setTeamShotsCount(docVal.teamShotsCount);
-        if (docVal.laneCapacity !== undefined && docVal.laneCapacity !== null) {
-          setLaneCapacity(docVal.laneCapacity);
-          localStorage.setItem("slingshot_active_tournament_lane_capacity", docVal.laneCapacity.toString());
-        }
-        if (docVal.distances) setDistances(docVal.distances);
-        if (docVal.teamDistances) setTeamDistances(docVal.teamDistances);
+
+        // Always sync score/athlete state, as referee(s) score athletes in real-time
         setAthletes(docVal.athletes || []);
         setTeamAthletes(docVal.teamAthletes || []);
         setInputAthletes(docVal.inputAthletes || []);
@@ -1616,7 +1660,7 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, [activeHistoryId]);
+  }, [activeHistoryId, currentUser, isGlobalAdmin]);
 
   // Cloud state publisher effect (Debounced to aggregate scoring events)
   useEffect(() => {
@@ -3641,6 +3685,7 @@ export default function App() {
               tournamentType={tournamentType}
               clubs={clubs}
               onOpenLiveBoard={() => setIsLiveBoardOpen(true)}
+              onOpenExportModal={() => setIsExportModalOpen(true)}
             />
           )}
 
@@ -4893,6 +4938,8 @@ export default function App() {
         directMaxPoints={directMaxPoints}
         teamDirectMaxPoints={teamDirectMaxPoints}
         tournamentType={tournamentType}
+        clubs={clubs}
+        laneCapacity={laneCapacity}
       />
 
       {showUnlockScoreModal && typeof document !== "undefined" && createPortal(
