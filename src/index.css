@@ -4,6 +4,20 @@
 @theme {
   --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom theme colors to support legacy non-standard colors used in codebase */
+  --color-indigo-505: #5c5fed;
+  --color-indigo-650: #483ddb;
+  --color-slate-101: #f1f5f9;
+  --color-slate-705: #334155;
+  --color-slate-750: #273549;
+  --color-slate-805: #1e293b;
+  --color-slate-850: #152033;
+  --color-slate-880: #0f172a;
+  --color-emerald-605: #059669;
+  --color-emerald-650: #04875c;
+  --color-gray-150: #eaedf2;
+  --color-gray-305: #cbd5e1;
 }
 
 body {
