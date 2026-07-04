@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig, StoredAthleteList, Club } from "../types";
-import { getUserProfileByEmail, saveVscSystemAthletes, subscribeToVscSystemAthletes } from "../lib/firebaseService";
+import { getUserProfileByEmail, saveVscSystemAthletes, subscribeToVscSystemAthletes, saveVscSystemClub, deleteVscSystemClub } from "../lib/firebaseService";
 import * as XLSX from "xlsx";
 import { 
   User, 
@@ -49,6 +49,7 @@ interface AthleteManagementProps {
   currentUser?: any;
   forceTab?: "athletes" | "clubs" | "vsc_system";
   hideVscSystemTab?: boolean;
+  userRole?: string;
 }
 
 export function deduplicateAthletes(list: Athlete[]): Athlete[] {
@@ -138,11 +139,20 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   setClubs,
   currentUser,
   forceTab,
-  hideVscSystemTab
+  hideVscSystemTab,
+  userRole
 }) => {
   const { language, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [leftTab, setLeftTab] = useState<"athletes" | "clubs" | "vsc_system">(forceTab || "athletes");
+
+  const canModifyClub = (club: Club) => {
+    if (userRole === "admin") return true;
+    if (!club.creatorId) {
+      return userRole === "admin" || userRole === "subAdmin";
+    }
+    return currentUser && club.creatorId === currentUser.uid;
+  };
 
   useEffect(() => {
     if (forceTab) {
@@ -602,7 +612,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       setIsEditing(false);
     }
 
-    // Auto-add new Club if name is manually entered and doesn't exist yet
+    // Auto-add new Club if name is manually entered (e.g. from Cloud Profile lookup) and doesn't exist yet
     const teamName = formTeam.trim();
     if (teamName) {
       const exists = clubs.some(c => c.name.toLowerCase() === teamName.toLowerCase());
@@ -611,8 +621,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           id: `club-${Date.now()}`,
           name: teamName,
           province: formProvince.trim() || "",
-          avatarUrl: ""
+          avatarUrl: "",
+          creatorId: currentUser?.uid || "",
+          creatorEmail: currentUser?.email || ""
         };
+        saveVscSystemClub(newClub).catch(err => console.error("Failed to save manually typed club globally:", err));
         setClubs(prev => [...prev, newClub]);
       }
     }
@@ -638,8 +651,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       id: `club-${Date.now()}`,
       name: name,
       province: newClubProvince.trim(),
-      avatarUrl: ""
+      avatarUrl: "",
+      creatorId: currentUser?.uid || "",
+      creatorEmail: currentUser?.email || ""
     };
+    saveVscSystemClub(newClub).catch(err => console.error("Failed to save global club:", err));
     setClubs(prev => [...prev, newClub]);
     setNewClubName("");
     setNewClubProvince("");
@@ -648,6 +664,10 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   };
 
   const handleStartEditClub = (club: Club) => {
+    if (!canModifyClub(club)) {
+      alert("Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      return;
+    }
     setEditingClubId(club.id);
     setEditingClubName(club.name);
     setEditingClubProvince(club.province || "");
@@ -655,28 +675,34 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   };
 
   const handleSaveEditClub = (clubId: string) => {
+    const targetClub = clubs.find(c => c.id === clubId);
+    if (targetClub && !canModifyClub(targetClub)) {
+      alert("Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      return;
+    }
     const name = editingClubName.trim();
     if (!name) {
       alert("Tên CLB không được để trống!");
       return;
     }
-    setClubs(prev => prev.map(c => {
-      if (c.id === clubId) {
-        return {
-          ...c,
-          name: name,
-          province: editingClubProvince.trim(),
-          avatarUrl: editingClubAvatarUrl,
-        };
-      }
-      return c;
-    }));
+    const updatedClub: Club = {
+      ...targetClub!,
+      name: name,
+      province: editingClubProvince.trim(),
+      avatarUrl: editingClubAvatarUrl,
+    };
+    saveVscSystemClub(updatedClub).catch(err => console.error("Failed to update global club:", err));
+    setClubs(prev => prev.map(c => c.id === clubId ? updatedClub : c));
     setEditingClubId(null);
     setNotification({ type: "success", message: "Đã cập nhật thông tin CLB thành công!" });
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleDeleteClub = (club: Club) => {
+    if (!canModifyClub(club)) {
+      alert("Bạn không có quyền xóa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      return;
+    }
     setClubToDelete(club);
   };
 
@@ -792,6 +818,30 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         }
 
         if (window.confirm(`Tìm thấy ${importedAthletes.length} VĐV trong file Excel. Bạn có muốn ghi đè / nhập thêm vào danh sách hiện tại không? (Các VĐV trùng mã số ID sẽ được cập nhật thông tin)`)) {
+          // Auto-add any imported clubs that don't exist yet
+          const importedClubNames = Array.from(new Set(importedAthletes.map(a => a.team?.trim()).filter(Boolean)));
+          if (importedClubNames.length > 0) {
+            setClubs(prevClubs => {
+              const updatedClubs = [...prevClubs];
+              importedClubNames.forEach((cName, idx) => {
+                const exists = updatedClubs.some(c => c.name.toLowerCase() === cName.toLowerCase());
+                if (!exists) {
+                  const newClub: Club = {
+                    id: `club-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
+                    name: cName,
+                    province: "",
+                    avatarUrl: "",
+                    creatorId: currentUser?.uid || "",
+                    creatorEmail: currentUser?.email || ""
+                  };
+                  saveVscSystemClub(newClub).catch(err => console.error("Failed to save imported club globally:", err));
+                  updatedClubs.push(newClub);
+                }
+              });
+              return updatedClubs;
+            });
+          }
+
           if (isVscTab) {
             const merged = [...vscSystemAthletes];
             importedAthletes.forEach(imp => {
@@ -1411,22 +1461,26 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                             </>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditClub(club)}
-                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded transition-all cursor-pointer"
-                                title="Sửa CLB"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteClub(club)}
-                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded transition-all cursor-pointer"
-                                title="Xóa CLB"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {canModifyClub(club) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditClub(club)}
+                                  className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded transition-all cursor-pointer"
+                                  title="Sửa CLB"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {canModifyClub(club) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteClub(club)}
+                                  className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded transition-all cursor-pointer"
+                                  title="Xóa CLB"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -1903,6 +1957,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  deleteVscSystemClub(clubToDelete.id).catch(err => console.error("Failed to delete global club:", err));
                   setClubs((prev) => prev.filter((c) => c.id !== clubToDelete.id));
                   setClubToDelete(null);
                   setNotification({ type: "success", message: `Đã xóa câu lạc bộ thành công!` });
@@ -2268,19 +2323,36 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
                     Câu lạc bộ / Đội tuyển:
                   </label>
-                  <input
-                    type="text"
-                    list="clubs-datalist"
-                    value={formTeam}
-                    onChange={(e) => setFormTeam(e.target.value)}
-                    placeholder="Chọn hoặc nhập tên CLB..."
-                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <datalist id="clubs-datalist">
-                    {clubs.map(c => (
-                      <option key={c.id} value={c.name} />
-                    ))}
-                  </datalist>
+                  {clubs.length === 0 ? (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-2.5 flex flex-col gap-1.5 font-sans leading-relaxed">
+                      <span>⚠️ Chưa có câu lạc bộ nào trong danh sách.</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLeftTab("clubs");
+                          setIsCreating(false);
+                          setIsEditing(false);
+                          setSelectedAthlete(null);
+                        }}
+                        className="text-left text-indigo-600 dark:text-indigo-400 hover:underline font-extrabold cursor-pointer"
+                      >
+                        Nhấp vào đây để sang thẻ Câu Lạc Bộ tạo trước!
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={formTeam}
+                      onChange={(e) => setFormTeam(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-extrabold text-slate-800 dark:text-slate-100"
+                    >
+                      <option value="">-- Chọn Câu lạc bộ --</option>
+                      {clubs.map(c => (
+                        <option key={c.id} value={c.name}>
+                          {c.name} {c.province ? `(${c.province})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <div className="mt-1.5 flex items-center">
                     <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-indigo-800 bg-indigo-50/70 dark:bg-slate-900/40 border border-indigo-150 py-1 px-2 rounded-lg leading-none select-none">
                       <input

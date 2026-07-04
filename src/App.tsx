@@ -45,7 +45,7 @@ import { VSCLogo, SlingshotIcon } from "./components/VSCLogo";
 
 // Firebase imports
 import { auth } from "./firebase";
-import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament } from "./lib/firebaseService";
+import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub } from "./lib/firebaseService";
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
@@ -705,6 +705,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentTournamentDoc, setCurrentTournamentDoc] = useState<TournamentData | null>(null);
+  const [isTournamentConfigLoaded, setIsTournamentConfigLoaded] = useState(false);
   const [draftPreviewItem, setDraftPreviewItem] = useState<MatchHistoryItem | null>(null);
   const [isPublishDraftModalOpen, setIsPublishDraftModalOpen] = useState(false);
   const [onlineTournaments, setOnlineTournaments] = useState<TournamentData[]>([]);
@@ -728,6 +729,7 @@ export default function App() {
     if (tourParam && tourParam.startsWith("tour-")) {
       setActiveHistoryId(tourParam);
       localStorage.setItem("slingshot_active_history_id", tourParam);
+      setActiveTab("dashboard");
     }
   }, []);
 
@@ -815,7 +817,16 @@ export default function App() {
     }
   }, [masterAthletes]);
 
-  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tourParam = params.get("tour") || params.get("id");
+      if (tourParam && tourParam.startsWith("tour-")) {
+        return "dashboard";
+      }
+    }
+    return "home";
+  });
   const [homeFilter, setHomeFilter] = useState<"all" | "all_list" | "active" | "followed">("all");
   const [athleteForceTab, setAthleteForceTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
   const [settingsSubTab, setSettingsSubTab] = useState<"config" | "athletes">("config");
@@ -898,6 +909,56 @@ export default function App() {
   const confirmTournamentSwitch = () => {
     if (!switchingTournamentData) return;
     const { id, targetTab } = switchingTournamentData;
+
+    // Immediately write any pending local changes to Firestore before switching to the new tournament
+    if (activeHistoryId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
+      const isDifferent = (
+        !deepEqual(matchName, currentTournamentDoc?.matchName) ||
+        !deepEqual(startDate, currentTournamentDoc?.startDate) ||
+        !deepEqual(endDate, currentTournamentDoc?.endDate) ||
+        !deepEqual(distances, currentTournamentDoc?.distances) ||
+        !deepEqual(shotsCount, currentTournamentDoc?.shotsCount) ||
+        !deepEqual(athletes, currentTournamentDoc?.athletes) ||
+        !deepEqual(teamDistances, currentTournamentDoc?.teamDistances) ||
+        !deepEqual(teamShotsCount, currentTournamentDoc?.teamShotsCount) ||
+        !deepEqual(teamAthletes, currentTournamentDoc?.teamAthletes) ||
+        !deepEqual(inputAthletes, currentTournamentDoc?.inputAthletes) ||
+        !deepEqual(teamInputAthletes, currentTournamentDoc?.teamInputAthletes) ||
+        !deepEqual(directMaxPoints, currentTournamentDoc?.directMaxPoints) ||
+        !deepEqual(teamDirectMaxPoints, currentTournamentDoc?.teamDirectMaxPoints) ||
+        !deepEqual(directMaxShots, currentTournamentDoc?.directMaxShots) ||
+        !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
+        !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
+        !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
+        !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
+        !deepEqual(clubs, currentTournamentDoc?.clubs) ||
+        laneCapacity !== currentTournamentDoc?.laneCapacity
+      );
+      if (isDifferent) {
+        updateOnlineTournament(activeHistoryId, {
+          matchName,
+          startDate,
+          endDate,
+          distances,
+          shotsCount,
+          athletes,
+          teamDistances,
+          teamShotsCount,
+          teamAthletes,
+          inputAthletes,
+          teamInputAthletes,
+          directMaxPoints,
+          teamDirectMaxPoints,
+          directMaxShots,
+          teamDirectMaxShots,
+          masterAthletes,
+          bannerUrl,
+          avatarUrl,
+          laneCapacity,
+          clubs
+        }).catch(err => console.error("Immediate switch sync failed:", err));
+      }
+    }
 
     setAthletes([]);
     setMasterAthletes([]);
@@ -1570,10 +1631,48 @@ export default function App() {
     }
   };
 
+  // Subscribe to real-time system clubs
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = subscribeToVscSystemClubs((remoteClubs) => {
+        if (remoteClubs && remoteClubs.length > 0) {
+          setClubs(remoteClubs);
+          localStorage.setItem("slingshot_clubs", JSON.stringify(remoteClubs));
+        } else if (remoteClubs) {
+          // Fallback to local storage if remote is empty
+          const saved = localStorage.getItem("slingshot_clubs");
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && parsed.length > 0) {
+                setClubs(parsed);
+                // Pre-populate remote database if we are an admin
+                if (currentUser?.email === "nahnatofficial@gmail.com" || currentUser?.email === "vscvietnamslingshot@gmail.com") {
+                  parsed.forEach((club: Club) => {
+                    saveVscSystemClub(club).catch(err => console.warn("Failed pre-populating system club:", err));
+                  });
+                }
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("Could not subscribe to VSC system clubs:", err);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentUser]);
+
   // Subscribe to real-time online document shifts
   useEffect(() => {
     // Reset previous doc/role states immediately to avoid stale role bleed-through
     setCurrentTournamentDoc(null);
+    setIsTournamentConfigLoaded(false);
     setIsSpectatorModeOverridden(false);
 
     if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) {
@@ -1581,12 +1680,17 @@ export default function App() {
       return;
     }
 
+    let isFirstSnapshotOfSubscription = true;
+
     const unsubscribe = subscribeToTournamentDoc(activeHistoryId, (docVal, pending) => {
       setDbHasPendingWrites(pending);
       if (docVal) {
         setCurrentTournamentDoc(docVal);
         
-        const isNewLoad = loadedTournamentIdRef.current !== activeHistoryId;
+        const isNewLoad = isFirstSnapshotOfSubscription;
+        if (isFirstSnapshotOfSubscription) {
+          isFirstSnapshotOfSubscription = false;
+        }
         if (isNewLoad) {
           loadedTournamentIdRef.current = activeHistoryId;
         }
@@ -1610,9 +1714,10 @@ export default function App() {
                   ? "referee" 
                   : "spectator";
 
-        // Only overwrite administrative configurations if it is the first load of this tournament,
-        // or if the user is a spectator (who should always sync real-time configuration changes from the admin).
-        const shouldOverwriteConfig = isNewLoad || (calcRole !== "admin" && calcRole !== "referee");
+        // Always sync the configuration states from the database in real-time, even for admins.
+        // This ensures multi-device and multi-admin setups do not overwrite or reset each other's configurations
+        // when one client is slightly out of sync.
+        const shouldOverwriteConfig = true;
 
         if (shouldOverwriteConfig) {
           if (docVal.matchName) {
@@ -1656,6 +1761,8 @@ export default function App() {
         if (docVal.teamDirectMaxPoints !== undefined) setTeamDirectMaxPoints(docVal.teamDirectMaxPoints !== null ? docVal.teamDirectMaxPoints : undefined);
         if (docVal.directMaxShots !== undefined) setDirectMaxShots(docVal.directMaxShots !== null ? docVal.directMaxShots : 10);
         if (docVal.teamDirectMaxShots !== undefined) setTeamDirectMaxShots(docVal.teamDirectMaxShots !== null ? docVal.teamDirectMaxShots : 10);
+
+        setIsTournamentConfigLoaded(true);
       }
     });
 
@@ -1666,6 +1773,7 @@ export default function App() {
   useEffect(() => {
     if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) return;
     if (userRole !== "admin" && userRole !== "referee") return;
+    if (!isTournamentConfigLoaded || !currentTournamentDoc) return;
 
     // Compare what we locally have with currentTournamentDoc to prevent echo updates
     const isDifferent = (
@@ -1687,6 +1795,7 @@ export default function App() {
       !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
       !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
       !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
+      !deepEqual(clubs, currentTournamentDoc?.clubs) ||
       laneCapacity !== currentTournamentDoc?.laneCapacity
     );
 
@@ -1713,7 +1822,8 @@ export default function App() {
           masterAthletes,
           bannerUrl,
           avatarUrl,
-          laneCapacity
+          laneCapacity,
+          clubs
         });
       } catch (err) {
         console.error("Cloud synchronization failed:", err);
@@ -1743,7 +1853,9 @@ export default function App() {
     bannerUrl,
     avatarUrl,
     laneCapacity,
-    currentTournamentDoc
+    currentTournamentDoc,
+    isTournamentConfigLoaded,
+    clubs
   ]);
 
   // Action hook to automatically redirect unauthorized spectators
@@ -2722,6 +2834,7 @@ export default function App() {
       teamAthletes: JSON.parse(JSON.stringify(teamAthletes)),
       startDate: startDate,
       endDate: endDate,
+      clubs: JSON.parse(JSON.stringify(clubs)),
     };
 
     setHistory((prev) => {
@@ -2739,6 +2852,56 @@ export default function App() {
 
   // Exit current tournament and reset all tournament state variables back to defaults
   const handleExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
+    // Immediately write any pending local changes to Firestore before exiting/clearing state
+    if (activeHistoryId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
+      const isDifferent = (
+        !deepEqual(matchName, currentTournamentDoc?.matchName) ||
+        !deepEqual(startDate, currentTournamentDoc?.startDate) ||
+        !deepEqual(endDate, currentTournamentDoc?.endDate) ||
+        !deepEqual(distances, currentTournamentDoc?.distances) ||
+        !deepEqual(shotsCount, currentTournamentDoc?.shotsCount) ||
+        !deepEqual(athletes, currentTournamentDoc?.athletes) ||
+        !deepEqual(teamDistances, currentTournamentDoc?.teamDistances) ||
+        !deepEqual(teamShotsCount, currentTournamentDoc?.teamShotsCount) ||
+        !deepEqual(teamAthletes, currentTournamentDoc?.teamAthletes) ||
+        !deepEqual(inputAthletes, currentTournamentDoc?.inputAthletes) ||
+        !deepEqual(teamInputAthletes, currentTournamentDoc?.teamInputAthletes) ||
+        !deepEqual(directMaxPoints, currentTournamentDoc?.directMaxPoints) ||
+        !deepEqual(teamDirectMaxPoints, currentTournamentDoc?.teamDirectMaxPoints) ||
+        !deepEqual(directMaxShots, currentTournamentDoc?.directMaxShots) ||
+        !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
+        !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
+        !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
+        !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
+        !deepEqual(clubs, currentTournamentDoc?.clubs) ||
+        laneCapacity !== currentTournamentDoc?.laneCapacity
+      );
+      if (isDifferent) {
+        updateOnlineTournament(activeHistoryId, {
+          matchName,
+          startDate,
+          endDate,
+          distances,
+          shotsCount,
+          athletes,
+          teamDistances,
+          teamShotsCount,
+          teamAthletes,
+          inputAthletes,
+          teamInputAthletes,
+          directMaxPoints,
+          teamDirectMaxPoints,
+          directMaxShots,
+          teamDirectMaxShots,
+          masterAthletes,
+          bannerUrl,
+          avatarUrl,
+          laneCapacity,
+          clubs
+        }).catch(err => console.error("Immediate exit sync failed:", err));
+      }
+    }
+
     // Auto-save roster to stored athlete lists on exit for admin/creator/sub-admin
     const rosterToSave = (masterAthletes && masterAthletes.length > 0) ? masterAthletes : athletes;
     if (userRole === "admin" && matchName && matchName.trim() && rosterToSave && rosterToSave.length > 0) {
@@ -2811,6 +2974,11 @@ export default function App() {
     if (target.teamDistances) setTeamDistances(target.teamDistances);
     if (target.teamShotCount) setTeamShotsCount(target.teamShotCount);
     if (target.teamAthletes) setTeamAthletes(target.teamAthletes);
+    if (target.clubs) {
+      setClubs(target.clubs);
+    } else {
+      setClubs([]);
+    }
     
     // Restore master list of that match fully into master registry (Quản lý VĐV)
     const restoredMasters = target.masterAthletes && target.masterAthletes.length > 0
@@ -2867,6 +3035,7 @@ export default function App() {
         teamDirectMaxPoints: draftPreviewItem.teamDirectMaxPoints,
         directMaxShots: draftPreviewItem.directMaxShots || 10,
         teamDirectMaxShots: draftPreviewItem.teamDirectMaxShots || 10,
+        clubs: draftPreviewItem.clubs || [],
       });
 
       // Update local active state to this overwritten tournament
@@ -2912,6 +3081,7 @@ export default function App() {
           inputAthletes: draftPreviewItem.inputAthletes || [],
           teamInputAthletes: draftPreviewItem.teamInputAthletes || [],
           masterAthletes: draftPreviewItem.masterAthletes || draftPreviewItem.athletes || [],
+          clubs: draftPreviewItem.clubs || [],
         }
       );
 
@@ -4790,6 +4960,7 @@ export default function App() {
                   setClubs={setClubs}
                   currentUser={currentUser}
                   forceTab={athleteForceTab}
+                  userRole={userRole}
                 />
               )}
             </div>

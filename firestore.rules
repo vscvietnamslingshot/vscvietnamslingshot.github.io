@@ -110,5 +110,34 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isEmailVerified() && isValidId(documentId) && isAdmin() && isValidVscSystemAthletes(incoming());
     }
+
+    // --- VSC Official System Clubs ---
+    function isValidClub(data) {
+      return ('id' in data && data.id is string) &&
+             ('name' in data && data.name is string && data.name.size() <= 200) &&
+             (!('creatorId' in data) || data.creatorId is string) &&
+             (!('creatorEmail' in data) || data.creatorEmail is string) &&
+             (!('avatarUrl' in data) || data.avatarUrl is string) &&
+             (!('province' in data) || data.province is string);
+    }
+
+    match /vsc_system_clubs/{clubId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && 
+                    isValidId(clubId) && 
+                    isValidClub(incoming()) && 
+                    (!('creatorId' in incoming()) || incoming().creatorId == request.auth.uid);
+      allow update: if isEmailVerified() && 
+                    isValidId(clubId) && 
+                    isValidClub(incoming()) && (
+                      isAdmin() ||
+                      ('creatorId' in existing() && existing().creatorId == request.auth.uid)
+                    );
+      allow delete: if isEmailVerified() && 
+                    isValidId(clubId) && (
+                      isAdmin() ||
+                      ('creatorId' in existing() && existing().creatorId == request.auth.uid)
+                    );
+    }
   }
 }

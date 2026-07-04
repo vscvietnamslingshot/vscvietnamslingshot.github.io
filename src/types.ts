@@ -53,6 +53,7 @@ export interface MatchHistoryItem {
   startDate?: string;
   endDate?: string;
   isAutoBackup?: boolean;
+  clubs?: Club[];
 }
 
 export interface StoredAthleteList {
@@ -67,6 +68,8 @@ export interface Club {
   name: string; // clb/team name
   avatarUrl?: string; // clb avatar (default empty base64 or URL)
   province?: string; // province of clb (default empty)
+  creatorId?: string; // ID of the user who created this club
+  creatorEmail?: string; // Email of the user who created this club
 }
 
 export interface DeviceBackupItem {

@@ -20,7 +20,7 @@ import {
   orderBy,
   serverTimestamp
 } from "../firebase";
-import { Athlete, DistanceConfig, MatchHistoryItem } from "../types";
+import { Athlete, DistanceConfig, MatchHistoryItem, Club } from "../types";
 
 export interface TournamentData {
   id: string;
@@ -53,6 +53,7 @@ export interface TournamentData {
   avatarUrl?: string;
   viewCount?: number;
   laneCapacity?: number;
+  clubs?: Club[];
 }
 
 export enum OperationType {
@@ -188,6 +189,7 @@ export async function createOnlineTournament(
     inputAthletes: Athlete[];
     teamInputAthletes: Athlete[];
     masterAthletes?: Athlete[];
+    clubs?: Club[];
   }
 ): Promise<string> {
   const newId = `tour-${Date.now()}`;
@@ -365,5 +367,55 @@ export function subscribeToVscSystemAthletes(callback: (athletes: Athlete[]) => 
   }, (error) => {
     console.warn("VSC system athletes subscription failed, falling back gracefully:", error);
   });
+}
+
+/**
+ * Subscribes in real-time to all VSC System Clubs
+ */
+export function subscribeToVscSystemClubs(callback: (clubs: Club[]) => void) {
+  const collectionRef = collection(db, "vsc_system_clubs");
+  const q = query(collectionRef, orderBy("name", "asc"));
+  return onSnapshot(q, (snapshot) => {
+    const list: Club[] = [];
+    snapshot.forEach((docSnap) => {
+      list.push(docSnap.data() as Club);
+    });
+    callback(list);
+  }, (error) => {
+    console.warn("VSC system clubs subscription failed with order, falling back to unordered:", error);
+    return onSnapshot(collectionRef, (snapshot) => {
+      const list: Club[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as Club);
+      });
+      callback(list);
+    }, (err2) => {
+      console.error("VSC system clubs subscription failed completely:", err2);
+    });
+  });
+}
+
+/**
+ * Saves or updates a club in the system-wide collection
+ */
+export async function saveVscSystemClub(club: Club) {
+  try {
+    const docRef = doc(db, "vsc_system_clubs", club.id);
+    await setDoc(docRef, sanitizeFirestoreData(club));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `vsc_system_clubs/${club.id}`);
+  }
+}
+
+/**
+ * Deletes a club from the system-wide collection
+ */
+export async function deleteVscSystemClub(clubId: string) {
+  try {
+    const docRef = doc(db, "vsc_system_clubs", clubId);
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `vsc_system_clubs/${clubId}`);
+  }
 }
 

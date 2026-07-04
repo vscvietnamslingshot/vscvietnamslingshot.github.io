@@ -51,6 +51,20 @@
         "updatedAt": { "type": "string", "format": "date" }
       },
       "required": ["athletes"]
+    },
+    "Club": {
+      "title": "Club",
+      "description": "Global official club of the system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "province": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "creatorEmail": { "type": "string" }
+      },
+      "required": ["id", "name"]
     }
   },
   "firestore": {
@@ -65,6 +79,10 @@
     "vsc_system_athletes/{documentId}": {
       "schema": "#/entities/VscSystemAthletes",
       "description": "Global official roster of pre-approved athletes"
+    },
+    "vsc_system_clubs/{clubId}": {
+      "schema": "#/entities/Club",
+      "description": "Global official list of clubs"
     }
   }
 }
