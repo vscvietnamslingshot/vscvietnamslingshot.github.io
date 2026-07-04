@@ -30,7 +30,7 @@ import {
   Tv,
   CloudUpload
 } from "lucide-react";
-import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList, Club } from "./types";
+import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList, Club, VSC_DEFAULT_LOGO } from "./types";
 import { useLanguage } from "./context/LanguageContext";
 import { AthleteCard } from "./components/AthleteCard";
 import { Leaderboard } from "./components/Leaderboard";
@@ -1726,8 +1726,8 @@ export default function App() {
           }
           if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
           if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
-          if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || "");
-          if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || "");
+          if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || VSC_DEFAULT_LOGO);
+          if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || VSC_DEFAULT_LOGO);
           if (docVal.tournamentType) {
             setTournamentType(docVal.tournamentType);
             localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);

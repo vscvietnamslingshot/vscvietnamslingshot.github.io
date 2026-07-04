@@ -30,7 +30,7 @@ import {
   Share2,
   Eye
 } from "lucide-react";
-import { Athlete, DistanceConfig } from "../types";
+import { Athlete, DistanceConfig, VSC_DEFAULT_LOGO } from "../types";
 import { getHitCount, calculateRounds } from "../utils/qualification";
 
 interface OnlineTournamentsPanelProps {
@@ -1161,9 +1161,12 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                 referrerPolicy="no-referrer" 
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-indigo-500/30" />
-              </div>
+              <img 
+                src={VSC_DEFAULT_LOGO} 
+                alt="Tournament Banner" 
+                className="w-full h-full object-cover opacity-80" 
+                referrerPolicy="no-referrer" 
+              />
             )}
           </div>
 
@@ -1184,7 +1187,12 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   referrerPolicy="no-referrer" 
                 />
               ) : (
-                <Trophy className="w-7 h-7 text-amber-500/80" />
+                <img 
+                  src={VSC_DEFAULT_LOGO} 
+                  alt="Tournament Logo" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer" 
+                />
               )}
             </div>
           </div>

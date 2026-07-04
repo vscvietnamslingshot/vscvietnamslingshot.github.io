@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../context/LanguageContext";
-import { Athlete, DistanceConfig, StoredAthleteList, Club } from "../types";
+import { Athlete, DistanceConfig, StoredAthleteList, Club, VSC_DEFAULT_LOGO } from "../types";
 import { getUserProfileByEmail, saveVscSystemAthletes, subscribeToVscSystemAthletes, saveVscSystemClub, deleteVscSystemClub } from "../lib/firebaseService";
 import * as XLSX from "xlsx";
 import { 
@@ -621,7 +621,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           id: `club-${Date.now()}`,
           name: teamName,
           province: formProvince.trim() || "",
-          avatarUrl: "",
+          avatarUrl: VSC_DEFAULT_LOGO,
           creatorId: currentUser?.uid || "",
           creatorEmail: currentUser?.email || ""
         };
@@ -651,7 +651,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       id: `club-${Date.now()}`,
       name: name,
       province: newClubProvince.trim(),
-      avatarUrl: "",
+      avatarUrl: VSC_DEFAULT_LOGO,
       creatorId: currentUser?.uid || "",
       creatorEmail: currentUser?.email || ""
     };
@@ -689,7 +689,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       ...targetClub!,
       name: name,
       province: editingClubProvince.trim(),
-      avatarUrl: editingClubAvatarUrl,
+      avatarUrl: editingClubAvatarUrl || VSC_DEFAULT_LOGO,
     };
     saveVscSystemClub(updatedClub).catch(err => console.error("Failed to update global club:", err));
     setClubs(prev => prev.map(c => c.id === clubId ? updatedClub : c));
@@ -830,7 +830,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                     id: `club-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
                     name: cName,
                     province: "",
-                    avatarUrl: "",
+                    avatarUrl: VSC_DEFAULT_LOGO,
                     creatorId: currentUser?.uid || "",
                     creatorEmail: currentUser?.email || ""
                   };

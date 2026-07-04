@@ -80,5 +80,7 @@ export interface DeviceBackupItem {
   data: string; // Stringified JSON backup containing full active state
 }
 
+export const VSC_DEFAULT_LOGO = "https://lh3.googleusercontent.com/d/1CAz9xUSO8XIvtEy9TYqil228Cz-jYcIM";
+
 
 

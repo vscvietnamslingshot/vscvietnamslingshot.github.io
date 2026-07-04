@@ -20,7 +20,7 @@ import {
   orderBy,
   serverTimestamp
 } from "../firebase";
-import { Athlete, DistanceConfig, MatchHistoryItem, Club } from "../types";
+import { Athlete, DistanceConfig, MatchHistoryItem, Club, VSC_DEFAULT_LOGO } from "../types";
 
 export interface TournamentData {
   id: string;
@@ -190,6 +190,8 @@ export async function createOnlineTournament(
     teamInputAthletes: Athlete[];
     masterAthletes?: Athlete[];
     clubs?: Club[];
+    avatarUrl?: string;
+    bannerUrl?: string;
   }
 ): Promise<string> {
   const newId = `tour-${Date.now()}`;
@@ -205,7 +207,9 @@ export async function createOnlineTournament(
     referees: [], // Admin can add referee emails later
     subAdmins: [], // Sub admins with full admin rights
     isPublic: true,
-    ...config
+    ...config,
+    avatarUrl: config.avatarUrl || VSC_DEFAULT_LOGO,
+    bannerUrl: config.bannerUrl || VSC_DEFAULT_LOGO
   };
 
   try {
@@ -223,7 +227,14 @@ export async function createOnlineTournament(
 export async function updateOnlineTournament(id: string, updates: Partial<TournamentData>) {
   try {
     const tourRef = doc(db, "tournaments", id);
-    const sanitizedUpdates = sanitizeFirestoreData(updates);
+    const resolvedUpdates = { ...updates };
+    if (resolvedUpdates.avatarUrl === "") {
+      resolvedUpdates.avatarUrl = VSC_DEFAULT_LOGO;
+    }
+    if (resolvedUpdates.bannerUrl === "") {
+      resolvedUpdates.bannerUrl = VSC_DEFAULT_LOGO;
+    }
+    const sanitizedUpdates = sanitizeFirestoreData(resolvedUpdates);
     await updateDoc(tourRef, {
       ...sanitizedUpdates,
       updatedAt: serverTimestamp()
@@ -401,7 +412,11 @@ export function subscribeToVscSystemClubs(callback: (clubs: Club[]) => void) {
 export async function saveVscSystemClub(club: Club) {
   try {
     const docRef = doc(db, "vsc_system_clubs", club.id);
-    await setDoc(docRef, sanitizeFirestoreData(club));
+    const updatedClub = {
+      ...club,
+      avatarUrl: club.avatarUrl || VSC_DEFAULT_LOGO
+    };
+    await setDoc(docRef, sanitizeFirestoreData(updatedClub));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `vsc_system_clubs/${club.id}`);
   }
