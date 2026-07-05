@@ -477,7 +477,19 @@ export default function App() {
         const parsedLists = restoreBase64Avatars(storedAthleteListsVal);
         setStoredAthleteLists((parsedLists || []).filter((l: any) => l && l.name && l.name.trim()));
       }
-      if (activeHistoryIdVal) setActiveHistoryId(activeHistoryIdVal);
+      let hasTourParam = false;
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const tourParam = params.get("tour") || params.get("id");
+        if (tourParam && tourParam.startsWith("tour-")) {
+          hasTourParam = true;
+          setActiveHistoryId(tourParam);
+          localStorage.setItem("slingshot_active_history_id", tourParam);
+        }
+      }
+      if (!hasTourParam) {
+        setActiveHistoryId(null);
+      }
       if (inputAthletesVal) setInputAthletes(restoreBase64Avatars(inputAthletesVal));
       if (clubsVal) setClubs(clubsVal);
       
@@ -698,7 +710,14 @@ export default function App() {
   });
 
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(() => {
-    return localStorage.getItem("slingshot_active_history_id") || null;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tourParam = params.get("tour") || params.get("id");
+      if (tourParam && tourParam.startsWith("tour-")) {
+        return tourParam;
+      }
+    }
+    return null;
   });
 
   // Authentication and realtime sync states
@@ -724,13 +743,34 @@ export default function App() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tourParam = params.get("tour") || params.get("id");
-    if (tourParam && tourParam.startsWith("tour-")) {
-      setActiveHistoryId(tourParam);
-      localStorage.setItem("slingshot_active_history_id", tourParam);
-      setActiveTab("dashboard");
-    }
+    let lastQuery = typeof window !== "undefined" ? window.location.search : "";
+    const handleUrlChange = () => {
+      const currentQuery = window.location.search;
+      if (currentQuery !== lastQuery) {
+        lastQuery = currentQuery;
+        const params = new URLSearchParams(currentQuery);
+        const tourParam = params.get("tour") || params.get("id");
+        if (tourParam && tourParam.startsWith("tour-")) {
+          setActiveHistoryId(tourParam);
+          localStorage.setItem("slingshot_active_history_id", tourParam);
+          setActiveTab("dashboard");
+        } else {
+          setActiveHistoryId(null);
+          setActiveTab("home");
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handleUrlChange);
+    const interval = setInterval(handleUrlChange, 1000);
+
+    // Run initial parse as well
+    handleUrlChange();
+
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -1287,6 +1327,25 @@ export default function App() {
     }
   }, [activeHistoryId]);
 
+  // Synchronize activeHistoryId with browser URL query parameters
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const currentTour = params.get("tour") || params.get("id");
+      if (activeHistoryId) {
+        if (currentTour !== activeHistoryId) {
+          const newUrl = `${window.location.origin}${window.location.pathname}?tour=${activeHistoryId}`;
+          window.history.pushState({ tour: activeHistoryId }, "", newUrl);
+        }
+      } else {
+        if (currentTour) {
+          const newUrl = `${window.location.origin}${window.location.pathname}`;
+          window.history.pushState({}, "", newUrl);
+        }
+      }
+    }
+  }, [activeHistoryId]);
+
   // Derived role properties for active tournament context
   const isOnlineTournament = activeHistoryId?.startsWith("tour-");
   const isGlobalAdmin = currentUser?.email === "nahnatofficial@gmail.com" || currentUser?.email === "vscvietnamslingshot@gmail.com";
@@ -1636,28 +1695,9 @@ export default function App() {
     let unsubscribe: (() => void) | undefined;
     try {
       unsubscribe = subscribeToVscSystemClubs((remoteClubs) => {
-        if (remoteClubs && remoteClubs.length > 0) {
+        if (remoteClubs) {
           setClubs(remoteClubs);
           localStorage.setItem("slingshot_clubs", JSON.stringify(remoteClubs));
-        } else if (remoteClubs) {
-          // Fallback to local storage if remote is empty
-          const saved = localStorage.getItem("slingshot_clubs");
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (parsed && parsed.length > 0) {
-                setClubs(parsed);
-                // Pre-populate remote database if we are an admin
-                if (currentUser?.email === "nahnatofficial@gmail.com" || currentUser?.email === "vscvietnamslingshot@gmail.com") {
-                  parsed.forEach((club: Club) => {
-                    saveVscSystemClub(club).catch(err => console.warn("Failed pre-populating system club:", err));
-                  });
-                }
-              }
-            } catch (e) {
-              console.error(e);
-            }
-          }
         }
       });
     } catch (err) {
@@ -4944,6 +4984,8 @@ export default function App() {
                   setTournamentType={setTournamentType}
                   laneCapacity={laneCapacity}
                   setLaneCapacity={setLaneCapacity}
+                  setActiveTab={setActiveTab}
+                  onExitTournament={() => handleExitTournament()}
                 />
               ) : (
                 <AthleteManagement
@@ -5202,6 +5244,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setShowExitConfirmModal(false);
+                  handleExitTournament();
                   setActiveTab("settings");
                   setIsNewTournamentModalOpen(true);
                 }}

@@ -173,31 +173,10 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     let unsubscribe: (() => void) | undefined;
     try {
       unsubscribe = subscribeToVscSystemAthletes((remoteAthletes) => {
-        if (remoteAthletes && remoteAthletes.length > 0) {
+        if (remoteAthletes) {
           const deduplicated = deduplicateAthletes(remoteAthletes);
           setVscSystemAthletes(deduplicated);
           localStorage.setItem("slingshot_vsc_system_athletes", JSON.stringify(deduplicated));
-        } else if (remoteAthletes) {
-          // If Firestore resides empty but we have local storage data in the browser,
-          // instantly populate the Firestore database so the user does not lose their custom roster list.
-          const savedLocal = localStorage.getItem("slingshot_vsc_system_athletes");
-          const isGlobalAdmin = currentUser?.email === "nahnatofficial@gmail.com" || currentUser?.email === "vscvietnamslingshot@gmail.com";
-          if (savedLocal && isGlobalAdmin) {
-            try {
-              const parsed = JSON.parse(savedLocal);
-              if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-                const deduplicated = deduplicateAthletes(parsed);
-                // Pre-populate database with legacy local cache data
-                saveVscSystemAthletes(deduplicated).catch(err => console.warn("Failed initial pre-populate:", err));
-                setVscSystemAthletes(deduplicated);
-                return;
-              }
-            } catch (e) {
-              console.error(e);
-            }
-          }
-          setVscSystemAthletes([]);
-          localStorage.removeItem("slingshot_vsc_system_athletes");
         }
       });
     } catch (err) {
@@ -1367,7 +1346,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                             {isEditingClub ? (
                               <>
                                 <img
-                                  src={editingClubAvatarUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/205/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f4fa'/><circle cx='50' cy='50' r='35' fill='%2394a3b8'/></svg>"}
+                                  src={editingClubAvatarUrl || VSC_DEFAULT_LOGO}
                                   alt="Uploading club logo"
                                   className="w-full h-full object-cover animate-pulse"
                                 />
@@ -1396,7 +1375,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                               </>
                             ) : (
                               <img
-                                src={club.avatarUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f5f9'/><polygon points='50,15 80,40 80,85 20,85 20,40' fill='%2394a3b8'/></svg>"}
+                                src={club.avatarUrl || VSC_DEFAULT_LOGO}
                                 alt={club.name}
                                 className="w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
@@ -1566,7 +1545,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                           {isEditingClub ? (
                             <>
                               <img
-                                src={editingClubAvatarUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f5f9'/><circle cx='50' cy='50' r='35' fill='%2394a3b8'/></svg>"}
+                                src={editingClubAvatarUrl || VSC_DEFAULT_LOGO}
                                 alt="Uploading club logo"
                                 className="w-full h-full object-cover"
                               />
@@ -1595,7 +1574,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                             </>
                           ) : (
                             <img
-                              src={club.avatarUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f5f9'/><polygon points='50,15 80,40 80,85 20,85 20,40' fill='%2394a3b8'/></svg>"}
+                              src={club.avatarUrl || VSC_DEFAULT_LOGO}
                               alt={club.name}
                               className="w-full h-full object-cover"
                             />

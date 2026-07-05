@@ -64,6 +64,8 @@ interface SettingsPanelProps {
   setTournamentType?: (type: "individual" | "team" | "combined") => void;
   laneCapacity?: number;
   setLaneCapacity?: (capacity: number) => void;
+  setActiveTab?: (tab: any) => void;
+  onExitTournament?: () => void;
 }
 
 const compressImage = (base64Str: string, maxWidth = 150, maxHeight = 150): Promise<string> => {
@@ -160,6 +162,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setTournamentType,
   laneCapacity: propLaneCapacity,
   setLaneCapacity: propSetLaneCapacity,
+  setActiveTab,
+  onExitTournament,
 }) => {
   const { language } = useLanguage();
   const [tempMatchName, setTempMatchName] = useState(matchName);
@@ -277,8 +281,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       const nextSeq = Number(currentSeqStr) + 1;
       const nextSeqStr = nextSeq.toString().padStart(4, "0");
       setModalTournamentId(`G-${nextSeqStr}`);
-      setModalTournamentName(`Giải Slingshot Hải Phòng ${todayStr}`);
-      setModalTournamentDesc("Bắn loại trực tiếp qua các khoảng cách. Áp dụng cơ cấu thi đấu chuẩn VSC.");
+      setModalTournamentName(matchName ? `${matchName} (${todayStr})` : `Giải đấu ${todayStr}`);
+      setModalTournamentDesc(language === "en" ? "Standard competition structure." : "Áp dụng cơ cấu thi đấu chuẩn VSC.");
       setModalStartDate("");
       setModalEndDate("");
       setModalLaneCapacity(laneCapacity);
@@ -1051,6 +1055,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <button
             type="button"
             onClick={() => {
+              if (activeHistoryId && onExitTournament) {
+                onExitTournament();
+              }
               // Populate default fields inside the modal 
               const todayStr = new Date().toLocaleDateString("vi-VN");
               const currentSeqStr = localStorage.getItem("slingshot_active_tournament_seq") || "1";
@@ -1162,10 +1169,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       if (e.key === "Enter") {
                         e.preventDefault();
                         const inputEl = document.getElementById("subadmin-email-input") as HTMLInputElement;
-                        const emailStr = inputEl?.value?.trim();
+                        const emailStr = inputEl?.value?.trim()?.toLowerCase();
                         if (emailStr && onUpdateSubAdmins) {
                           const currentSubAdmins = subAdmins || [];
-                          if (currentSubAdmins.includes(emailStr)) {
+                          const lowercasedSubAdmins = currentSubAdmins.map(s => s.toLowerCase());
+                          if (lowercasedSubAdmins.includes(emailStr)) {
                             alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
                             return;
                           }
@@ -1179,10 +1187,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     type="button"
                     onClick={() => {
                       const inputEl = document.getElementById("subadmin-email-input") as HTMLInputElement;
-                      const emailStr = inputEl?.value?.trim();
+                      const emailStr = inputEl?.value?.trim()?.toLowerCase();
                       if (emailStr && onUpdateSubAdmins) {
                         const currentSubAdmins = subAdmins || [];
-                        if (currentSubAdmins.includes(emailStr)) {
+                        const lowercasedSubAdmins = currentSubAdmins.map(s => s.toLowerCase());
+                        if (lowercasedSubAdmins.includes(emailStr)) {
                           alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
                           return;
                         }
@@ -1239,9 +1248,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     if (e.key === "Enter") {
                       e.preventDefault();
                       const inputEl = document.getElementById("referee-email-input") as HTMLInputElement;
-                      const emailStr = inputEl?.value?.trim();
+                      const emailStr = inputEl?.value?.trim()?.toLowerCase();
                       if (emailStr && referees && onUpdateReferees) {
-                        if (referees.includes(emailStr)) {
+                        const lowercasedReferees = referees.map(r => r.toLowerCase());
+                        if (lowercasedReferees.includes(emailStr)) {
                           alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
                           return;
                         }
@@ -1255,9 +1265,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   type="button"
                   onClick={() => {
                     const inputEl = document.getElementById("referee-email-input") as HTMLInputElement;
-                    const emailStr = inputEl?.value?.trim();
+                    const emailStr = inputEl?.value?.trim()?.toLowerCase();
                     if (emailStr && referees && onUpdateReferees) {
-                      if (referees.includes(emailStr)) {
+                      const lowercasedReferees = referees.map(r => r.toLowerCase());
+                      if (lowercasedReferees.includes(emailStr)) {
                         alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
                         return;
                       }
@@ -2158,7 +2169,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setIsNewTournamentModalOpen(false)}
+                onClick={() => {
+                  setIsNewTournamentModalOpen(false);
+                  if (!activeHistoryId && setActiveTab) {
+                    setActiveTab("home");
+                  }
+                }}
                 className="p-1.5 hover:bg-gray-250 dark:hover:bg-slate-850 rounded-lg text-gray-400 hover:text-gray-650 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2324,7 +2340,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <div className="px-6 py-4 border-t border-gray-150 dark:border-slate-800/80 flex justify-end gap-3 bg-gray-50 dark:bg-slate-950">
               <button
                 type="button"
-                onClick={() => setIsNewTournamentModalOpen(false)}
+                onClick={() => {
+                  setIsNewTournamentModalOpen(false);
+                  if (!activeHistoryId && setActiveTab) {
+                    setActiveTab("home");
+                  }
+                }}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-slate-800 dark:hover:bg-slate-705 text-slate-700 dark:text-white rounded-xl text-xs font-black transition-all cursor-pointer"
               >
                 Hủy bỏ
@@ -2350,13 +2371,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   try {
                     setTournamentError("");
                     
-                    const defaultDistances: DistanceConfig[] = [
-                      { id: "dist-1", distance: "3m", multiplier: 1 },
-                      { id: "dist-2", distance: "4m", multiplier: 2 }
+                    const defaultDistances: DistanceConfig[] = (distances && distances.length > 0) ? distances : [
+                      { id: "dist-1", distance: "10 Met", multiplier: 10 },
+                      { id: "dist-2", distance: "15 Met", multiplier: 15 }
                     ];
-                    const defaultTeamDistances: DistanceConfig[] = [
-                      { id: "dist-1", distance: "3m", multiplier: 1 },
-                      { id: "dist-2", distance: "4m", multiplier: 2 }
+                    const defaultTeamDistances: DistanceConfig[] = (teamDistances && teamDistances.length > 0) ? teamDistances : [
+                      { id: "dist-1", distance: "10 Met", multiplier: 10 },
+                      { id: "dist-2", distance: "15 Met", multiplier: 15 }
                     ];
 
                     const creatorEmail = currentUser.email || "";
@@ -2376,7 +2397,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         teamAthletes: [],
                         inputAthletes: [],
                         teamInputAthletes: [],
-                        masterAthletes: []
+                        masterAthletes: [],
+                        clubs: []
                       }
                     );
 
@@ -2410,7 +2432,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setMasterAthletes([]);
                     setInputAthletes?.([]);
                     setTeamInputAthletes?.([]);
-                    setClubs?.([]);
                     setStartDate(modalStartDate);
                     setEndDate(modalEndDate);
                     setAvatarUrl("");

@@ -81,17 +81,24 @@ service cloud.firestore {
                     isValidTournament(incoming()) && 
                     (!('creatorId' in incoming()) || incoming().creatorId == request.auth.uid);
                     
-      allow update: if isEmailVerified() && 
-                    isValidId(tournamentId) &&
-                    isValidTournament(incoming()) && (
-                      isAdmin() ||
-                      ('creatorId' in existing() && existing().creatorId == request.auth.uid) ||
-                      ('subAdmins' in existing() && existing().subAdmins is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().subAdmins) ||
-                      ('referees' in existing() && existing().referees is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().referees)
-                    ) &&
-                    // Immutable fields check
-                    (!('id' in incoming()) || !('id' in existing()) || incoming().id == existing().id) &&
-                    (!('creatorId' in existing()) || !('creatorId' in incoming()) || incoming().creatorId == existing().creatorId);
+      allow update: if isValidId(tournamentId) && (
+                      (
+                        isEmailVerified() && 
+                        isValidTournament(incoming()) && (
+                          isAdmin() ||
+                          !('creatorId' in existing()) ||
+                          ('creatorId' in existing() && existing().creatorId == request.auth.uid) ||
+                          ('subAdmins' in existing() && existing().subAdmins is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().subAdmins) ||
+                          ('referees' in existing() && existing().referees is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().referees)
+                        ) &&
+                        // Immutable fields check
+                        (!('id' in incoming()) || !('id' in existing()) || incoming().id == existing().id) &&
+                        (!('creatorId' in existing()) || !('creatorId' in incoming()) || incoming().creatorId == existing().creatorId)
+                      ) || (
+                        // Allow anyone to increment viewCount (even if not logged in)
+                        incoming().diff(existing()).affectedKeys().hasOnly(['viewCount'])
+                      )
+                    );
                     
       allow delete: if isEmailVerified() && 
                     isValidId(tournamentId) && (
