@@ -66,6 +66,7 @@ interface SettingsPanelProps {
   setLaneCapacity?: (capacity: number) => void;
   setActiveTab?: (tab: any) => void;
   onExitTournament?: () => void;
+  userRole?: string;
 }
 
 const compressImage = (base64Str: string, maxWidth = 150, maxHeight = 150): Promise<string> => {
@@ -164,6 +165,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setLaneCapacity: propSetLaneCapacity,
   setActiveTab,
   onExitTournament,
+  userRole = "spectator",
 }) => {
   const { language } = useLanguage();
   const [tempMatchName, setTempMatchName] = useState(matchName);
@@ -550,9 +552,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   };
 
   return (
-    <div className={`grid grid-cols-1 ${
-      tournamentType === "combined" ? "lg:grid-cols-3" : "lg:grid-cols-2"
-    } gap-6`}>
+    <div className="flex flex-col gap-6">
+      <div className={`grid grid-cols-1 ${
+        tournamentType === "combined" ? "lg:grid-cols-3" : "lg:grid-cols-2"
+      } gap-6`}>
       
       {/* 1. General Setup & Integrated Backup/Export (Gộp chung theo yêu cầu) */}
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
@@ -2060,6 +2063,224 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
       </div>
       )}
+
+      </div> {/* End of the main grid */}
+
+      {/* Permissions Overview Table Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4 font-sans text-slate-800 dark:text-slate-100 mt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b dark:border-slate-800 pb-3 gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-wide">
+                {language === "en" ? "User Roles & Permissions Matrix" : "Bảng phân quyền & Nhiệm vụ người dùng"}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {language === "en" ? "System access control checklist for this tournament context." : "Chi tiết danh sách các quyền hạn được phép thao tác của từng vai trò."}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-950/65 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-850 flex items-center gap-2 self-start sm:self-auto">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <div className="text-[11px] text-slate-600 dark:text-slate-350 leading-tight">
+              {language === "en" ? "Your current role: " : "Vai trò hiện tại của bạn: "}
+              <span className="font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                {userRole === "admin" 
+                  ? (language === "en" ? "Admin / Sub-Admin" : "Admin / Sub-Admin")
+                  : userRole === "referee"
+                    ? (language === "en" ? "Referee" : "Trọng tài")
+                    : (language === "en" ? "Spectator / Guest" : "Khách / Người xem")
+                }
+              </span>
+              {auth.currentUser?.email && (
+                <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px] block mt-0.5">({auth.currentUser.email})</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-150 dark:border-slate-800">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50/75 dark:bg-slate-950/60 border-b border-slate-150 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider text-[10px]">
+                <th className="py-3 px-4 min-w-[220px]">{language === "en" ? "Tasks & Features" : "Nhiệm vụ / Tính năng"}</th>
+                <th className="py-3 px-3 text-center w-28 bg-indigo-50/15 dark:bg-indigo-950/5 text-indigo-750 dark:text-indigo-350">{language === "en" ? "Admin" : "Chủ giải / Admin"}</th>
+                <th className="py-3 px-3 text-center w-28">{language === "en" ? "Sub-Admin" : "Sub-Admin"}</th>
+                <th className="py-3 px-3 text-center w-28 bg-slate-50/30 dark:bg-slate-950/10">{language === "en" ? "Referee" : "Trọng tài"}</th>
+                <th className="py-3 px-3 text-center w-28">{language === "en" ? "User" : "Thành viên (User)"}</th>
+                <th className="py-3 px-3 text-center w-28">{language === "en" ? "Guest" : "Khách (Guest)"}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {[
+                {
+                  taskVi: "Tạo giải đấu mới (Offline hoặc Đăng Cloud)",
+                  taskEn: "Create new tournament (Offline or Publish to Cloud)",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: true,
+                  guest: false,
+                  noteVi: "Thành viên chỉ được tạo và quản trị giải đấu do chính họ khởi tạo.",
+                  noteEn: "Users can only create and manage tournaments they own."
+                },
+                {
+                  taskVi: "Thay đổi cấu hình giải (Tên, ngày, cự ly, ảnh...)",
+                  taskEn: "Change tournament settings (Name, dates, distances, banners...)",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Quản lý VĐV & Câu lạc bộ (Thêm, sửa, xóa)",
+                  taskEn: "Manage athletes & clubs (Add, edit, delete)",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Nhập điểm & Ghi nhận điểm số thi đấu trực tiếp",
+                  taskEn: "Input & Record scores directly",
+                  admin: true,
+                  subAdmin: true,
+                  referee: true,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Quản lý danh sách Sub-admin & Trọng tài đám mây",
+                  taskEn: "Manage Sub-admins & Cloud Referees lists",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                  noteVi: "Sub-admin không được thay đổi quyền hạn của Trưởng giải (Chủ phòng).",
+                  noteEn: "Sub-admins cannot modify owner permissions."
+                },
+                {
+                  taskVi: "Khóa / Mở khóa cấu hình thi đấu giải đấu",
+                  taskEn: "Lock / Unlock active tournament configurations",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Phục hồi tệp tin cấu hình (.json) từ máy tính",
+                  taskEn: "Restore tournament structure (.json) from local backups",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Reset toàn bộ điểm số hoặc Xóa bỏ giải đấu",
+                  taskEn: "Reset all scoreboard scores or Delete tournament",
+                  admin: true,
+                  subAdmin: true,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                },
+                {
+                  taskVi: "Xem bảng xếp hạng, Thống kê & Lịch sử giải đấu",
+                  taskEn: "View leaderboards, charts, stats & historical data",
+                  admin: true,
+                  subAdmin: true,
+                  referee: true,
+                  user: true,
+                  guest: true,
+                }
+              ].map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/55 dark:hover:bg-slate-905/30 transition-colors">
+                  <td className="py-2.5 px-4 font-semibold text-slate-750 dark:text-slate-300">
+                    <div className="flex flex-col gap-0.5">
+                      <span>{language === "en" ? row.taskEn : row.taskVi}</span>
+                      {(row.noteVi || row.noteEn) && (
+                        <span className="text-[10px] text-indigo-500 font-medium italic">
+                          * {language === "en" ? row.noteEn : row.noteVi}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  
+                  {/* Admin */}
+                  <td className="py-2.5 px-3 text-center bg-indigo-50/5 dark:bg-indigo-950/5">
+                    {row.admin ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-sans">✓</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 font-bold text-xs font-sans">✗</span>
+                    )}
+                  </td>
+
+                  {/* Sub-Admin */}
+                  <td className="py-2.5 px-3 text-center">
+                    {row.subAdmin ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-sans">✓</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 font-bold text-xs font-sans">✗</span>
+                    )}
+                  </td>
+
+                  {/* Referee */}
+                  <td className="py-2.5 px-3 text-center bg-slate-50/20 dark:bg-slate-950/5">
+                    {row.referee ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-sans">✓</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 font-bold text-xs font-sans">✗</span>
+                    )}
+                  </td>
+
+                  {/* User */}
+                  <td className="py-2.5 px-3 text-center">
+                    {row.user ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-sans">✓</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 font-bold text-xs font-sans">✗</span>
+                    )}
+                  </td>
+
+                  {/* Guest */}
+                  <td className="py-2.5 px-3 text-center">
+                    {row.guest ? (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold text-xs font-sans">✓</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 font-bold text-xs font-sans">✗</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-sans leading-relaxed flex flex-col gap-1 border-t dark:border-slate-800 pt-3">
+          <p className="font-extrabold uppercase text-indigo-500 text-[10px] tracking-wide">💡 {language === "en" ? "Security & Access Note" : "Lưu ý về Bảo mật & Quyền hạn"}</p>
+          <p className="font-extrabold text-slate-900 dark:text-white">
+            {language === "en" 
+              ? "★ IMPORTANT: The User who creates a tournament automatically becomes the Owner (Admin) and possesses full control over that specific tournament."
+              : "★ QUAN TRỌNG: Người dùng trực tiếp khởi tạo giải đấu sẽ nghiễm nhiên là Chủ giải (Admin) và nắm giữ toàn quyền quản trị cao nhất đối với giải đấu đó."}
+          </p>
+          <p>
+            {language === "en" 
+              ? "The permission matrix above shows general privileges for each contextual role. Under Offline Mode, all users have full Admin access on their local device to facilitate custom training and testing." 
+              : "Bảng phân quyền phía trên mô tả vai trò tổng quát của hệ thống. Ở chế độ Ngoại tuyến (Offline), mọi tài khoản đều được cấp toàn quyền Admin trên thiết bị của mình để thuận tiện tự kiểm tra và tập luyện cá nhân."}
+          </p>
+        </div>
+      </div>
 
 
       {isNewTournamentModalOpen && typeof document !== "undefined" && createPortal(

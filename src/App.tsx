@@ -5976,6 +5976,7 @@ export default function App() {
                   setLaneCapacity={setLaneCapacity}
                   setActiveTab={setActiveTab}
                   onExitTournament={() => handleExitTournament()}
+                  userRole={userRole}
                 />
               ) : (
                 <AthleteManagement
