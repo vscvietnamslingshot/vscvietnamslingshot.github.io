@@ -96,7 +96,7 @@ service cloud.firestore {
                         (!('creatorId' in existing()) || !('creatorId' in incoming()) || incoming().creatorId == existing().creatorId)
                       ) || (
                         // Allow anyone to increment viewCount (even if not logged in)
-                        incoming().diff(existing()).affectedKeys().hasOnly(['viewCount'])
+                        incoming().diff(existing()).affectedKeys().hasOnly(['viewCount', 'updatedAt'])
                       )
                     );
                     

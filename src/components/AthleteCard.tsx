@@ -56,6 +56,24 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   const [isInputSoloLocked, setIsInputSoloLocked] = useState(true);
   const [showLocalUnlockModal, setShowLocalUnlockModal] = useState(false);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useLayoutEffect(() => {
+    if (scrollContainerRef.current) {
+      try {
+        const savedScrollLeft = sessionStorage.getItem(`scroll-left-${athlete.id}`);
+        if (savedScrollLeft) {
+          const parsed = parseInt(savedScrollLeft, 10);
+          if (scrollContainerRef.current.scrollLeft !== parsed) {
+            scrollContainerRef.current.scrollLeft = parsed;
+          }
+        }
+      } catch (err) {
+        // Ignore
+      }
+    }
+  });
+
   const isDirectMode = shotsCount === 1;
 
   // Calculate scores per distance row
@@ -227,7 +245,18 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
       </div>
 
       {/* Grid Container for the score sheets */}
-      <div className="overflow-x-auto select-none rounded-lg border border-gray-200">
+      <div 
+        ref={scrollContainerRef}
+        onScroll={(e) => {
+          const target = e.currentTarget;
+          try {
+            sessionStorage.setItem(`scroll-left-${athlete.id}`, String(target.scrollLeft));
+          } catch (err) {
+            // Ignore
+          }
+        }}
+        className="overflow-x-auto select-none rounded-lg border border-gray-200"
+      >
         <table className="w-full border-collapse text-left text-sm table-fixed min-w-[700px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">

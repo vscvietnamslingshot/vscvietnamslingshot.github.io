@@ -2,6 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { 
   Plus, 
+  AlertTriangle,
+  Wifi,
+  WifiOff,
+  RefreshCw, 
   Target, 
   Trophy, 
   Settings, 
@@ -1064,6 +1068,46 @@ export default function App() {
   }, [activeTab, pendingScrollAthleteId]);
 
   // States for the Nhập Điểm (Enter Scores) tab
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
+  const [pendingTabTarget, setPendingTabTarget] = useState<{ type: "tab" | "exit"; value: string } | null>(null);
+
+  const [isSaveConfirmModalOpen, setIsSaveConfirmModalOpen] = useState(false);
+  const [isSavingScores, setIsSavingScores] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [isEntryDropdownOpen, setIsEntryDropdownOpen] = useState(false);
+  const [isRankingDropdownOpen, setIsRankingDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleDocumentClick = () => {
+      setIsEntryDropdownOpen(false);
+      setIsRankingDropdownOpen(false);
+    };
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+    };
+  }, []);
+
+  const changeTab = (targetTab: string) => {
+    if (activeTab === "input_scores" && targetTab !== "input_scores" && hasUnsavedChanges) {
+      setPendingTabTarget({ type: "tab", value: targetTab });
+      setIsUnsavedModalOpen(true);
+    } else {
+      setActiveTab(targetTab);
+    }
+  };
+
+  const changeExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
+    if (activeTab === "input_scores" && hasUnsavedChanges) {
+      setPendingTabTarget({ type: "exit", value: filter });
+      setIsUnsavedModalOpen(true);
+    } else {
+      handleExitTournament(filter);
+    }
+  };
+
   const [inputAthletes, setInputAthletes] = useState<Athlete[]>(() => {
     const saved = localStorage.getItem("slingshot_input_athletes");
     return saved ? restoreBase64Avatars(JSON.parse(saved)) : [];
@@ -1761,46 +1805,86 @@ export default function App() {
 
         if (shouldOverwriteConfig) {
           if (docVal.matchName) {
-            setMatchName(docVal.matchName);
-            setHeaderTempName(docVal.matchName);
+            setMatchName((prev) => prev === docVal.matchName ? prev : docVal.matchName);
+            setHeaderTempName((prev) => prev === docVal.matchName ? prev : docVal.matchName);
           }
-          if (docVal.startDate !== undefined) setStartDate(docVal.startDate || "");
-          if (docVal.endDate !== undefined) setEndDate(docVal.endDate || "");
-          if (docVal.bannerUrl !== undefined) setBannerUrl(docVal.bannerUrl || VSC_DEFAULT_LOGO);
-          if (docVal.avatarUrl !== undefined) setAvatarUrl(docVal.avatarUrl || VSC_DEFAULT_LOGO);
+          if (docVal.startDate !== undefined) {
+            setStartDate((prev) => prev === (docVal.startDate || "") ? prev : (docVal.startDate || ""));
+          }
+          if (docVal.endDate !== undefined) {
+            setEndDate((prev) => prev === (docVal.endDate || "") ? prev : (docVal.endDate || ""));
+          }
+          if (docVal.bannerUrl !== undefined) {
+            setBannerUrl((prev) => prev === (docVal.bannerUrl || VSC_DEFAULT_LOGO) ? prev : (docVal.bannerUrl || VSC_DEFAULT_LOGO));
+          }
+          if (docVal.avatarUrl !== undefined) {
+            setAvatarUrl((prev) => prev === (docVal.avatarUrl || VSC_DEFAULT_LOGO) ? prev : (docVal.avatarUrl || VSC_DEFAULT_LOGO));
+          }
           if (docVal.tournamentType) {
-            setTournamentType(docVal.tournamentType);
-            localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
+            setTournamentType((prev) => {
+              if (prev === docVal.tournamentType) return prev;
+              localStorage.setItem("slingshot_tournament_type", docVal.tournamentType);
+              return docVal.tournamentType;
+            });
           } else if (docVal.competitionMode) {
             const fallback = docVal.competitionMode === "team" ? "team" : "combined";
-            setTournamentType(fallback);
-            localStorage.setItem("slingshot_tournament_type", fallback);
+            setTournamentType((prev) => {
+              if (prev === fallback) return prev;
+              localStorage.setItem("slingshot_tournament_type", fallback);
+              return fallback;
+            });
           }
           if (docVal.competitionMode) {
             if (!isSpectatorModeOverriddenRef.current) {
-              setCompetitionMode(docVal.competitionMode);
+              setCompetitionMode((prev) => prev === docVal.competitionMode ? prev : docVal.competitionMode);
             }
           }
-          if (docVal.shotsCount) setShotsCount(docVal.shotsCount);
-          if (docVal.teamShotsCount) setTeamShotsCount(docVal.teamShotsCount);
-          if (docVal.laneCapacity !== undefined && docVal.laneCapacity !== null) {
-            setLaneCapacity(docVal.laneCapacity);
-            localStorage.setItem("slingshot_active_tournament_lane_capacity", docVal.laneCapacity.toString());
+          if (docVal.shotsCount) {
+            setShotsCount((prev) => prev === docVal.shotsCount ? prev : docVal.shotsCount);
           }
-          if (docVal.distances) setDistances(docVal.distances);
-          if (docVal.teamDistances) setTeamDistances(docVal.teamDistances);
+          if (docVal.teamShotsCount) {
+            setTeamShotsCount((prev) => prev === docVal.teamShotsCount ? prev : docVal.teamShotsCount);
+          }
+          if (docVal.laneCapacity !== undefined && docVal.laneCapacity !== null) {
+            setLaneCapacity((prev) => {
+              if (prev === docVal.laneCapacity) return prev;
+              localStorage.setItem("slingshot_active_tournament_lane_capacity", docVal.laneCapacity.toString());
+              return docVal.laneCapacity;
+            });
+          }
+          if (docVal.distances) {
+            setDistances((prev) => deepEqual(prev, docVal.distances) ? prev : docVal.distances);
+          }
+          if (docVal.teamDistances) {
+            setTeamDistances((prev) => deepEqual(prev, docVal.teamDistances) ? prev : docVal.teamDistances);
+          }
         }
 
         // Always sync score/athlete state, as referee(s) score athletes in real-time
-        setAthletes(docVal.athletes || []);
-        setTeamAthletes(docVal.teamAthletes || []);
-        setInputAthletes(docVal.inputAthletes || []);
-        setTeamInputAthletes(docVal.teamInputAthletes || []);
-        setMasterAthletes(docVal.masterAthletes || docVal.athletes || []);
-        if (docVal.directMaxPoints !== undefined) setDirectMaxPoints(docVal.directMaxPoints !== null ? docVal.directMaxPoints : undefined);
-        if (docVal.teamDirectMaxPoints !== undefined) setTeamDirectMaxPoints(docVal.teamDirectMaxPoints !== null ? docVal.teamDirectMaxPoints : undefined);
-        if (docVal.directMaxShots !== undefined) setDirectMaxShots(docVal.directMaxShots !== null ? docVal.directMaxShots : 10);
-        if (docVal.teamDirectMaxShots !== undefined) setTeamDirectMaxShots(docVal.teamDirectMaxShots !== null ? docVal.teamDirectMaxShots : 10);
+        setAthletes((prev) => deepEqual(prev, docVal.athletes || []) ? prev : (docVal.athletes || []));
+        setTeamAthletes((prev) => deepEqual(prev, docVal.teamAthletes || []) ? prev : (docVal.teamAthletes || []));
+        setInputAthletes((prev) => deepEqual(prev, docVal.inputAthletes || []) ? prev : (docVal.inputAthletes || []));
+        setTeamInputAthletes((prev) => deepEqual(prev, docVal.teamInputAthletes || []) ? prev : (docVal.teamInputAthletes || []));
+        setMasterAthletes((prev) => {
+          const target = docVal.masterAthletes || docVal.athletes || [];
+          return deepEqual(prev, target) ? prev : target;
+        });
+        if (docVal.directMaxPoints !== undefined) {
+          const target = docVal.directMaxPoints !== null ? docVal.directMaxPoints : undefined;
+          setDirectMaxPoints((prev) => prev === target ? prev : target);
+        }
+        if (docVal.teamDirectMaxPoints !== undefined) {
+          const target = docVal.teamDirectMaxPoints !== null ? docVal.teamDirectMaxPoints : undefined;
+          setTeamDirectMaxPoints((prev) => prev === target ? prev : target);
+        }
+        if (docVal.directMaxShots !== undefined) {
+          const target = docVal.directMaxShots !== null ? docVal.directMaxShots : 10;
+          setDirectMaxShots((prev) => prev === target ? prev : target);
+        }
+        if (docVal.teamDirectMaxShots !== undefined) {
+          const target = docVal.teamDirectMaxShots !== null ? docVal.teamDirectMaxShots : 10;
+          setTeamDirectMaxShots((prev) => prev === target ? prev : target);
+        }
 
         setIsTournamentConfigLoaded(true);
       }
@@ -2088,8 +2172,11 @@ export default function App() {
   // Synchronize basic metadata from master profiles to current active session athletes
   useEffect(() => {
     setAthletes((prevActive) => {
-      let changed = false;
-      const updated = prevActive.map((activeAth) => {
+      const activeIdsInMaster = new Set(masterAthletes.map(m => m.id));
+      const filtered = prevActive.filter(a => activeIdsInMaster.has(a.id));
+      let changed = filtered.length !== prevActive.length;
+
+      const updated = filtered.map((activeAth) => {
         const masterAth = masterAthletes.find((m) => m.id === activeAth.id);
         if (masterAth) {
           if (
@@ -2128,8 +2215,11 @@ export default function App() {
     });
 
     setTeamAthletes((prevTeam) => {
-      let changed = false;
-      const updated = prevTeam.map((activeAth) => {
+      const activeIdsInMaster = new Set(masterAthletes.map(m => m.id));
+      const filtered = prevTeam.filter(a => activeIdsInMaster.has(a.id));
+      let changed = filtered.length !== prevTeam.length;
+
+      const updated = filtered.map((activeAth) => {
         const masterAth = masterAthletes.find((m) => m.id === activeAth.id);
         if (masterAth) {
           if (
@@ -2362,6 +2452,7 @@ export default function App() {
     if (targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
       return;
     }
+    setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
       setInputAthletes((prev) =>
         prev.map((athlete) => {
@@ -2489,6 +2580,7 @@ export default function App() {
     if (targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
       return;
     }
+    setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
       setInputAthletes((prev) =>
         prev.map((athlete) => {
@@ -2583,6 +2675,7 @@ export default function App() {
       ? rounds.reduce<number>((s, r) => s + (r === null || r === undefined ? 0 : r), 0)
       : null;
 
+    setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
       setInputAthletes((prev) =>
         prev.map((athlete) => {
@@ -2626,6 +2719,7 @@ export default function App() {
     const isIdTaken = masterAthletes.some((a) => a.id === checkId && a.id !== athleteId);
     const finalId = isIdTaken ? athleteId : checkId;
 
+    setHasUnsavedChanges(true);
     // Update in Master Roster first
     setMasterAthletes((prev) =>
       prev.map((ma) => {
@@ -2687,6 +2781,7 @@ export default function App() {
 
   // Delete an input athlete
   const handleDeleteInputAthlete = (athleteId: string) => {
+    setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
       setInputAthletes((prev) => prev.filter((a) => a.id !== athleteId));
     } else {
@@ -2696,6 +2791,7 @@ export default function App() {
 
   // Move input athlete position
   const handleMoveInputAthlete = (athleteId: string, direction: "up" | "down") => {
+    setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
       setInputAthletes((prev) => {
         const idx = prev.findIndex((a) => a.id === athleteId);
@@ -2730,72 +2826,167 @@ export default function App() {
       alert("Không có vận động viên nào trong bảng Nhập Điểm!");
       return;
     }
+    setSaveStatus(null);
+    setIsSaveConfirmModalOpen(true);
+  };
+
+  const executeSaveScores = async () => {
+    setIsSavingScores(true);
+    setSaveStatus(null);
+
+    const activeInputList = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
+    if (activeInputList.length === 0) {
+      setSaveStatus({ success: false, message: "Không có vận động viên nào trong bảng Nhập Điểm!" });
+      setIsSavingScores(false);
+      return;
+    }
+
+    let nextAthletes = [...athletes];
+    let nextTeamAthletes = [...teamAthletes];
+    let nextInputAthletes = [...inputAthletes];
+    let nextTeamInputAthletes = [...teamInputAthletes];
+
+    if (competitionMode === "individual") {
+      const mergedAthletes = [...athletes];
+      activeInputList.forEach((ia) => {
+        const existingIdx = mergedAthletes.findIndex((a) => a.id === ia.id);
+        if (existingIdx !== -1) {
+          mergedAthletes[existingIdx] = {
+            ...mergedAthletes[existingIdx],
+            scores: {
+              ...mergedAthletes[existingIdx].scores,
+              ...ia.scores,
+            },
+            soloHits: {
+              ...(mergedAthletes[existingIdx].soloHits || {}),
+              ...(ia.soloHits || {}),
+            },
+            soloRounds: {
+              ...(mergedAthletes[existingIdx].soloRounds || {}),
+              ...(ia.soloRounds || {}),
+            },
+          };
+        } else {
+          mergedAthletes.push(ia);
+        }
+      });
+      nextAthletes = mergedAthletes;
+      nextInputAthletes = [];
+    } else {
+      const mergedAthletes = [...teamAthletes];
+      activeInputList.forEach((ia) => {
+        const existingIdx = mergedAthletes.findIndex((a) => a.id === ia.id);
+        if (existingIdx !== -1) {
+          mergedAthletes[existingIdx] = {
+            ...mergedAthletes[existingIdx],
+            scores: {
+              ...mergedAthletes[existingIdx].scores,
+              ...ia.scores,
+            },
+            soloHits: {
+              ...(mergedAthletes[existingIdx].soloHits || {}),
+              ...(ia.soloHits || {}),
+            },
+            soloRounds: {
+              ...(mergedAthletes[existingIdx].soloRounds || {}),
+              ...(ia.soloRounds || {}),
+            },
+          };
+        } else {
+          mergedAthletes.push(ia);
+        }
+      });
+      nextTeamAthletes = mergedAthletes;
+      nextTeamInputAthletes = [];
+    }
 
     const firstImported = activeInputList[0];
     if (firstImported) {
       setPendingScrollAthleteId(firstImported.id);
     }
 
-    if (competitionMode === "individual") {
-      setAthletes((prev) => {
-        const mergedAthletes = [...prev];
-        activeInputList.forEach((ia) => {
-          const existingIdx = mergedAthletes.findIndex((a) => a.id === ia.id);
-          if (existingIdx !== -1) {
-            mergedAthletes[existingIdx] = {
-              ...mergedAthletes[existingIdx],
-              scores: {
-                ...mergedAthletes[existingIdx].scores,
-                ...ia.scores,
-              },
-              soloHits: {
-                ...(mergedAthletes[existingIdx].soloHits || {}),
-                ...(ia.soloHits || {}),
-              },
-              soloRounds: {
-                ...(mergedAthletes[existingIdx].soloRounds || {}),
-                ...(ia.soloRounds || {}),
-              },
-            };
-          } else {
-            mergedAthletes.push(ia);
-          }
+    // If online tournament, try writing to Firestore synchronously and verify success
+    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+      try {
+        await updateOnlineTournament(activeHistoryId, {
+          athletes: nextAthletes,
+          teamAthletes: nextTeamAthletes,
+          inputAthletes: nextInputAthletes,
+          teamInputAthletes: nextTeamInputAthletes,
         });
-        return mergedAthletes;
-      });
-      setInputAthletes([]); // Clear
-    } else {
-      setTeamAthletes((prev) => {
-        const mergedAthletes = [...prev];
-        activeInputList.forEach((ia) => {
-          const existingIdx = mergedAthletes.findIndex((a) => a.id === ia.id);
-          if (existingIdx !== -1) {
-            mergedAthletes[existingIdx] = {
-              ...mergedAthletes[existingIdx],
-              scores: {
-                ...mergedAthletes[existingIdx].scores,
-                ...ia.scores,
-              },
-              soloHits: {
-                ...(mergedAthletes[existingIdx].soloHits || {}),
-                ...(ia.soloHits || {}),
-              },
-              soloRounds: {
-                ...(mergedAthletes[existingIdx].soloRounds || {}),
-                ...(ia.soloRounds || {}),
-              },
-            };
-          } else {
-            mergedAthletes.push(ia);
-          }
-        });
-        return mergedAthletes;
-      });
-      setTeamInputAthletes([]); // Clear
-    }
 
-    alert(`Lưu điểm thành công! Đã tự động cập nhật ${activeInputList.length} VĐV sang danh sách Ghi Điểm.`);
-    setActiveTab("scoring");
+        // Successful write to Cloud DB
+        setAthletes(nextAthletes);
+        setTeamAthletes(nextTeamAthletes);
+        setInputAthletes(nextInputAthletes);
+        setTeamInputAthletes(nextTeamInputAthletes);
+        setHasUnsavedChanges(false);
+
+        setSaveStatus({
+          success: true,
+          message: `LƯU ĐIỂM THÀNH CÔNG! Kết quả đã được đồng bộ an toàn lên Đám mây đám mây và cập nhật ${activeInputList.length} VĐV sang danh sách Ghi Điểm.`,
+        });
+
+        setTimeout(() => {
+          setIsSaveConfirmModalOpen(false);
+          setSaveStatus(null);
+
+          // Handle any pending tab changes
+          if (pendingTabTarget) {
+            if (pendingTabTarget.type === "tab") {
+              setActiveTab(pendingTabTarget.value);
+            } else if (pendingTabTarget.type === "exit") {
+              handleExitTournament(pendingTabTarget.value as any);
+            }
+            setPendingTabTarget(null);
+          } else {
+            // Stay at input_scores
+            setActiveTab("input_scores");
+          }
+        }, 2000);
+
+      } catch (err: any) {
+        console.error("Manual cloud save failed:", err);
+        setSaveStatus({
+          success: false,
+          message: `LỖI GHI ĐIỂM ĐÁM MÂY (MẠNG KHÔNG ỔN ĐỊNH): ${err.message || "Không phản hồi từ máy chủ"}. Thầy cô vui lòng kiểm tra lại kết nối Wifi/4G hoặc thiết bị mạng trước khi thử lại!`,
+        });
+      } finally {
+        setIsSavingScores(false);
+      }
+    } else {
+      // Offline/Draft mode: save to local memory
+      setAthletes(nextAthletes);
+      setTeamAthletes(nextTeamAthletes);
+      setInputAthletes(nextInputAthletes);
+      setTeamInputAthletes(nextTeamInputAthletes);
+      setHasUnsavedChanges(false);
+
+      setSaveStatus({
+        success: true,
+        message: `Lưu điểm thành công! Kết quả đã lưu cục bộ trên máy và cập nhật ${activeInputList.length} VĐV sang danh sách Ghi Điểm.`,
+      });
+
+      setTimeout(() => {
+        setIsSaveConfirmModalOpen(false);
+        setSaveStatus(null);
+
+        // Handle any pending tab changes
+        if (pendingTabTarget) {
+          if (pendingTabTarget.type === "tab") {
+            setActiveTab(pendingTabTarget.value);
+          } else if (pendingTabTarget.type === "exit") {
+            handleExitTournament(pendingTabTarget.value as any);
+          }
+          setPendingTabTarget(null);
+        } else {
+          // Stay at input_scores
+          setActiveTab("input_scores");
+        }
+      }, 2000);
+
+      setIsSavingScores(false);
+    }
   };
 
   // Increments and appends a new athlete with a unique auto ID
@@ -3641,7 +3832,7 @@ export default function App() {
             <div 
               className="relative bg-[#004ca3] px-5 sm:px-8 py-3.5 flex items-center shrink-0 pr-10 cursor-pointer hover:opacity-95 transition-all select-none"
               style={{ clipPath: 'polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)' }}
-              onClick={() => setActiveTab("home")}
+              onClick={() => changeTab("home")}
             >
               <div className="flex items-center gap-2">
                 <div className="bg-white/10 p-1 rounded-lg border border-white/20 shadow-inner">
@@ -3654,9 +3845,9 @@ export default function App() {
             </div>
 
             {/* Menu Items on the right */}
-            <div className="flex items-center overflow-x-auto scrollbar-none whitespace-nowrap scroll-smooth max-w-full font-sans select-none pr-4">
+            <div className={`flex items-center ${isEntryDropdownOpen || isRankingDropdownOpen ? "overflow-visible" : "overflow-x-auto scrollbar-none"} whitespace-nowrap scroll-smooth max-w-full font-sans select-none pr-4`}>
               <button
-                onClick={() => handleExitTournament("all")}
+                onClick={() => changeExitTournament("all")}
                 className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
                   activeTab === "home" && homeFilter === "all" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                 }`}
@@ -3668,7 +3859,7 @@ export default function App() {
               {activeTab === "home" && (
                 <>
                   <button
-                    onClick={() => handleExitTournament("active")}
+                    onClick={() => changeExitTournament("active")}
                     className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
                       homeFilter === "active" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                     }`}
@@ -3678,7 +3869,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => handleExitTournament("followed")}
+                    onClick={() => changeExitTournament("followed")}
                     className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
                       homeFilter === "followed" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                     }`}
@@ -3689,33 +3880,68 @@ export default function App() {
                 </>
               )}
 
+              {/* NHẬP/GHI ĐIỂM DROPDOWN TAB */}
               {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
-                <button
-                  onClick={() => setActiveTab("input_scores")}
-                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                    activeTab === "input_scores" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                  }`}
-                >
-                  <ClipboardCheck className="w-4 h-4" />
-                  {competitionMode === "team" ? (language === "en" ? "Enter Team Scores" : "Nhập Điểm Team") : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
-                </button>
-              )}
+                <div className="relative h-full flex items-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEntryDropdownOpen(!isEntryDropdownOpen);
+                      setIsRankingDropdownOpen(false);
+                    }}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 cursor-pointer h-full ${
+                      activeTab === "input_scores" || activeTab === "scoring" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <ClipboardCheck className="w-4 h-4" />
+                    <span>{language === "en" ? "Entry & Scoring" : "NHẬP/GHI ĐIỂM"}</span>
+                    <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ transform: isEntryDropdownOpen ? "rotate(180deg)" : "none" }} />
+                  </button>
 
-              {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
-                <button
-                  onClick={() => setActiveTab("scoring")}
-                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                    activeTab === "scoring" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                  }`}
-                >
-                  <Target className="w-4 h-4" />
-                  {competitionMode === "team" ? (language === "en" ? "Record Team Scores" : "Ghi Điểm Team") : (language === "en" ? "Record Scores" : "Ghi Điểm")}
-                </button>
+                  {isEntryDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 min-w-[240px] z-50 flex flex-col font-sans">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          changeTab("input_scores");
+                          setIsEntryDropdownOpen(false);
+                        }}
+                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                          activeTab === "input_scores"
+                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <ClipboardCheck className="w-4 h-4 shrink-0 text-emerald-500" />
+                        <span>
+                          {competitionMode === "team" ? (language === "en" ? "Enter Team Scores" : "Nhập Điểm Team") : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
+                        </span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          changeTab("scoring");
+                          setIsEntryDropdownOpen(false);
+                        }}
+                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                          activeTab === "scoring"
+                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <Target className="w-4 h-4 shrink-0 text-indigo-500" />
+                        <span>
+                          {competitionMode === "team" ? (language === "en" ? "Record Team Scores" : "Ghi Điểm Team") : (language === "en" ? "Record Scores" : "Ghi Điểm")}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {activeHistoryId && (
                 <button
-                  onClick={() => setActiveTab("dashboard")}
+                  onClick={() => changeTab("dashboard")}
                   className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
                     activeTab === "dashboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                   }`}
@@ -3725,22 +3951,67 @@ export default function App() {
                 </button>
               )}
 
+              {/* RANKING DROPDOWN TAB */}
               {activeHistoryId && (
-                <button
-                  onClick={() => setActiveTab("leaderboard")}
-                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                    activeTab === "leaderboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                  }`}
-                >
-                  <Trophy className="w-4 h-4" />
-                  Ranking
-                </button>
+                <div className="relative h-full flex items-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRankingDropdownOpen(!isRankingDropdownOpen);
+                      setIsEntryDropdownOpen(false);
+                    }}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 cursor-pointer h-full ${
+                      activeTab === "leaderboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <Trophy className="w-4 h-4" />
+                    <span>Ranking</span>
+                    <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ transform: isRankingDropdownOpen ? "rotate(180deg)" : "none" }} />
+                  </button>
+
+                  {isRankingDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 min-w-[240px] z-50 flex flex-col font-sans">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRankingSubTab("individual");
+                          changeTab("leaderboard");
+                          setIsRankingDropdownOpen(false);
+                        }}
+                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                          activeTab === "leaderboard" && rankingSubTab === "individual"
+                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRankingSubTab("team");
+                          changeTab("leaderboard");
+                          setIsRankingDropdownOpen(false);
+                        }}
+                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                          activeTab === "leaderboard" && rankingSubTab === "team"
+                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <Users className="w-4 h-4 shrink-0 text-blue-500" />
+                        <span>{language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {activeHistoryId && userRole === "admin" && (
                 <button
                   onClick={() => {
-                    setActiveTab("settings");
+                    changeTab("settings");
                     setSettingsSubTab("config");
                   }}
                   className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
@@ -3754,7 +4025,7 @@ export default function App() {
 
               {userRole === "admin" && (
                 <button
-                  onClick={() => setActiveTab("history")}
+                  onClick={() => changeTab("history")}
                   className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 relative ${
                     activeTab === "history" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
                   }`}
@@ -4769,6 +5040,7 @@ export default function App() {
                           } else {
                             setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
                           }
+                          setHasUnsavedChanges(true);
                           setSelectedInputBoardAthleteIds([]);
                           setIsAddingAthleteToInputBoard(false);
                           setInputBoardAddSearch("");
@@ -5359,6 +5631,218 @@ export default function App() {
           onOverwrite={handleOverwriteOnlinePublish}
           onCreateNew={handleCreateNewOnlinePublish}
         />
+      )}
+
+      {/* 1. LƯU ĐIỂM Confirmation Modal */}
+      {isSaveConfirmModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10007] p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl relative text-left">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <div className="bg-indigo-50 dark:bg-indigo-950/40 p-2.5 rounded-2xl border border-indigo-100 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400">
+                <Save className="w-5.5 h-5.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
+                  Xác nhận Lưu Điểm Số
+                </h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  Thao tác cập nhật bảng ghi điểm chính thức
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-4">
+              Hệ thống sẽ đồng bộ toàn bộ điểm số từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ lưỡng các thông tin điểm số trước khi xác nhận.
+            </p>
+
+            {/* Network connectivity feedback inside save modal */}
+            <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                Trạng thái kết nối:
+              </span>
+              {networkStatus === "offline" ? (
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <WifiOff className="w-3.5 h-3.5" />
+                  Mất mạng (Lưu máy)
+                </span>
+              ) : (
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <Wifi className="w-3.5 h-3.5" />
+                  Trực tuyến (Đồng bộ mây)
+                </span>
+              )}
+            </div>
+
+            {/* Save operations status banner */}
+            {saveStatus && (
+              <div className={`p-3.5 rounded-2xl text-xs font-semibold mb-4 leading-relaxed border ${
+                saveStatus.success 
+                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50" 
+                  : "bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/50"
+              }`}>
+                <div className="flex gap-2 items-start">
+                  <div className="mt-0.5 shrink-0">
+                    {saveStatus.success ? (
+                      <span className="text-emerald-500 font-bold">✔</span>
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                    )}
+                  </div>
+                  <span>{saveStatus.message}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={() => {
+                  setIsSaveConfirmModalOpen(false);
+                  setSaveStatus(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
+              >
+                Hủy kiểm tra lại
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={executeSaveScores}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md text-center flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isSavingScores ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    Đồng ý Lưu Điểm
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. CHƯA LƯU ĐIỂM Warning Modal (Guard Tab Navigation) */}
+      {isUnsavedModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10007] p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl relative text-left">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <div className="bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-2xl border border-amber-100 dark:border-amber-800/40 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-5.5 h-5.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
+                  Cảnh Báo: Điểm Chưa Lưu!
+                </h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  Thầy cô đang có điểm chấm dở chưa lưu
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-6">
+              Thao tác chuyển trang sẽ làm <span className="text-amber-600 dark:text-amber-400 font-bold">MẤT HOÀN TOÀN</span> các thông tin điểm số thầy cô đang chấm dở trong bảng Nhập Điểm. Thầy cô có muốn lưu điểm số ngay hay hủy bỏ các thay đổi này để tiếp tục?
+            </p>
+
+            {/* Network connectivity feedback inside warning modal */}
+            <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                Trạng thái kết nối:
+              </span>
+              {networkStatus === "offline" ? (
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <WifiOff className="w-3.5 h-3.5" />
+                  Mất mạng (Lưu máy)
+                </span>
+              ) : (
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <Wifi className="w-3.5 h-3.5" />
+                  Trực tuyến (Đồng bộ mây)
+                </span>
+              )}
+            </div>
+
+            {/* Save operations status banner inside warning modal */}
+            {saveStatus && (
+              <div className={`p-3.5 rounded-2xl text-xs font-semibold mb-4 leading-relaxed border ${
+                saveStatus.success 
+                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50" 
+                  : "bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/50"
+              }`}>
+                <div className="flex gap-2 items-start">
+                  <div className="mt-0.5 shrink-0">
+                    {saveStatus.success ? (
+                      <span className="text-emerald-500 font-bold">✔</span>
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                    )}
+                  </div>
+                  <span>{saveStatus.message}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 font-sans">
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={executeSaveScores}
+                className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md text-center flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isSavingScores ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    Đồng ý Lưu Điểm & Tiếp Tục
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={() => {
+                  setHasUnsavedChanges(false);
+                  setIsUnsavedModalOpen(false);
+                  setSaveStatus(null);
+                  if (pendingTabTarget) {
+                    if (pendingTabTarget.type === "tab") {
+                      setActiveTab(pendingTabTarget.value);
+                    } else if (pendingTabTarget.type === "exit") {
+                      handleExitTournament(pendingTabTarget.value as any);
+                    }
+                    setPendingTabTarget(null);
+                  }
+                }}
+                className="w-full px-4 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-rose-100 dark:border-rose-900/40 text-center disabled:opacity-50"
+              >
+                Bỏ qua thay đổi (Xóa tạm) & Tiếp tục
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={() => {
+                  setIsUnsavedModalOpen(false);
+                  setPendingTabTarget(null);
+                  setSaveStatus(null);
+                }}
+                className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
+              >
+                Quay lại bảng chấm điểm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

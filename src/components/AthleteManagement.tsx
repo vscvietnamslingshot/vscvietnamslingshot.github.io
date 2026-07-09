@@ -1258,7 +1258,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                       </button>
                     </div>
 
-                    {isVscTab && (
+                    {isVscTab ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1269,6 +1269,18 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                         title={language === "en" ? "Add this athlete to the current active tournament roster" : "Thêm VĐV này vào danh sách giải thi đấu hiện tại"}
                       >
                         <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Tournament" : "Thêm vào giải"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(ath);
+                        }}
+                        className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold gap-0.5 shadow-sm hover:scale-105 active:scale-95"
+                        title={language === "en" ? "Delete this athlete" : "Xóa VĐV"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> {language === "en" ? "Delete Athlete" : "Xóa VĐV"}
                       </button>
                     )}
                   </div>
@@ -1985,6 +1997,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 type="button"
                 onClick={() => {
                   setAthletes(prev => prev.filter(a => a.id !== athleteToDelete.id));
+                  setCurrentActiveAthletes(prev => prev.filter(a => a.id !== athleteToDelete.id));
                   if (selectedAthlete && selectedAthlete.id === athleteToDelete.id) {
                     setSelectedAthlete(null);
                   }
@@ -2523,6 +2536,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                           updateVscSystemAthletesAndKeepSync(vscSystemAthletes.filter((a) => a.id !== selectedAthlete.id));
                         } else {
                           setAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
+                          setCurrentActiveAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
                         }
                         setSelectedAthlete(null);
                         setIsEditing(false);

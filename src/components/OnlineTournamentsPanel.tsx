@@ -1348,7 +1348,12 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2.5 w-full md:w-auto font-sans">
+        <div className="flex flex-wrap gap-2.5 w-full md:w-auto font-sans items-center">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl font-sans shrink-0">
+            <Globe className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
+            <span>{language === "en" ? `Total online tournaments: ${tournaments.length}` : `Tổng số giải đấu trực tuyến: ${tournaments.length}`}</span>
+          </div>
+
           {currentUser ? (
             <button
               type="button"
@@ -1370,25 +1375,6 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
           )}
         </div>
       </div>
-
-      {/* Database Search Filter & Info */}
-      <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between">
-        <div className="relative w-full sm:max-w-sm font-sans">
-          <Search className="absolute left-3 top-2.5 w-4.5 h-4.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder={language === "en" ? "Search online tournaments..." : "Tìm kiếm giải đấu online..."}
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-9.5 pr-4 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-101"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl font-sans shrink-0">
-          <Globe className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
-          <span>{language === "en" ? `Total online tournaments: ${tournaments.length}` : `Tổng số giải đấu trực tuyến: ${tournaments.length}`}</span>
-        </div>
-      </div>
-
       {/* Grid of Tournaments divided into 3 sections */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 font-sans">
