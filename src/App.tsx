@@ -577,6 +577,13 @@ export default function App() {
   });
 
   const [competitionMode, setCompetitionMode] = useState<"individual" | "team">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const modeParam = params.get("mode") || params.get("competitionMode");
+      if (modeParam === "individual" || modeParam === "team") {
+        return modeParam;
+      }
+    }
     const saved = localStorage.getItem("slingshot_competition_mode");
     return (saved as "individual" | "team") || "individual";
   });
@@ -753,14 +760,51 @@ export default function App() {
       if (currentQuery !== lastQuery) {
         lastQuery = currentQuery;
         const params = new URLSearchParams(currentQuery);
+        
+        // 1. Tour history id
         const tourParam = params.get("tour") || params.get("id");
         if (tourParam && tourParam.startsWith("tour-")) {
           setActiveHistoryId(tourParam);
           localStorage.setItem("slingshot_active_history_id", tourParam);
-          setActiveTab("dashboard");
         } else {
           setActiveHistoryId(null);
-          setActiveTab("home");
+        }
+
+        // 2. Active Tab
+        const tabParam = params.get("tab");
+        const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel"];
+        if (tabParam && allowedTabs.includes(tabParam)) {
+          setActiveTab(tabParam as any);
+        } else {
+          if (tourParam && tourParam.startsWith("tour-")) {
+            setActiveTab("dashboard");
+          } else {
+            setActiveTab("home");
+          }
+        }
+
+        // 3. Subtabs
+        const subtabParam = params.get("subtab");
+        if (subtabParam) {
+          if (["individual", "team"].includes(subtabParam)) {
+            setRankingSubTab(subtabParam as any);
+          }
+          if (["athletes", "clubs", "vsc_system"].includes(subtabParam)) {
+            setAthleteForceTab(subtabParam as any);
+          }
+          if (["config", "athletes"].includes(subtabParam)) {
+            setSettingsSubTab(subtabParam as any);
+          }
+          if (["profile", "created", "referee"].includes(subtabParam)) {
+            setControlPanelSubTab(subtabParam as any);
+          }
+        }
+
+        // 4. Competition Mode
+        const modeParam = params.get("mode") || params.get("competitionMode");
+        if (modeParam === "individual" || modeParam === "team") {
+          setCompetitionMode(modeParam);
+          setIsSpectatorModeOverridden(true);
         }
       }
     };
@@ -864,6 +908,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel"];
+      if (tabParam && allowedTabs.includes(tabParam)) {
+        return tabParam as any;
+      }
+
       const tourParam = params.get("tour") || params.get("id");
       if (tourParam && tourParam.startsWith("tour-")) {
         return "dashboard";
@@ -872,10 +922,46 @@ export default function App() {
     return "home";
   });
   const [homeFilter, setHomeFilter] = useState<"all" | "all_list" | "active" | "followed">("all");
-  const [athleteForceTab, setAthleteForceTab] = useState<"athletes" | "clubs" | "vsc_system">("athletes");
-  const [settingsSubTab, setSettingsSubTab] = useState<"config" | "athletes">("config");
-  const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "created" | "referee">("profile");
-  const [rankingSubTab, setRankingSubTab] = useState<"individual" | "team">("individual");
+  const [athleteForceTab, setAthleteForceTab] = useState<"athletes" | "clubs" | "vsc_system">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const subtabParam = params.get("subtab");
+      if (subtabParam === "athletes" || subtabParam === "clubs" || subtabParam === "vsc_system") {
+        return subtabParam;
+      }
+    }
+    return "athletes";
+  });
+  const [settingsSubTab, setSettingsSubTab] = useState<"config" | "athletes">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const subtabParam = params.get("subtab");
+      if (subtabParam === "config" || subtabParam === "athletes") {
+        return subtabParam;
+      }
+    }
+    return "config";
+  });
+  const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "created" | "referee">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const subtabParam = params.get("subtab");
+      if (subtabParam === "profile" || subtabParam === "created" || subtabParam === "referee") {
+        return subtabParam;
+      }
+    }
+    return "profile";
+  });
+  const [rankingSubTab, setRankingSubTab] = useState<"individual" | "team">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const subtabParam = params.get("subtab");
+      if (subtabParam === "individual" || subtabParam === "team") {
+        return subtabParam;
+      }
+    }
+    return "individual";
+  });
   const [globalSearch, setGlobalSearch] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -1371,24 +1457,149 @@ export default function App() {
     }
   }, [activeHistoryId]);
 
-  // Synchronize activeHistoryId with browser URL query parameters
+  // Synchronize state with browser URL query parameters, document title, and meta description
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const currentTour = params.get("tour") || params.get("id");
-      if (activeHistoryId) {
-        if (currentTour !== activeHistoryId) {
-          const newUrl = `${window.location.origin}${window.location.pathname}?tour=${activeHistoryId}`;
-          window.history.pushState({ tour: activeHistoryId }, "", newUrl);
+    if (typeof window === "undefined") return;
+
+    // 1. Build Query Parameters
+    const params = new URLSearchParams();
+    if (activeHistoryId) {
+      params.set("tour", activeHistoryId);
+    }
+    params.set("tab", activeTab);
+
+    // Sub-tab query parameter depending on active tab
+    if (activeTab === "leaderboard") {
+      params.set("subtab", rankingSubTab);
+      params.set("mode", competitionMode);
+    } else if (activeTab === "athletes") {
+      params.set("subtab", athleteForceTab);
+    } else if (activeTab === "settings") {
+      params.set("subtab", settingsSubTab);
+    } else if (activeTab === "control_panel") {
+      params.set("subtab", controlPanelSubTab);
+    } else if (activeTab === "scoring" || activeTab === "input_scores") {
+      params.set("mode", competitionMode);
+    }
+
+    const newSearch = params.toString();
+    const currentSearch = window.location.search.replace(/^\?/, "");
+
+    if (newSearch !== currentSearch) {
+      const newUrl = `${window.location.origin}${window.location.pathname}?${newSearch}`;
+      window.history.pushState({
+        tour: activeHistoryId,
+        tab: activeTab,
+        subtab: rankingSubTab || athleteForceTab || settingsSubTab || controlPanelSubTab,
+        mode: competitionMode
+      }, "", newUrl);
+    }
+
+    // 2. Generate and Set Dynamic Document Title and Meta Description
+    let title = "VSC - Vietnam Slingshot Championship";
+    let description = "Hệ thống quản lý giải đấu Ná cao su chuyên nghiệp Việt Nam (VSC). Bảng xếp hạng trực tuyến, ghi điểm trọng tài thời gian thực.";
+
+    const isEng = language === "en";
+    const tName = matchName || (isEng ? "New Tournament" : "Giải đấu mới");
+
+    if (activeTab === "home") {
+      title = isEng 
+        ? "VSC - Vietnam Slingshot Championship | Home" 
+        : "VSC - Vietnam Slingshot Championship | Trang Chủ";
+      description = isEng
+        ? "Home of the Vietnam Slingshot Championship (VSC). Track live slingshot events, manage scores, and follow national standings."
+        : "Trang chủ hệ thống giải đấu Ná cao su Việt Nam (VSC). Xem giải đấu trực tuyến đang diễn ra và theo dõi các CLB ná cao su chuyên nghiệp.";
+    } else if (activeTab === "dashboard") {
+      title = isEng ? `VSC | Tournament: ${tName}` : `VSC | Giải đấu: ${tName}`;
+      description = isEng
+        ? `View the active match details, brackets, schedules, and real-time live scoreboard of the slingshot tournament: ${tName}.`
+        : `Xem chi tiết sơ đồ thi đấu, danh sách và tiến độ cập nhật điểm số trực tiếp của giải đấu ná cao su: ${tName}.`;
+    } else if (activeTab === "scoring" || activeTab === "input_scores") {
+      const modeText = competitionMode === "team" ? (isEng ? "Team" : "Đồng Đội") : (isEng ? "Individual" : "Cá Nhân");
+      title = isEng 
+        ? `VSC | ${modeText} Score Console: ${tName}` 
+        : `VSC | Ghi Điểm ${modeText}: ${tName}`;
+      description = isEng
+        ? `Official referee console for recording ${modeText} scores and hits dynamically for ${tName}.`
+        : `Bảng điều khiển tác nghiệp dành cho Trọng tài và Ban tổ chức để nhập điểm và ghi nhận điểm số từng loạt bắn ${modeText} giải ${tName}.`;
+    } else if (activeTab === "leaderboard") {
+      if (competitionMode === "team") {
+        if (rankingSubTab === "team") {
+          title = isEng ? `VSC | Team Standings TEAM: ${tName}` : `VSC | BXH Đồng Đội TEAM: ${tName}`;
+          description = isEng
+            ? `Live club and team collective rankings leaderboard for ${tName} in Team category.`
+            : `Bảng xếp hạng tổng điểm đồng đội TEAM, câu lạc bộ trực tiếp của giải đấu ná cao su ${tName} thuộc môi trường đồng đội.`;
+        } else {
+          title = isEng ? `VSC | Individual Standings TEAM: ${tName}` : `VSC | BXH Cá Nhân TEAM: ${tName}`;
+          description = isEng
+            ? `Live individual competitor scoreboard in Team Category for ${tName}.`
+            : `Bảng xếp hạng cá nhân thi đấu trong môi trường đồng đội của giải đấu ná cao su ${tName}.`;
         }
       } else {
-        if (currentTour) {
-          const newUrl = `${window.location.origin}${window.location.pathname}`;
-          window.history.pushState({}, "", newUrl);
+        if (rankingSubTab === "team") {
+          title = isEng ? `VSC | Team Standings: ${tName}` : `VSC | BXH Đồng Đội: ${tName}`;
+          description = isEng
+            ? `Live club and team collective rankings leaderboard for ${tName} in Individual Category.`
+            : `Bảng xếp hạng tổng điểm đồng đội, câu lạc bộ trực tiếp của giải đấu ná cao su ${tName} thuộc môi trường cá nhân.`;
+        } else {
+          title = isEng ? `VSC | Individual Standings: ${tName}` : `VSC | BXH Cá Nhân: ${tName}`;
+          description = isEng
+            ? `Live individual competitor scoreboard for ${tName}.`
+            : `Bảng xếp hạng tổng điểm cá nhân trực tiếp của giải đấu ná cao su ${tName} thuộc môi trường cá nhân.`;
         }
       }
+    } else if (activeTab === "teams") {
+      title = isEng ? `VSC | Registered Teams: ${tName}` : `VSC | Danh Sách Đội: ${tName}`;
+      description = isEng
+        ? `List of registered clubs and team formations competing in ${tName}.`
+        : `Danh sách các câu lạc bộ, đơn vị và lực lượng vận động viên đại diện tham dự giải ${tName}.`;
+    } else if (activeTab === "athletes") {
+      if (athleteForceTab === "clubs") {
+        title = isEng ? "VSC | National Slingshot Clubs Directory" : "VSC | Thư Mục Câu Lạc Bộ Toàn Quốc";
+        description = isEng
+          ? "Directory of certified Slingshot clubs, teams, and training associations nationwide under VSC."
+          : "Cơ sở dữ liệu các câu lạc bộ, hội nhóm Ná cao su chính thức thuộc hệ thống VSC Việt Nam.";
+      } else if (athleteForceTab === "vsc_system") {
+        title = isEng ? "VSC | National Slingshot Federation Database" : "VSC | Cơ Sở Dữ Liệu VSC Quốc Gia";
+        description = isEng
+          ? "Official ranking indices, performance standards, and nationwide record keeping for Slingshot activities."
+          : "Hệ thống lưu trữ chỉ số chuyên môn, định mức phân cấp và hồ sơ thành tích hoạt động của VSC Việt Nam.";
+      } else {
+        title = isEng ? "VSC | Master Athletes Profiles Directory" : "VSC | Danh Sách Vận Động Viên Toàn Quốc";
+        description = isEng
+          ? "Comprehensive profiles directory of all registered professional slingshot athletes under the Vietnam Slingshot Championship."
+          : "Hồ sơ cá nhân và lịch sử thi đấu của toàn bộ các vận động viên Ná cao su chuyên nghiệp đã đăng ký thuộc hệ thống VSC.";
+      }
+    } else if (activeTab === "settings") {
+      title = isEng ? `VSC | Tournament Settings: ${tName}` : `VSC | Cài Đặt Giải Đấu: ${tName}`;
+      description = isEng
+        ? `Configure match criteria, target distances, maximum points, allowed attempts, and referee authorities for ${tName}.`
+        : `Thiết lập quy chế thi đấu, cự ly, số loạt bắn, cách tính điểm và phân quyền trọng tài phụ trách của giải ${tName}.`;
+    } else if (activeTab === "history") {
+      title = isEng ? "VSC | Archive & History Logs" : "VSC | Lưu Trữ & Lịch Sử Giải Đấu";
+      description = isEng
+        ? "Access local history backups, historical scorecards, and timeline logs of previous slingshot championships."
+        : "Nơi truy xuất, sao lưu phục hồi dữ liệu lịch sử các giải đấu, bảng điểm cũ và nhật ký tác nghiệp ngoại tuyến.";
+    } else if (activeTab === "control_panel") {
+      title = isEng ? "VSC | Organizer Control Panel" : "VSC | Bảng Điều Khiển Ban Tổ Chức";
+      description = isEng
+        ? "Manage your credentials, host new online championships, authorize sub-admins, and oversee referee activities."
+        : "Trang cá nhân của Ban tổ chức. Tạo giải đấu online mới, phân quyền trợ lý, giám sát trọng tài và chỉnh sửa thông tin.";
     }
-  }, [activeHistoryId]);
+
+    // Set Document Title
+    document.title = title;
+
+    // Set Meta Description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', description);
+
+  }, [activeHistoryId, activeTab, rankingSubTab, athleteForceTab, settingsSubTab, controlPanelSubTab, language, matchName, competitionMode]);
 
   // Derived role properties for active tournament context
   const isOnlineTournament = activeHistoryId?.startsWith("tour-");
@@ -1835,7 +2046,8 @@ export default function App() {
             });
           }
           if (docVal.competitionMode) {
-            if (!isSpectatorModeOverriddenRef.current) {
+            const isCombined = docVal.tournamentType === "combined" || tournamentType === "combined";
+            if (!isSpectatorModeOverriddenRef.current && !isCombined) {
               setCompetitionMode((prev) => prev === docVal.competitionMode ? prev : docVal.competitionMode);
             }
           }
@@ -3971,38 +4183,130 @@ export default function App() {
 
                   {isRankingDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 min-w-[240px] z-50 flex flex-col font-sans">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRankingSubTab("individual");
-                          changeTab("leaderboard");
-                          setIsRankingDropdownOpen(false);
-                        }}
-                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                          activeTab === "leaderboard" && rankingSubTab === "individual"
-                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
-                            : "text-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
-                        <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRankingSubTab("team");
-                          changeTab("leaderboard");
-                          setIsRankingDropdownOpen(false);
-                        }}
-                        className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                          activeTab === "leaderboard" && rankingSubTab === "team"
-                            ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
-                            : "text-slate-700 dark:text-slate-300"
-                        }`}
-                      >
-                        <Users className="w-4 h-4 shrink-0 text-blue-500" />
-                        <span>{language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}</span>
-                      </button>
+                      {tournamentType === "combined" ? (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("individual");
+                              localStorage.setItem("slingshot_competition_mode", "individual");
+                              setRankingSubTab("individual");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "individual" && rankingSubTab === "individual"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
+                            <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("team");
+                              localStorage.setItem("slingshot_competition_mode", "team");
+                              setRankingSubTab("team");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "team" && rankingSubTab === "team"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Users className="w-4 h-4 shrink-0 text-blue-500" />
+                            <span>{language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"}</span>
+                          </button>
+                        </>
+                      ) : tournamentType === "team" ? (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("team");
+                              localStorage.setItem("slingshot_competition_mode", "team");
+                              setRankingSubTab("individual");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "team" && rankingSubTab === "individual"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
+                            <span>{language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("team");
+                              localStorage.setItem("slingshot_competition_mode", "team");
+                              setRankingSubTab("team");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "team" && rankingSubTab === "team"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Users className="w-4 h-4 shrink-0 text-blue-500" />
+                            <span>{language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"}</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("individual");
+                              localStorage.setItem("slingshot_competition_mode", "individual");
+                              setRankingSubTab("individual");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "individual" && rankingSubTab === "individual"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
+                            <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompetitionMode("individual");
+                              localStorage.setItem("slingshot_competition_mode", "individual");
+                              setRankingSubTab("team");
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsRankingDropdownOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-xs sm:text-sm font-bold text-left flex items-center gap-2.5 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                              activeTab === "leaderboard" && competitionMode === "individual" && rankingSubTab === "team"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-950/30"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Users className="w-4 h-4 shrink-0 text-blue-500" />
+                            <span>{language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -4181,6 +4485,7 @@ export default function App() {
                     onClick={() => {
                       setCompetitionMode("individual");
                       localStorage.setItem("slingshot_competition_mode", "individual");
+                      setIsSpectatorModeOverridden(true);
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "individual"
@@ -4195,6 +4500,7 @@ export default function App() {
                     onClick={() => {
                       setCompetitionMode("team");
                       localStorage.setItem("slingshot_competition_mode", "team");
+                      setIsSpectatorModeOverridden(true);
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "team"
@@ -4593,6 +4899,7 @@ export default function App() {
                     onClick={() => {
                       setCompetitionMode("individual");
                       localStorage.setItem("slingshot_competition_mode", "individual");
+                      setIsSpectatorModeOverridden(true);
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "individual"
@@ -4607,6 +4914,7 @@ export default function App() {
                     onClick={() => {
                       setCompetitionMode("team");
                       localStorage.setItem("slingshot_competition_mode", "team");
+                      setIsSpectatorModeOverridden(true);
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "team"
@@ -5112,7 +5420,11 @@ export default function App() {
                   id="ranking-subtab-ind-btn"
                 >
                   <Trophy className="w-4 h-4" />
-                  {language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}
+                  {competitionMode === "team" ? (
+                    language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"
+                  ) : (
+                    language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"
+                  )}
                 </button>
                 <button
                   type="button"
@@ -5125,7 +5437,11 @@ export default function App() {
                   id="ranking-subtab-team-btn"
                 >
                   <Users className="w-4 h-4" />
-                  {language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}
+                  {competitionMode === "team" ? (
+                    language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"
+                  ) : (
+                    language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"
+                  )}
                 </button>
               </div>
 

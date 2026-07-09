@@ -59,18 +59,38 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   React.useLayoutEffect(() => {
-    if (scrollContainerRef.current) {
-      try {
-        const savedScrollLeft = sessionStorage.getItem(`scroll-left-${athlete.id}`);
-        if (savedScrollLeft) {
-          const parsed = parseInt(savedScrollLeft, 10);
-          if (scrollContainerRef.current.scrollLeft !== parsed) {
-            scrollContainerRef.current.scrollLeft = parsed;
-          }
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    try {
+      const savedScrollLeft = sessionStorage.getItem(`scroll-left-${athlete.id}`);
+      if (savedScrollLeft) {
+        const parsed = parseInt(savedScrollLeft, 10);
+        
+        // 1. Immediate restoration
+        if (el.scrollLeft !== parsed) {
+          el.scrollLeft = parsed;
         }
-      } catch (err) {
-        // Ignore
+
+        // 2. Defer restoration using double requestAnimationFrame to wait for complete layout pass
+        let frameId1: number;
+        let frameId2: number;
+        
+        frameId1 = requestAnimationFrame(() => {
+          frameId2 = requestAnimationFrame(() => {
+            if (el && el.scrollLeft !== parsed) {
+              el.scrollLeft = parsed;
+            }
+          });
+        });
+
+        return () => {
+          cancelAnimationFrame(frameId1);
+          cancelAnimationFrame(frameId2);
+        };
       }
+    } catch (err) {
+      // Ignore
     }
   });
 
