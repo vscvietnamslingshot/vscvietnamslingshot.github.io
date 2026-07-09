@@ -22,6 +22,7 @@ import {
   Shield,
   Users,
   User,
+  Globe,
   X,
   TrendingUp,
   ClipboardCheck,
@@ -53,7 +54,7 @@ import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subsc
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
-import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart } from "lucide-react";
+import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart, Menu } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
   DEFAULT_SHOTS_COUNT,
@@ -964,15 +965,21 @@ export default function App() {
   });
   const [globalSearch, setGlobalSearch] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Click-outside handler to close user menu dropdown
   useEffect(() => {
     if (!isUserMenuOpen) return;
     const handleOutsideClick = (e: MouseEvent) => {
       const container = document.getElementById("user-header-menu-container");
-      if (container && !container.contains(e.target as Node)) {
-        setIsUserMenuOpen(false);
+      const containerMobile = document.getElementById("user-header-menu-container-mobile");
+      if (
+        (container && container.contains(e.target as Node)) ||
+        (containerMobile && containerMobile.contains(e.target as Node))
+      ) {
+        return;
       }
+      setIsUserMenuOpen(false);
     };
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
@@ -3864,7 +3871,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-16 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-24 md:pb-16 transition-colors duration-200">
       
       {/* Real-time Network connection warning overlay */}
       {networkStatus === "offline" && (
@@ -3910,7 +3917,8 @@ export default function App() {
 
       {/* Top Header & Main Navigation Menu (VSC Style Redesign) */}
       <header className="w-full flex flex-col font-sans" id="app-header">
-        
+        {/* Desktop Header Navigation (hidden on mobile/tablet) */}
+        <div className="hidden md:flex flex-col">
         {/* 1. Top slim bar (bg-[#002e6e]) */}
         <div className="bg-[#002e6e] text-white text-[11px] font-bold py-2 px-4 shadow-xs border-b border-white/5 relative z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -4044,7 +4052,7 @@ export default function App() {
             <div 
               className="relative bg-[#004ca3] px-5 sm:px-8 py-3.5 flex items-center shrink-0 pr-10 cursor-pointer hover:opacity-95 transition-all select-none"
               style={{ clipPath: 'polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)' }}
-              onClick={() => changeTab("home")}
+              onClick={() => changeExitTournament("all")}
             >
               <div className="flex items-center gap-2">
                 <div className="bg-white/10 p-1 rounded-lg border border-white/20 shadow-inner">
@@ -4346,6 +4354,396 @@ export default function App() {
             </div>
           </div>
         </div>
+        </div>
+
+        {/* Mobile Header Bar (visible only on mobile/tablet) */}
+        <div className="flex md:hidden bg-[#9c0c13] text-white h-16 items-center justify-between px-4 relative z-40 border-b border-red-800 shadow-md">
+          {/* Left Side: 3-bar menu icon */}
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="p-2 -ml-2 rounded-lg hover:bg-black/10 active:scale-95 transition-all cursor-pointer"
+            >
+              <Menu className="w-6 h-6 text-white" />
+            </button>
+            <div className="h-6 w-[1px] bg-white/20 ml-2" />
+          </div>
+
+          {/* Center Side: Logo and Title */}
+          <div 
+            onClick={() => changeExitTournament("all")} 
+            className="flex items-center gap-2.5 cursor-pointer select-none"
+          >
+            <div className="bg-white/10 p-1.5 rounded-full border border-white/20 shrink-0">
+              <VSCLogo size={24} />
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-extrabold tracking-tight text-white text-[15px] italic uppercase leading-none">
+                VSCS<span className="text-yellow-450">.ASIA</span>
+              </span>
+              <span className="text-[8px] text-white/80 font-medium tracking-wide mt-0.5">
+                Hệ thống giải đấu VSC
+              </span>
+            </div>
+          </div>
+
+          {/* Right Side: Profile drop-down */}
+          <div className="relative" id="user-header-menu-container-mobile">
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-1 bg-black/15 py-1.5 px-2.5 rounded-lg border border-white/10 text-white font-bold cursor-pointer hover:bg-black/25 active:scale-95 transition-all text-xs"
+              >
+                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-white font-black uppercase shrink-0">
+                  {currentUser.displayName?.[0] || currentUser.email?.[0] || "U"}
+                </div>
+                <ChevronDown className="w-3 h-3 text-zinc-350 shrink-0" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1 bg-black/15 py-1.5 px-2.5 rounded-lg border border-white/10 text-white font-bold cursor-pointer hover:bg-black/25 active:scale-95 transition-all text-xs uppercase"
+              >
+                <User className="w-3.5 h-3.5 text-white" />
+                <ChevronDown className="w-3 h-3 text-zinc-350 shrink-0" />
+              </button>
+            )}
+
+            {/* Mobile User Dropdown menu overlay */}
+            {isUserMenuOpen && (
+              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-905 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-50 p-1 flex flex-col text-slate-700 dark:text-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("control_panel");
+                    setControlPanelSubTab("profile");
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  👤 {language === "en" ? "My Athlete Bio" : "Hồ Sơ VĐV của Tôi"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("control_panel");
+                    setControlPanelSubTab("created");
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  🏆 {language === "en" ? "My Created Tournaments" : "Giải Tôi Tạo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("control_panel");
+                    setControlPanelSubTab("referee");
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  ⏱️ {language === "en" ? "Tournaments I Referee" : "Giải Tôi Làm Trọng Tài"}
+                </button>
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    auth.signOut();
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  🚪 {language === "en" ? "Logout" : "Thoát"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3Gach Mobile Sidebar Drawer Menu */}
+        {isMobileDrawerOpen && (
+          <div className="fixed inset-0 z-[99998] md:hidden">
+            {/* Backdrop Overlay */}
+            <div 
+              className="fixed inset-0 bg-slate-950/65 backdrop-blur-xs transition-opacity duration-300"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            />
+
+            {/* Drawer Panel content */}
+            <div className="fixed top-0 left-0 bottom-0 w-[280px] max-w-[85vw] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl z-[99999] flex flex-col animate-slideInLeft text-left">
+              {/* Drawer Header */}
+              <div className="p-4 bg-[#9c0c13] text-white flex items-center justify-between">
+                <div className="flex items-center gap-2 select-none">
+                  <VSCLogo size={24} />
+                  <span className="font-extrabold text-[15px] italic">VSC MENU</span>
+                </div>
+                <button 
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="p-1 rounded-full hover:bg-black/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Drawer Items - Scrollable content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-5">
+                
+                {/* Category 1: Navigation */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2 mb-1">
+                    {language === "en" ? "SYSTEM PORTAL" : "HỆ THỐNG CHÍNH"}
+                  </div>
+                  
+                  {/* Home link */}
+                  <button
+                    onClick={() => {
+                      changeExitTournament("all");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "home" && homeFilter === "all"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Home className="w-4 h-4 shrink-0" />
+                    <span>{language === "en" ? "Home Portal" : "Trang Chủ VSC"}</span>
+                  </button>
+
+                  {/* Live Tournaments */}
+                  <button
+                    onClick={() => {
+                      changeExitTournament("active");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "home" && homeFilter === "active"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Play className="w-4 h-4 shrink-0 text-emerald-500" />
+                    <span>{language === "en" ? "Live Tournaments" : "Giải Đang Diễn Ra"}</span>
+                  </button>
+
+                  {/* Followed Tournaments */}
+                  <button
+                    onClick={() => {
+                      changeExitTournament("followed");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "home" && homeFilter === "followed"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Heart className="w-4 h-4 shrink-0 text-rose-500 fill-rose-500/10" />
+                    <span>{language === "en" ? "Followed Tournaments" : "Giải Đang Theo Dõi"}</span>
+                  </button>
+
+                  {/* Create Tournament */}
+                  <button
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      if (activeHistoryId) {
+                        setShowExitAndCreateConfirmModal(true);
+                      } else {
+                        setActiveTab("settings");
+                        setIsNewTournamentModalOpen(true);
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
+                  >
+                    <Plus className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>{language === "en" ? "Create Tournament" : "Tạo Giải Đấu Mới"}</span>
+                  </button>
+                </div>
+
+                {/* Category 2: Active Tournament (if loaded) */}
+                {activeHistoryId && (
+                  <div className="space-y-1 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                    <div className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2 mb-1">
+                      {language === "en" ? "ACTIVE TOURNAMENT" : "GIẢI ĐANG CHỌN"}
+                    </div>
+
+                    {/* Overview */}
+                    <button
+                      onClick={() => {
+                        changeTab("dashboard");
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                        activeTab === "dashboard"
+                          ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      <TrendingUp className="w-4 h-4 shrink-0" />
+                      <span>{language === "en" ? "Dashboard Hub" : "Tổng Hợp Trận Đấu"}</span>
+                    </button>
+
+                    {/* Leaderboards */}
+                    <button
+                      onClick={() => {
+                        changeTab("leaderboard");
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                        activeTab === "leaderboard"
+                          ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      <Trophy className="w-4 h-4 shrink-0 text-amber-550" />
+                      <span>{language === "en" ? "Ranking Standings" : "Bảng Xếp Hạng VSC"}</span>
+                    </button>
+
+                    {/* Scoring & Entries for Admins/Referees */}
+                    {(userRole === "admin" || userRole === "referee") && (
+                      <>
+                        {/* Entry Board */}
+                        <button
+                          onClick={() => {
+                            changeTab("input_scores");
+                            setIsMobileDrawerOpen(false);
+                          }}
+                          className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                            activeTab === "input_scores"
+                              ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <ClipboardCheck className="w-4 h-4 shrink-0 text-emerald-500" />
+                          <span>{language === "en" ? "Scoring Entry Grid" : "Nhập Điểm Thi Đấu"}</span>
+                        </button>
+
+                        {/* Ghi Điểm */}
+                        <button
+                          onClick={() => {
+                            changeTab("scoring");
+                            setIsMobileDrawerOpen(false);
+                          }}
+                          className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                            activeTab === "scoring"
+                              ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          }`}
+                        >
+                          <Target className="w-4 h-4 shrink-0 text-indigo-500" />
+                          <span>{language === "en" ? "Record Score Card" : "Ghi Điểm Trực Tiếp"}</span>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Athletes list */}
+                    <button
+                      onClick={() => {
+                        changeTab("athletes");
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                        activeTab === "athletes"
+                          ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      <Users className="w-4 h-4 shrink-0 text-blue-500" />
+                      <span>{language === "en" ? "Athletes Roster" : "Danh Sách VĐV"}</span>
+                    </button>
+
+                    {/* Configuration Settings (Admins only) */}
+                    {userRole === "admin" && (
+                      <button
+                        onClick={() => {
+                          changeTab("settings");
+                          setIsMobileDrawerOpen(false);
+                        }}
+                        className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                          activeTab === "settings"
+                            ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                        <span>{language === "en" ? "Match Config" : "Cấu Hình & Tham Số"}</span>
+                      </button>
+                    )}
+
+                    {/* Exit current tournament */}
+                    <button
+                      onClick={() => {
+                        handleExitTournament();
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 text-rose-650 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>{language === "en" ? "Exit Tournament View" : "Thoát Giải Đang Xem"}</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Category 3: Settings & Lang */}
+                <div className="space-y-1 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                  <div className="text-[10px] font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2 mb-2">
+                    {language === "en" ? "PREFERENCES & PROFILE" : "TÀI KHOẢN & NGÔN NGỮ"}
+                  </div>
+
+                  {/* My Bio */}
+                  <button
+                    onClick={() => {
+                      if (currentUser) {
+                        setActiveTab("control_panel");
+                        setControlPanelSubTab("profile");
+                      } else {
+                        setIsAuthModalOpen(true);
+                      }
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "control_panel" && controlPanelSubTab === "profile"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <User className="w-4 h-4 shrink-0 text-sky-500" />
+                    <span>{language === "en" ? "My Athlete Biography" : "Hồ Sơ Cá Nhân Của Tôi"}</span>
+                  </button>
+
+                  {/* Logged in User actions */}
+                  {currentUser ? (
+                    <button
+                      onClick={() => {
+                        auth.signOut();
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 text-rose-650 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>{language === "en" ? "Sign Out" : "Đăng Xuất"}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsAuthModalOpen(true);
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg text-xs font-black flex items-center gap-3 text-[#9c0c13] dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/10 transition-all"
+                    >
+                      <User className="w-4 h-4 shrink-0" />
+                      <span>{language === "en" ? "Register / Login" : "Đăng Ký / Đăng Nhập"}</span>
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 3. Hero Banner Background (below header, visible ONLY on "home" screen) */}
         {activeTab === "home" && (
@@ -4364,23 +4762,16 @@ export default function App() {
               <h2 className="text-[1px] leading-[150px] h-[130px] font-black text-white tracking-wider uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] mb-8 font-sans">
                 {language === "en" ? "PROFESSIONAL LEAGUE MANAGEMENT SYSTEM" : "HỆ THỐNG QUẢN LÝ GIẢI ĐẤU CHUYÊN NGHIỆP"}
               </h2>
+            </div>
 
-              {/* Big prominent white search bar with yellow search button */}
-              <div className="w-full max-w-[488px] h-8 flex items-stretch bg-white rounded-xl shadow-2xl overflow-hidden focus-within:ring-4 focus-within:ring-amber-500/30 transition-all border-4 border-white/10">
-                <input
-                  type="text"
-                  placeholder={language === "en" ? "Search online tournaments..." : "Tìm giải đấu của bạn..."}
-                  value={globalSearch}
-                  onChange={(e) => setGlobalSearch(e.target.value)}
-                  className="px-5 py-0 h-full w-full text-slate-900 text-sm sm:text-base focus:outline-none placeholder-slate-400 font-sans"
-                />
-                <button
-                  type="button"
-                  className="bg-[#f7c000] hover:bg-[#e0ad00] text-slate-950 px-4 sm:px-6 font-extrabold flex items-center justify-center transition-all cursor-pointer shadow-inner shrink-0"
-                >
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 stroke-[2.5]" />
-                </button>
-              </div>
+            {/* Total online tournaments display at the bottom-right of the Banner */}
+            <div className="absolute bottom-3 right-4 z-10 flex items-center gap-1.5 text-xs font-bold text-white/90 bg-black/45 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-md">
+              <Globe className="w-3.5 h-3.5 animate-pulse text-yellow-400" />
+              <span>
+                {language === "en" 
+                  ? `Total online tournaments: ${onlineTournaments.length}` 
+                  : `Tổng số giải đấu trực tuyến: ${onlineTournaments.length}`}
+              </span>
             </div>
           </div>
         )}
@@ -5272,6 +5663,10 @@ export default function App() {
                                   }
                                   // Remove from selected if added
                                   setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => id !== m.id));
+                                  // Auto close selection panel and mark unsaved changes
+                                  setIsAddingAthleteToInputBoard(false);
+                                  setInputBoardAddSearch("");
+                                  setHasUnsavedChanges(true);
                                 }}
                                 className={`text-[11px] font-black px-3.5 py-2 rounded-xl transition-all duration-150 whitespace-nowrap flex items-center gap-1 border text-center justify-center font-sans uppercase tracking-wider shadow-md active:scale-95 cursor-pointer max-sm:flex-1 ${
                                   isCallerBlocked
@@ -6160,6 +6555,158 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Floating Mobile Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-gradient-to-b from-[#b80e16] to-[#8c0a10] border-t border-red-500/25 shadow-2xl h-16 pb-safe flex items-stretch">
+        {(() => {
+          const isSettingsActive = activeTab === "settings";
+          const isActiveActive = activeTab === "dashboard" || (activeTab === "home" && homeFilter === "active");
+          const isHomeActive = activeTab === "home" && (homeFilter === "all" || homeFilter === "all_list");
+          const isFollowedActive = activeTab === "home" && homeFilter === "followed";
+          const isProfileActive = activeTab === "control_panel" && controlPanelSubTab === "profile";
+
+          return (
+            <div className="grid grid-cols-5 w-full h-full items-center text-center relative px-2">
+              
+              {/* Button 1: TẠO GIẢI ĐẤU MỚI */}
+              <button
+                onClick={() => {
+                  if (activeHistoryId) {
+                    setShowExitAndCreateConfirmModal(true);
+                  } else {
+                    setActiveTab("settings");
+                    setIsNewTournamentModalOpen(true);
+                  }
+                }}
+                className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+              >
+                <div className={`transition-all duration-300 flex flex-col items-center ${isSettingsActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                  <div className={`transition-all duration-300 flex items-center justify-center ${
+                    isSettingsActive 
+                      ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                      : "w-9 h-9 bg-transparent"
+                  }`}>
+                    <Plus className={`w-5 h-5 transition-all duration-300 ${isSettingsActive ? "text-white scale-110" : "text-white/70"}`} />
+                  </div>
+                  <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                    isSettingsActive 
+                      ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                      : "font-bold text-white/70 mt-1"
+                  }`}>
+                    Tạo giải
+                  </span>
+                </div>
+              </button>
+
+              {/* Button 2: GIẢI ĐANG DIỄN RA */}
+              <button
+                onClick={() => {
+                  if (activeHistoryId) {
+                    changeTab("dashboard");
+                  } else {
+                    changeExitTournament("active");
+                  }
+                }}
+                className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+              >
+                <div className={`transition-all duration-300 flex flex-col items-center ${isActiveActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                  <div className={`transition-all duration-300 flex items-center justify-center ${
+                    isActiveActive 
+                      ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                      : "w-9 h-9 bg-transparent"
+                  }`}>
+                    <Shield className={`w-5 h-5 transition-all duration-300 ${isActiveActive ? "text-white scale-110" : "text-white/70"}`} />
+                  </div>
+                  <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                    isActiveActive 
+                      ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                      : "font-bold text-white/70 mt-1"
+                  }`}>
+                    Đang đấu
+                  </span>
+                </div>
+              </button>
+
+              {/* Button 3: TRANG CHỦ */}
+              <button
+                onClick={() => changeExitTournament("all")}
+                className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+              >
+                <div className={`transition-all duration-300 flex flex-col items-center ${isHomeActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                  <div className={`transition-all duration-300 flex items-center justify-center ${
+                    isHomeActive 
+                      ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                      : "w-9 h-9 bg-transparent"
+                  }`}>
+                    <Home className={`w-5 h-5 transition-all duration-300 ${isHomeActive ? "text-white scale-110" : "text-white/70"}`} />
+                  </div>
+                  <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                    isHomeActive 
+                      ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                      : "font-bold text-white/70 mt-1"
+                  }`}>
+                    Home
+                  </span>
+                </div>
+              </button>
+
+              {/* Button 4: GIẢI ĐANG THEO DÕI */}
+              <button
+                onClick={() => changeExitTournament("followed")}
+                className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+              >
+                <div className={`transition-all duration-300 flex flex-col items-center ${isFollowedActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                  <div className={`transition-all duration-300 flex items-center justify-center ${
+                    isFollowedActive 
+                      ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                      : "w-9 h-9 bg-transparent"
+                  }`}>
+                    <Heart className={`w-5 h-5 transition-all duration-300 ${isFollowedActive ? "text-white scale-110 fill-white" : "text-white/70 fill-none"}`} />
+                  </div>
+                  <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                    isFollowedActive 
+                      ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                      : "font-bold text-white/70 mt-1"
+                  }`}>
+                    Theo dõi
+                  </span>
+                </div>
+              </button>
+
+              {/* Button 5: HỒ SƠ VĐV CỦA TÔI */}
+              <button
+                onClick={() => {
+                  if (currentUser) {
+                    setActiveTab("control_panel");
+                    setControlPanelSubTab("profile");
+                  } else {
+                    setIsAuthModalOpen(true);
+                  }
+                }}
+                className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+              >
+                <div className={`transition-all duration-300 flex flex-col items-center ${isProfileActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                  <div className={`transition-all duration-300 flex items-center justify-center ${
+                    isProfileActive 
+                      ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                      : "w-9 h-9 bg-transparent"
+                  }`}>
+                    <User className={`w-5 h-5 transition-all duration-300 ${isProfileActive ? "text-white scale-110" : "text-white/70"}`} />
+                  </div>
+                  <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                    isProfileActive 
+                      ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                      : "font-bold text-white/70 mt-1"
+                  }`}>
+                    Hồ sơ
+                  </span>
+                </div>
+              </button>
+
+            </div>
+          );
+        })()}
+      </div>
 
     </div>
   );

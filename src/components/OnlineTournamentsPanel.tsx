@@ -78,6 +78,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const { language } = useLanguage();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [search, setSearch] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   // Sync with externalSearch if provided
   useEffect(() => {
@@ -1336,29 +1337,53 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-5 p-1 sm:p-2 text-slate-800 dark:text-slate-101">
-      
-      {/* Upper Status Banner & Action */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-5">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-101 tracking-tight font-sans">
-            {language === "en" ? "TOURNAMENT PORTAL (CLOUD ACCORD)" : "TRANG CHỦ GIẢI ĐẤU (CLOUD ACCORD)"}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans mt-1">
-            {language === "en" ? "Sync real-time scoreboard online. Anyone can view live competition results instantly." : "Đồng bộ bảng điểm trực tuyến thời gian thực. Bất kỳ ai cũng có thể xem trực tuyến kết quả thi đấu nhanh nhất."}
-          </p>
-        </div>
+      {/* Search and Create Buttons Action Bar */}
+      <div className="flex flex-col items-end gap-2 w-full mt-2 self-end px-1 sm:px-2 z-20">
+        <div className="flex items-center gap-2">
+          {/* Search bar part */}
+          {isSearchExpanded ? (
+            <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 h-10 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all w-[240px] sm:w-[320px] animate-fadeIn">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder={language === "en" ? "Search online tournaments..." : "Tìm giải đấu của bạn..."}
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="ml-2 w-full text-xs sm:text-sm bg-transparent border-none outline-none focus:outline-none placeholder-slate-400 text-slate-900 dark:text-slate-101"
+                autoFocus
+              />
+              {search && (
+                <button 
+                  onClick={() => handleSearchChange("")}
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button 
+                onClick={() => setIsSearchExpanded(false)}
+                className="ml-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-850 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+              >
+                {language === "en" ? "Close" : "Đóng"}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsSearchExpanded(true)}
+              className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+              title={language === "en" ? "Search tournaments" : "Tìm giải đấu"}
+            >
+              <Search className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
 
-        <div className="flex flex-wrap gap-2.5 w-full md:w-auto font-sans items-center">
-          <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl font-sans shrink-0">
-            <Globe className="w-3.5 h-3.5 animate-pulse text-indigo-500" />
-            <span>{language === "en" ? `Total online tournaments: ${tournaments.length}` : `Tổng số giải đấu trực tuyến: ${tournaments.length}`}</span>
-          </div>
-
+          {/* Create New Tournament button */}
           {currentUser ? (
             <button
               type="button"
               onClick={onRedirectToCreateTournament}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wide uppercase shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wide uppercase shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4 text-white animate-pulse" />
               {language === "en" ? "Create New Tournament 🏆" : "Tạo giải đấu mới 🏆"}
@@ -1367,14 +1392,15 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
             <button
               type="button"
               onClick={onOpenAuthModal}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black uppercase tracking-wide transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="h-10 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black uppercase tracking-wide transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
             >
-              <UserCheck className="w-4 h-4 text-indigo-505 shrink-0" />
+              <UserCheck className="w-4 h-4 text-indigo-505 shrink-0 animate-pulse" />
               {language === "en" ? "Sign in to create tournament" : "Đăng nhập để tạo giải"}
             </button>
           )}
         </div>
       </div>
+
       {/* Grid of Tournaments divided into 3 sections */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 font-sans">
