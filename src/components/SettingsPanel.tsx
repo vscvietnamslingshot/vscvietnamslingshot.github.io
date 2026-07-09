@@ -272,6 +272,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [modalLaneCapacity, setModalLaneCapacity] = useState(10);
   const [modalShotsCount, setModalShotsCount] = useState(5);
   const [modalTeamShotsCount, setModalTeamShotsCount] = useState(5);
+  const [modalDirectMaxShots, setModalDirectMaxShots] = useState(10);
+  const [modalDirectMaxPoints, setModalDirectMaxPoints] = useState<number | undefined>(undefined);
+  const [modalTeamDirectMaxShots, setModalTeamDirectMaxShots] = useState(10);
+  const [modalTeamDirectMaxPoints, setModalTeamDirectMaxPoints] = useState<number | undefined>(undefined);
   const [modalTournamentType, setModalTournamentType] = useState<"individual" | "team" | "combined">("combined");
 
   useEffect(() => {
@@ -288,12 +292,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       setModalLaneCapacity(laneCapacity);
       setModalShotsCount(shotsCount);
       setModalTeamShotsCount(teamShotsCount);
+      setModalDirectMaxShots(directMaxShots || 10);
+      setModalDirectMaxPoints(directMaxPoints);
+      setModalTeamDirectMaxShots(teamDirectMaxShots || 10);
+      setModalTeamDirectMaxPoints(teamDirectMaxPoints);
       setModalTournamentType("combined");
       setTournamentError("");
     } else if (!isNewTournamentModalOpen) {
       setModalTournamentId("");
     }
-  }, [isNewTournamentModalOpen, laneCapacity, shotsCount, teamShotsCount]);
+  }, [isNewTournamentModalOpen, laneCapacity, shotsCount, teamShotsCount, directMaxShots, directMaxPoints, teamDirectMaxShots, teamDirectMaxPoints]);
 
   useEffect(() => {
     if (isTournamentLocked) {
@@ -2194,7 +2202,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 } gap-4`}>
                   {/* Individual shots */}
                   {modalTournamentType !== "team" && (
-                    <div>
+                    <div className="flex flex-col">
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[10px] font-extrabold text-gray-600 uppercase">Cá Nhân (Cột điểm) :</label>
                         <span className="text-xs font-black font-mono text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded">{modalShotsCount} lượt</span>
@@ -2207,12 +2215,51 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setModalShotsCount(Number(e.target.value))}
                         className="w-full accent-blue-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
                       />
+                      {modalShotsCount === 1 && (
+                        <div className="mt-3.5 grid grid-cols-2 gap-2 animate-fadeIn bg-blue-50/20 dark:bg-blue-950/10 p-2.5 rounded-xl border border-blue-150/40 dark:border-blue-900/20">
+                          <div>
+                            <label className="block text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "MAX Shots:" : "Số viên MAX:"}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="1000"
+                              value={modalDirectMaxShots}
+                              onChange={(e) => setModalDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
+                              className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                              placeholder="e.g. 10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "MAX Points:" : "Số điểm MAX:"}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10000"
+                              value={modalDirectMaxPoints !== undefined ? modalDirectMaxPoints : ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  setModalDirectMaxPoints(undefined);
+                                } else {
+                                  setModalDirectMaxPoints(Math.max(1, Number(val)));
+                                }
+                              }}
+                              className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                              placeholder={language === "en" ? "Calculated" : "Tính theo viên"}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Team shots */}
                   {modalTournamentType !== "individual" && (
-                    <div>
+                    <div className="flex flex-col">
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[10px] font-extrabold text-gray-600 uppercase">Đồng Đội (Cột điểm) :</label>
                         <span className="text-xs font-black font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded">{modalTeamShotsCount} lượt</span>
@@ -2225,6 +2272,45 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         onChange={(e) => setModalTeamShotsCount(Number(e.target.value))}
                         className="w-full accent-indigo-600 cursor-pointer h-1 bg-gray-200 dark:bg-slate-850"
                       />
+                      {modalTeamShotsCount === 1 && (
+                        <div className="mt-3.5 grid grid-cols-2 gap-2 animate-fadeIn bg-indigo-50/20 dark:bg-indigo-950/10 p-2.5 rounded-xl border border-indigo-150/40 dark:border-indigo-900/20">
+                          <div>
+                            <label className="block text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "MAX Shots:" : "Số viên MAX:"}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="1000"
+                              value={modalTeamDirectMaxShots}
+                              onChange={(e) => setModalTeamDirectMaxShots(Math.max(1, Number(e.target.value) || 10))}
+                              className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                              placeholder="e.g. 10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "MAX Points:" : "Số điểm MAX:"}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10000"
+                              value={modalTeamDirectMaxPoints !== undefined ? modalTeamDirectMaxPoints : ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  setModalTeamDirectMaxPoints(undefined);
+                                } else {
+                                  setModalTeamDirectMaxPoints(Math.max(1, Number(val)));
+                                }
+                              }}
+                              className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                              placeholder={language === "en" ? "Calculated" : "Tính theo viên"}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2295,6 +2381,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         tournamentType: modalTournamentType,
                         shotsCount: modalShotsCount,
                         teamShotsCount: modalTeamShotsCount,
+                        directMaxShots: modalShotsCount === 1 ? modalDirectMaxShots : 10,
+                        directMaxPoints: modalShotsCount === 1 ? modalDirectMaxPoints : undefined,
+                        teamDirectMaxShots: modalTeamShotsCount === 1 ? modalTeamDirectMaxShots : 10,
+                        teamDirectMaxPoints: modalTeamShotsCount === 1 ? modalTeamDirectMaxPoints : undefined,
                         laneCapacity: modalLaneCapacity,
                         distances: defaultDistances,
                         teamDistances: defaultTeamDistances,
@@ -2369,6 +2459,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     // 3. Set precision shots points count for individual & teams
                     handleShotsCountChange(modalShotsCount);
                     handleTeamShotsCountChange(modalTeamShotsCount);
+                    setDirectMaxShots(modalShotsCount === 1 ? modalDirectMaxShots : 10);
+                    setDirectMaxPoints(modalShotsCount === 1 ? modalDirectMaxPoints : undefined);
+                    setTeamDirectMaxShots(modalTeamShotsCount === 1 ? modalTeamDirectMaxShots : 10);
+                    setTeamDirectMaxPoints(modalTeamShotsCount === 1 ? modalTeamDirectMaxPoints : undefined);
 
                     // 4. Close dialog successfully
                     setIsNewTournamentModalOpen(false);

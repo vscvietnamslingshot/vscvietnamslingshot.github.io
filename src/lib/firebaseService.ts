@@ -182,6 +182,8 @@ export async function createOnlineTournament(
     laneCapacity?: number;
     directMaxPoints?: number;
     teamDirectMaxPoints?: number;
+    directMaxShots?: number;
+    teamDirectMaxShots?: number;
     distances: DistanceConfig[];
     teamDistances: DistanceConfig[];
     athletes: Athlete[];

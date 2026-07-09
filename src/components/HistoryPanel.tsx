@@ -19,6 +19,7 @@ interface HistoryPanelProps {
   onSaveCurrentSessionToHistory?: (customName?: string) => void;
   startDate?: string;
   endDate?: string;
+  onUpdateHistory?: React.Dispatch<React.SetStateAction<MatchHistoryItem[]>>;
 }
 
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -35,6 +36,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onSaveCurrentSessionToHistory,
   startDate = "",
   endDate = "",
+  onUpdateHistory,
 }) => {
   const { language } = useLanguage();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -42,9 +44,22 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const [importError, setImportError] = useState("");
   const [importSuccess, setImportSuccess] = useState(false);
   const [sessionSaveName, setSessionSaveName] = useState("");
+
+  // Custom states for Selection Export and Multiple Files Import
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFilesPending, setImportFilesPending] = useState<{
+    fileName: string;
+    tournaments: MatchHistoryItem[];
+    error?: string;
+  }[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const fileInputRefFull = useRef<HTMLInputElement>(null);
   const fileInputRefRestore = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
 
   const [deviceBackups, setDeviceBackups] = useState<{ id: string; timestamp: number; matchName: string; isTimeline: boolean }[]>([]);
 
@@ -130,6 +145,148 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     return formatDate(new Date(ts).toISOString());
   };
 
+  // Open download selector modal with all checked by default
+  const handleOpenExportModal = () => {
+    setSelectedExportIds(history.map(h => h.id));
+    setIsExportModalOpen(true);
+  };
+
+  // Download selected backups under a common JSON container
+  const handleDownloadSelectedBackups = () => {
+    const selectedTournaments = history.filter(h => selectedExportIds.includes(h.id));
+    if (selectedTournaments.length === 0) return;
+
+    const backupData = {
+      type: "vscs_tournaments_backup",
+      history: selectedTournaments,
+    };
+    const jsonString = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `slingshot-tournaments-backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setIsExportModalOpen(false);
+  };
+
+  // Process a list of uploaded/selected backup files
+  const handleProcessFiles = (files: FileList) => {
+    const promises = Array.from(files).map(file => {
+      return new Promise<{ fileName: string; tournaments: MatchHistoryItem[]; error?: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const text = e.target?.result as string;
+            const parsed = JSON.parse(text);
+            let tournaments: MatchHistoryItem[] = [];
+
+            if (Array.isArray(parsed)) {
+              tournaments = parsed.filter(item => item && item.matchName && Array.isArray(item.athletes));
+            } else if (typeof parsed === "object" && parsed !== null) {
+              if (Array.isArray(parsed.history)) {
+                tournaments = parsed.history.filter((item: any) => item && item.matchName && Array.isArray(item.athletes));
+              } else if (parsed.matchName && Array.isArray(parsed.athletes)) {
+                tournaments = [{
+                  id: parsed.id || `hist-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  date: parsed.date || new Date().toISOString(),
+                  matchName: parsed.matchName,
+                  shotCount: parsed.shotCount || parsed.shotsCount || 5,
+                  distances: parsed.distances || [],
+                  athletes: parsed.athletes || [],
+                  masterCount: parsed.masterCount || (parsed.athletes ? parsed.athletes.length : 0),
+                  masterAthletes: parsed.masterAthletes || parsed.athletes || [],
+                  teamDistances: parsed.teamDistances || [],
+                  teamShotCount: parsed.teamShotCount || parsed.teamShotsCount || 5,
+                  teamAthletes: parsed.teamAthletes || [],
+                  startDate: parsed.startDate || "",
+                  endDate: parsed.endDate || "",
+                  clubs: parsed.clubs || []
+                }];
+              }
+            }
+
+            if (tournaments.length === 0) {
+              resolve({
+                fileName: file.name,
+                tournaments: [],
+                error: language === "en" ? "No valid tournament data found!" : "Không tìm thấy dữ liệu giải đấu hợp lệ!",
+              });
+            } else {
+              resolve({ fileName: file.name, tournaments });
+            }
+          } catch {
+            resolve({
+              fileName: file.name,
+              tournaments: [],
+              error: language === "en" ? "Invalid JSON file structure!" : "Cấu trúc file JSON không hợp lệ!",
+            });
+          }
+        };
+        reader.onerror = () => {
+          resolve({
+            fileName: file.name,
+            tournaments: [],
+            error: language === "en" ? "Error reading file!" : "Lỗi khi đọc file!",
+          });
+        };
+        reader.readAsText(file);
+      });
+    });
+
+    Promise.all(promises).then(results => {
+      setImportFilesPending(results);
+      setIsImportModalOpen(true);
+    });
+  };
+
+  // Perform import/overwriting on history state in parent
+  const handleExecuteRestore = () => {
+    if (!onUpdateHistory) return;
+
+    const validTournaments: MatchHistoryItem[] = [];
+    importFilesPending.forEach(item => {
+      if (!item.error) {
+        validTournaments.push(...item.tournaments);
+      }
+    });
+
+    if (validTournaments.length === 0) {
+      setIsImportModalOpen(false);
+      return;
+    }
+
+    onUpdateHistory(prevHistory => {
+      const tempHistory = [...prevHistory];
+
+      validTournaments.forEach(importedItem => {
+        const collisionIdx = tempHistory.findIndex(
+          h => h.matchName.trim().toLowerCase() === importedItem.matchName.trim().toLowerCase()
+        );
+
+        if (collisionIdx > -1) {
+          // Overwrite existing keeping previous ID
+          tempHistory[collisionIdx] = {
+            ...importedItem,
+            id: tempHistory[collisionIdx].id,
+          };
+        } else {
+          // Add/Prepend new tournament
+          tempHistory.unshift(importedItem);
+        }
+      });
+
+      return tempHistory;
+    });
+
+    setIsImportModalOpen(false);
+    setImportSuccess(true);
+    setTimeout(() => setImportSuccess(false), 4500);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       
@@ -149,7 +306,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
           <button
-            onClick={onExportBackup}
+            onClick={handleOpenExportModal}
             className="flex-1 md:flex-none py-1.5 px-4 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm active:scale-98"
           >
             <FileDown className="w-4.5 h-4.5" /> {language === "en" ? "Download Backup (.json)" : "Tải Sao Lưu (.json)"}
@@ -157,37 +314,20 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           
           <button
             type="button"
-            onClick={() => fileInputRefRestore.current?.click()}
+            onClick={() => multiFileInputRef.current?.click()}
             className="flex-1 md:flex-none py-1.5 px-4 text-xs bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-xl font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
           >
             <FileUp className="w-4.5 h-4.5" /> {language === "en" ? "Restore from File (.json)" : "Phục Hồi Từ File (.json)"}
           </button>
           <input
-            ref={fileInputRefRestore}
+            ref={multiFileInputRef}
             type="file"
             accept=".json"
+            multiple
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setImportError("");
-              setImportSuccess(false);
-
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                try {
-                  const text = event.target?.result as string;
-                  const success = onImportBackup(text);
-                  if (success) {
-                    setImportSuccess(true);
-                    setTimeout(() => setImportSuccess(false), 4500);
-                  } else {
-                    setImportError(language === "en" ? "Invalid backup .json file format!" : "Định dạng file backup .json không hợp lệ!");
-                  }
-                } catch (err) {
-                  setImportError(language === "en" ? "Error reading restore .json file!" : "Lỗi đọc file .json phục hồi!");
-                }
-              };
-              reader.readAsText(file);
+              if (e.target.files) {
+                handleProcessFiles(e.target.files);
+              }
               e.target.value = "";
             }}
             className="hidden"
@@ -571,6 +711,208 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 {language === "en" ? "Confirm Delete" : "Đồng ý xóa"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* SELECTION BACKUP DOWNLOAD DIALOG */}
+      {isExportModalOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fadeIn text-slate-800 dark:text-slate-101"
+          onClick={() => setIsExportModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full border border-slate-200 dark:border-slate-800 animate-scaleUp p-5 flex flex-col gap-4 max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-955/30 rounded-full">
+                <FileDown className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
+                  {language === "en" ? "Select Tournaments to Backup" : "Chọn các giải cần sao lưu"}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {language === "en" ? "Select the tournaments you want to download as a JSON backup file." : "Chọn một hoặc nhiều giải đấu để đóng gói và tải về máy."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center border-b dark:border-slate-800 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedExportIds.length === history.length) {
+                    setSelectedExportIds([]);
+                  } else {
+                    setSelectedExportIds(history.map(h => h.id));
+                  }
+                }}
+                className="text-[11px] font-black uppercase text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                {selectedExportIds.length === history.length 
+                  ? (language === "en" ? "Deselect All" : "Bỏ chọn tất cả") 
+                  : (language === "en" ? "Select All" : "Chọn tất cả")}
+              </button>
+              <span className="text-[10px] font-mono font-bold text-slate-500">
+                {language === "en" ? `Selected ${selectedExportIds.length}/${history.length}` : `Đã chọn ${selectedExportIds.length}/${history.length}`}
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto max-h-[45vh] pr-1 flex flex-col gap-2">
+              {history.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  {language === "en" ? "No historical tournaments found." : "Không có giải đấu nào trong lịch sử."}
+                </div>
+              ) : (
+                history.map((h) => {
+                  const isChecked = selectedExportIds.includes(h.id);
+                  return (
+                    <label 
+                      key={h.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        isChecked 
+                          ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/40" 
+                          : "bg-slate-50/50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      <input 
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setSelectedExportIds(selectedExportIds.filter(id => id !== h.id));
+                          } else {
+                            setSelectedExportIds([...selectedExportIds, h.id]);
+                          }
+                        }}
+                        className="w-4 h-4 text-indigo-600 border-slate-300 dark:border-slate-700 rounded focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                      />
+                      <div className="flex-1 text-left">
+                        <span className="block text-xs font-bold text-slate-800 dark:text-slate-101 line-clamp-1">{h.matchName}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-semibold">
+                          {formatDate(h.date)} • {h.athletes.length} {language === "en" ? "athletes" : "vận động viên"}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end font-sans mt-2 border-t dark:border-slate-800 pt-3">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              >
+                {language === "en" ? "Close" : "Đóng lại"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadSelectedBackups}
+                disabled={selectedExportIds.length === 0}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+              >
+                <FileDown className="w-4 h-4" />
+                {language === "en" ? "Download Selected" : "Tải các giải đã chọn"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* MULTIPLE BACKUP FILES IMPORT & PREVIEW DIALOG */}
+      {isImportModalOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fadeIn text-slate-800 dark:text-slate-101"
+          onClick={() => setIsImportModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full border border-slate-200 dark:border-slate-800 animate-scaleUp p-5 flex flex-col gap-4 max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+              <div className="p-2 bg-blue-50 dark:bg-blue-955/30 rounded-full">
+                <FileUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
+                  {language === "en" ? "Restore tournaments from files" : "Phục hồi giải đấu từ File"}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {language === "en" ? "Verify the imported tournaments below. Existing matches will be overwritten." : "Kiểm tra danh sách giải đấu từ file tải lên. Nếu trùng tên, hệ thống sẽ tự động ghi đè."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto max-h-[45vh] pr-1 flex flex-col gap-3">
+              {importFilesPending.map((fileItem, idx) => (
+                <div key={idx} className="bg-slate-50/60 dark:bg-slate-950/30 border border-slate-150 dark:border-slate-850 p-3 rounded-2xl flex flex-col gap-2">
+                  <div className="flex justify-between items-center border-b dark:border-slate-800/80 pb-1.5">
+                    <span className="text-[11px] font-black font-mono text-slate-600 dark:text-slate-400 truncate max-w-[280px]">📄 {fileItem.fileName}</span>
+                    {fileItem.error ? (
+                      <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded border border-red-200/30">Lỗi</span>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-200/30">
+                        {fileItem.tournaments.length} {language === "en" ? "Matches" : "Giải đấu"}
+                      </span>
+                    )}
+                  </div>
+
+                  {fileItem.error ? (
+                    <div className="text-[11px] text-red-500 font-bold p-1">
+                      ⚠️ {fileItem.error}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5 pl-1.5">
+                      {fileItem.tournaments.map((t, tIdx) => {
+                        const exists = history.some(h => h.matchName.trim().toLowerCase() === t.matchName.trim().toLowerCase());
+                        return (
+                          <div key={tIdx} className="flex justify-between items-center text-xs">
+                            <div className="text-left flex-1 truncate pr-2">
+                              <span className="font-extrabold text-slate-800 dark:text-slate-101 block truncate">{t.matchName}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-medium">{t.athletes.length} {language === "en" ? "athletes" : "vận động viên"}</span>
+                            </div>
+                            {exists ? (
+                              <span className="text-[9px] font-extrabold uppercase bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-200/20 shrink-0">
+                                {language === "en" ? "Overwrite" : "Ghi đè"}
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-extrabold uppercase bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-200/20 shrink-0">
+                                {language === "en" ? "+ Add New" : "+ Thêm mới"}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 justify-end font-sans mt-2 border-t dark:border-slate-800 pt-3">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              >
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteRestore}
+                disabled={importFilesPending.every(f => f.error)}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+              >
+                <FileUp className="w-4 h-4" />
+                {language === "en" ? "Confirm & Restore" : "Xác nhận khôi phục"}
               </button>
             </div>
           </div>

@@ -712,7 +712,14 @@ export default function App() {
   const [history, setHistory] = useState<MatchHistoryItem[]>(() => {
     const saved = localStorage.getItem("slingshot_history");
     const parsed = saved ? restoreBase64Avatars(JSON.parse(saved)) : DEFAULT_HISTORY;
-    return (parsed || []).filter((h: any) => h && h.matchName && h.matchName.trim());
+    const now = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    return (parsed || []).filter((h: any) => {
+      if (!h || !h.matchName || !h.matchName.trim()) return false;
+      const createdTime = h.date ? new Date(h.date).getTime() : now;
+      const isExpired = (now - createdTime) > thirtyDaysMs;
+      return !isExpired;
+    });
   });
 
   const [storedAthleteLists, setStoredAthleteLists] = useState<StoredAthleteList[]>(() => {
@@ -6007,6 +6014,7 @@ export default function App() {
               onSaveCurrentSessionToHistory={handleSaveCurrentSessionToHistory}
               startDate={startDate}
               endDate={endDate}
+              onUpdateHistory={setHistory}
             />
           )}
 
