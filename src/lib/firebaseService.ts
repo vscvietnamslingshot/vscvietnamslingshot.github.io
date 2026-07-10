@@ -196,6 +196,90 @@ export async function createOnlineTournament(
     bannerUrl?: string;
   }
 ): Promise<string> {
+  // 1. Fetch user profile and check for existing bans/restrictions
+  const userProfile = await getUserProfile(creatorId);
+
+  if (userProfile) {
+    if (userProfile.isBanned) {
+      throw new Error("BANNED");
+    }
+    if (userProfile.banUntil && typeof userProfile.banUntil === "number" && userProfile.banUntil > Date.now()) {
+      throw new Error("RESTRICTED");
+    }
+  }
+
+  // 2. Query all tournaments created by this user to verify spamming
+  const tournamentsRef = collection(db, "tournaments");
+  const q = query(tournamentsRef, where("creatorId", "==", creatorId));
+  const querySnapshot = await getDocs(q).catch((err) => {
+    console.error("Error checking spam query:", err);
+    return null;
+  });
+
+  if (querySnapshot) {
+    const userTournaments: { id: string; createdTime: number }[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      let createdTime = Date.now();
+      if (data.createdAt) {
+        if (typeof data.createdAt.toMillis === "function") {
+          createdTime = data.createdAt.toMillis();
+        } else if (data.createdAt.seconds) {
+          createdTime = data.createdAt.seconds * 1000;
+        } else if (data.createdAt instanceof Date) {
+          createdTime = data.createdAt.getTime();
+        } else if (typeof data.createdAt === "number") {
+          createdTime = data.createdAt;
+        }
+      }
+      userTournaments.push({ id: docSnap.id, createdTime });
+    });
+
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    const recentTournaments = userTournaments.filter((t) => t.createdTime >= tenMinutesAgo);
+
+    // If they have created 4 or more, this new one would make it 5 in 10 minutes!
+    if (recentTournaments.length >= 4) {
+      const wasRestrictedBefore = userProfile?.wasRestrictedBefore === true;
+      const userRef = doc(db, "users", creatorId);
+
+      if (wasRestrictedBefore) {
+        // Repeat offender: permanently ban
+        await updateDoc(userRef, {
+          isBanned: true,
+          banReason: "Spamming tournament creation repeat offense"
+        }).catch((err) => console.error("Error permanently banning user:", err));
+
+        // Auto-delete all tournaments created by this spammer
+        for (const tour of userTournaments) {
+          await deleteDoc(doc(db, "tournaments", tour.id)).catch((err) =>
+            console.error(`Error deleting tournament ${tour.id} during ban:`, err)
+          );
+        }
+
+        throw new Error("SPAMMING_BANNED");
+      } else {
+        // First offense: restrict for 24 hours
+        const banDuration = 24 * 60 * 60 * 1000;
+        await updateDoc(userRef, {
+          banUntil: Date.now() + banDuration,
+          wasRestrictedBefore: true,
+          banReason: "Spamming tournament creation (5 in 10 minutes)"
+        }).catch((err) => console.error("Error restricting user:", err));
+
+        // Auto-delete all tournaments created by this spammer
+        for (const tour of userTournaments) {
+          await deleteDoc(doc(db, "tournaments", tour.id)).catch((err) =>
+            console.error(`Error deleting tournament ${tour.id} during restriction:`, err)
+          );
+        }
+
+        throw new Error("SPAMMING_RESTRICTED");
+      }
+    }
+  }
+
+  // 3. Create the tournament payload and save
   const newId = `tour-${Date.now()}`;
   const tourRef = doc(db, "tournaments", newId);
   
@@ -457,6 +541,34 @@ export function subscribeToAllUsers(callback: (users: any[]) => void) {
 }
 
 /**
+ * Translates anti-spam or ban errors into localized user-friendly messages
+ */
+export function getFriendlyErrorMessage(err: any, language: "vi" | "en" = "vi"): string {
+  const errMsg = err?.message || String(err);
+  if (errMsg.includes("BANNED")) {
+    return language === "en"
+      ? "Your account has been permanently banned from creating tournaments due to spamming."
+      : "Tài khoản của bạn đã bị khóa vĩnh viễn khỏi quyền tạo giải đấu do vi phạm chính sách spam.";
+  }
+  if (errMsg.includes("RESTRICTED")) {
+    return language === "en"
+      ? "Your account is temporarily restricted from creating tournaments for 24 hours."
+      : "Tài khoản của bạn đang bị hạn chế tạm thời khỏi quyền tạo giải đấu trong vòng 24 giờ.";
+  }
+  if (errMsg.includes("SPAMMING_BANNED")) {
+    return language === "en"
+      ? "Critical: You have continued to spam tournament creation! Your account is now permanently banned, and all your created tournaments have been cleared."
+      : "Nghiêm trọng: Bạn tiếp tục tạo giải đấu quá nhanh! Tài khoản của bạn hiện đã bị KHÓA VĨNH VIỄN và tất cả giải đấu cũ của bạn đã được dọn dẹp vĩnh viễn.";
+  }
+  if (errMsg.includes("SPAMMING_RESTRICTED")) {
+    return language === "en"
+      ? "Alert: You are creating tournaments too quickly! (5 tournaments in 10 minutes). Your account has been restricted for 24 hours, and all your created tournaments have been cleared."
+      : "Cảnh báo: Bạn đang tạo giải quá nhanh! (5 giải trong 10 phút). Tài khoản của bạn đã bị hạn chế tạo giải trong 24 giờ, tất cả giải đấu cũ của bạn đã được dọn dẹp khỏi hệ thống.";
+  }
+  return errMsg;
+}
+
+/**
  * Updates a user profile as an administrator (including custom roles & clubs)
  */
 export async function updateUserProfileAdmin(uid: string, profileData: {
@@ -464,6 +576,10 @@ export async function updateUserProfileAdmin(uid: string, profileData: {
   photoURL?: string;
   club?: string;
   role?: string;
+  isBanned?: boolean;
+  banUntil?: number | null;
+  wasRestrictedBefore?: boolean;
+  banReason?: string;
 }) {
   try {
     const userRef = doc(db, "users", uid);

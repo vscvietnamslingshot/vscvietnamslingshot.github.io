@@ -50,7 +50,7 @@ import { VSCLogo, SlingshotIcon } from "./components/VSCLogo";
 
 // Firebase imports
 import { auth } from "./firebase";
-import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub } from "./lib/firebaseService";
+import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub, getFriendlyErrorMessage } from "./lib/firebaseService";
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
@@ -463,18 +463,31 @@ export default function App() {
         }
       }
 
-      if (matchNameVal) {
+      let hasTourParam = false;
+      let urlTourParam: string | null = null;
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        urlTourParam = params.get("tour") || params.get("id");
+        if (urlTourParam && urlTourParam.startsWith("tour-")) {
+          hasTourParam = true;
+        }
+      }
+
+      const localActiveHistoryId = activeHistoryIdVal || (typeof window !== "undefined" ? localStorage.getItem("slingshot_active_history_id") : null);
+      const isSwitchingTour = !!(hasTourParam && urlTourParam !== localActiveHistoryId);
+
+      if (matchNameVal && !isSwitchingTour) {
         setMatchName(matchNameVal);
         setHeaderTempName(matchNameVal);
       }
-      if (startDateVal) setStartDate(startDateVal);
-      if (endDateVal) setEndDate(endDateVal);
-      if (bannerUrlVal) setBannerUrl(bannerUrlVal);
-      if (avatarUrlVal) setAvatarUrl(avatarUrlVal);
-      if (distancesVal) setDistances(distancesVal);
-      if (shotsCountVal) setShotsCount(Number(shotsCountVal));
-      if (athletesVal) setAthletes(restoreBase64Avatars(athletesVal));
-      if (masterAthletesVal) setMasterAthletes(restoreBase64Avatars(masterAthletesVal));
+      if (startDateVal && !isSwitchingTour) setStartDate(startDateVal);
+      if (endDateVal && !isSwitchingTour) setEndDate(endDateVal);
+      if (bannerUrlVal && !isSwitchingTour) setBannerUrl(bannerUrlVal);
+      if (avatarUrlVal && !isSwitchingTour) setAvatarUrl(avatarUrlVal);
+      if (distancesVal && !isSwitchingTour) setDistances(distancesVal);
+      if (shotsCountVal && !isSwitchingTour) setShotsCount(Number(shotsCountVal));
+      if (athletesVal && !isSwitchingTour) setAthletes(restoreBase64Avatars(athletesVal));
+      if (masterAthletesVal && !isSwitchingTour) setMasterAthletes(restoreBase64Avatars(masterAthletesVal));
       if (historyVal) {
         const parsedHistory = restoreBase64Avatars(historyVal);
         setHistory((parsedHistory || []).filter((h: any) => h && h.matchName && h.matchName.trim()));
@@ -483,28 +496,23 @@ export default function App() {
         const parsedLists = restoreBase64Avatars(storedAthleteListsVal);
         setStoredAthleteLists((parsedLists || []).filter((l: any) => l && l.name && l.name.trim()));
       }
-      let hasTourParam = false;
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const tourParam = params.get("tour") || params.get("id");
-        if (tourParam && tourParam.startsWith("tour-")) {
-          hasTourParam = true;
-          setActiveHistoryId(tourParam);
-          localStorage.setItem("slingshot_active_history_id", tourParam);
-        }
-      }
-      if (!hasTourParam) {
+      
+      if (hasTourParam && urlTourParam) {
+        setActiveHistoryId(urlTourParam);
+        localStorage.setItem("slingshot_active_history_id", urlTourParam);
+      } else {
         setActiveHistoryId(null);
       }
-      if (inputAthletesVal) setInputAthletes(restoreBase64Avatars(inputAthletesVal));
+      
+      if (inputAthletesVal && !isSwitchingTour) setInputAthletes(restoreBase64Avatars(inputAthletesVal));
       if (clubsVal) setClubs(clubsVal);
       
-      if (competitionModeVal) setCompetitionMode(competitionModeVal as "individual" | "team");
-      if (teamDistancesVal) setTeamDistances(teamDistancesVal);
-      if (teamShotsCountVal) setTeamShotsCount(Number(teamShotsCountVal));
-      if (teamAthletesVal) setTeamAthletes(restoreBase64Avatars(teamAthletesVal));
-      if (teamInputAthletesVal) setTeamInputAthletes(restoreBase64Avatars(teamInputAthletesVal));
-      if (laneCapacityVal) setLaneCapacity(Number(laneCapacityVal));
+      if (competitionModeVal && !isSwitchingTour) setCompetitionMode(competitionModeVal as "individual" | "team");
+      if (teamDistancesVal && !isSwitchingTour) setTeamDistances(teamDistancesVal);
+      if (teamShotsCountVal && !isSwitchingTour) setTeamShotsCount(Number(teamShotsCountVal));
+      if (teamAthletesVal && !isSwitchingTour) setTeamAthletes(restoreBase64Avatars(teamAthletesVal));
+      if (teamInputAthletesVal && !isSwitchingTour) setTeamInputAthletes(restoreBase64Avatars(teamInputAthletesVal));
+      if (laneCapacityVal && !isSwitchingTour) setLaneCapacity(Number(laneCapacityVal));
 
     } catch (e) {
       console.error("Critical error during device storage restoration:", e);
@@ -1037,43 +1045,11 @@ export default function App() {
   }, [masterAthletes]);
 
   const handleSelectTournament = (id: string, tournament: any, targetTab?: string) => {
-    if (activeHistoryId && activeHistoryId !== id) {
-      setSwitchingTournamentData({
-        id,
-        tournamentName: tournament?.matchName || "Giải đấu mới",
-        targetTab: targetTab || "dashboard"
-      });
-    } else {
-      setAthletes([]);
-      setMasterAthletes([]);
-      setTeamAthletes([]);
-      setInputAthletes([]);
-      setTeamInputAthletes([]);
-      setMatchName("");
-      setHeaderTempName("");
-      setStartDate("");
-      setEndDate("");
-      setDistances(JSON.parse(JSON.stringify(DEFAULT_DISTANCES)));
-      setShotsCount(DEFAULT_SHOTS_COUNT);
-      setTeamDistances(JSON.parse(JSON.stringify(DEFAULT_DISTANCES)));
-      setTeamShotsCount(DEFAULT_SHOTS_COUNT);
-      setCompetitionMode("individual");
-      setDirectMaxPoints(undefined);
-      setTeamDirectMaxPoints(undefined);
-
-      setActiveHistoryId(id);
-      if (id) {
-        setActiveTab(targetTab || "dashboard");
-      }
-    }
-  };
-
-  const confirmTournamentSwitch = () => {
-    if (!switchingTournamentData) return;
-    const { id, targetTab } = switchingTournamentData;
+    const targetId = id;
+    const resolvedTargetTab = targetTab || "dashboard";
 
     // Immediately write any pending local changes to Firestore before switching to the new tournament
-    if (activeHistoryId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
+    if (activeHistoryId && activeHistoryId !== targetId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
       const isDifferent = (
         !deepEqual(matchName, currentTournamentDoc?.matchName) ||
         !deepEqual(startDate, currentTournamentDoc?.startDate) ||
@@ -1139,10 +1115,13 @@ export default function App() {
     setDirectMaxPoints(undefined);
     setTeamDirectMaxPoints(undefined);
 
-    setActiveHistoryId(id);
-    setActiveTab(targetTab || "dashboard");
-    setSwitchingTournamentData(null);
+    setActiveHistoryId(targetId);
+    if (targetId) {
+      setActiveTab(resolvedTargetTab);
+    }
   };
+
+  const confirmTournamentSwitch = () => {};
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -1635,7 +1614,10 @@ export default function App() {
 
   // Derived role properties for active tournament context
   const isOnlineTournament = activeHistoryId?.startsWith("tour-");
-  const isGlobalAdmin = currentUser?.email === "nahnatofficial@gmail.com" || currentUser?.email === "vscvietnamslingshot@gmail.com";
+  const isGlobalAdmin = !!(currentUser?.email && (
+    currentUser.email.toLowerCase().trim() === "nahnatofficial@gmail.com" || 
+    currentUser.email.toLowerCase().trim() === "vscvietnamslingshot@gmail.com"
+  ));
   const isTournamentOwner = currentUser && currentTournamentDoc && (currentTournamentDoc.creatorId === currentUser.uid || isGlobalAdmin);
   const isTournamentSubAdmin = currentUser && currentTournamentDoc && (currentTournamentDoc.subAdmins?.some((email: string) => email.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()));
   const isTournamentReferee = currentUser && currentTournamentDoc && (currentTournamentDoc.referees?.includes(currentUser.email || ""));
@@ -2140,6 +2122,7 @@ export default function App() {
   // Cloud state publisher effect (Debounced to aggregate scoring events)
   useEffect(() => {
     if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) return;
+    if (loadedTournamentIdRef.current !== activeHistoryId) return;
     if (userRole !== "admin" && userRole !== "referee") return;
     if (!isTournamentConfigLoaded || !currentTournamentDoc) return;
 
@@ -4592,12 +4575,11 @@ export default function App() {
                     onClick={() => {
                       setIsMobileDrawerOpen(false);
                       if (activeHistoryId) {
-                        setShowExitAndCreateConfirmModal(true);
-                      } else {
-                        setActiveTab("settings");
-                        setSettingsSubTab("config");
-                        setIsNewTournamentModalOpen(true);
+                        handleExitTournament();
                       }
+                      setActiveTab("settings");
+                      setSettingsSubTab("config");
+                      setIsNewTournamentModalOpen(true);
                     }}
                     className="w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
                   >
@@ -4868,12 +4850,11 @@ export default function App() {
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onRedirectToCreateTournament={() => {
                 if (activeHistoryId) {
-                  setShowExitAndCreateConfirmModal(true);
-                } else {
-                  setActiveTab("settings");
-                  setSettingsSubTab("config");
-                  setIsNewTournamentModalOpen(true);
+                  handleExitTournament();
                 }
+                setActiveTab("settings");
+                setSettingsSubTab("config");
+                setIsNewTournamentModalOpen(true);
               }}
               currentSetup={{
                 matchName,
@@ -6644,12 +6625,11 @@ export default function App() {
               <button
                 onClick={() => {
                   if (activeHistoryId) {
-                    setShowExitAndCreateConfirmModal(true);
-                  } else {
-                    setActiveTab("settings");
-                    setSettingsSubTab("config");
-                    setIsNewTournamentModalOpen(true);
+                    handleExitTournament();
                   }
+                  setActiveTab("settings");
+                  setSettingsSubTab("config");
+                  setIsNewTournamentModalOpen(true);
                 }}
                 className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
               >

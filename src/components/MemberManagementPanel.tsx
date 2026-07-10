@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { subscribeToAllUsers, updateUserProfileAdmin, deleteUserProfileAdmin } from "../lib/firebaseService";
-import { Users, Search, Edit2, Shield, Mail, Award, X, Check, Eye, Trash2, AlertTriangle } from "lucide-react";
+import { Users, Search, Edit2, Shield, Mail, Award, X, Check, Eye, Trash2, AlertTriangle, Lock, Unlock, ShieldAlert } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
 interface UserProfile {
@@ -11,6 +11,10 @@ interface UserProfile {
   club?: string;
   role?: string;
   createdAt?: any;
+  isBanned?: boolean;
+  banUntil?: number;
+  wasRestrictedBefore?: boolean;
+  banReason?: string;
 }
 
 interface MemberManagementPanelProps {
@@ -35,6 +39,8 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
   const [editPhoto, setEditPhoto] = useState("");
   const [editClub, setEditClub] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [editIsBanned, setEditIsBanned] = useState(false);
+  const [editBanUntil, setEditBanUntil] = useState<number>(0);
 
   useEffect(() => {
     const unsubscribe = subscribeToAllUsers((userList) => {
@@ -49,6 +55,8 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
     setEditPhoto(user.photoURL || "");
     setEditClub(user.club || "");
     setEditRole(user.role || "user");
+    setEditIsBanned(user.isBanned || false);
+    setEditBanUntil(user.banUntil || 0);
     setSuccessMsg("");
     setErrorMsg("");
   };
@@ -65,7 +73,9 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
         displayName: editName.trim(),
         photoURL: editPhoto.trim(),
         club: editClub.trim(),
-        role: editRole
+        role: editRole,
+        isBanned: editIsBanned,
+        banUntil: editBanUntil
       });
       setSuccessMsg(language === "en" ? "Updated member successfully!" : "Đã cập nhật thông tin thành viên thành công!");
       setTimeout(() => {
@@ -112,6 +122,17 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
     );
   });
 
+  const getRemainingBanTime = (banUntil: number) => {
+    const diff = banUntil - Date.now();
+    if (diff <= 0) return "";
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    if (hours > 0) {
+      return language === "en" ? `${hours}h ${minutes}m left` : `Còn ${hours}g ${minutes}p`;
+    }
+    return language === "en" ? `${minutes}m left` : `Còn ${minutes}p`;
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 p-6 shadow-xs flex flex-col gap-6" id="member-management-panel">
       {/* Header section */}
@@ -136,7 +157,7 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={language === "en" ? "Search by name, email, club..." : "Tìm tên, email, câu lạc bộ..."}
-            className="w-full pl-9.5 pr-4 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-250 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-505"
+            className="w-full pl-9.5 pr-4 py-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-250 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-101 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-505"
           />
         </div>
       </div>
@@ -149,6 +170,9 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
         <div className="bg-amber-50 dark:bg-amber-955/20 px-3 py-2 rounded-xl text-xs font-black text-amber-650 dark:text-amber-400">
           {language === "en" ? `Admins: ${users.filter(u => u.role === "admin").length}` : `Quản trị viên: ${users.filter(u => u.role === "admin").length}`}
         </div>
+        <div className="bg-rose-50 dark:bg-rose-955/20 px-3 py-2 rounded-xl text-xs font-black text-rose-655 dark:text-rose-400">
+          {language === "en" ? `Banned: ${users.filter(u => u.isBanned).length}` : `Đã khóa: ${users.filter(u => u.isBanned).length}`}
+        </div>
       </div>
 
       {/* Main Members Table */}
@@ -160,13 +184,14 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
               <th className="px-4 py-3.5">USER ID</th>
               <th className="px-4 py-3.5">{language === "en" ? "Club / Affiliation" : "Câu lạc bộ"}</th>
               <th className="px-4 py-3.5">{language === "en" ? "Role / Access" : "Quyền hạn"}</th>
+              <th className="px-4 py-3.5">{language === "en" ? "Status" : "Trạng thái"}</th>
               <th className="px-4 py-3.5 text-center">{language === "en" ? "Actions" : "Hành động"}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-slate-850 font-sans">
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400 font-bold bg-white dark:bg-slate-900">
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400 font-bold bg-white dark:bg-slate-900">
                   {language === "en" ? "No members found match your search criteria." : "Không tìm thấy thành viên nào phù hợp."}
                 </td>
               </tr>
@@ -227,6 +252,29 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-955/20 text-indigo-700 dark:text-indigo-400 rounded-lg font-black border border-indigo-100 dark:border-indigo-900/30 uppercase tracking-wide">
                         User
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {user.isBanned ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 dark:bg-rose-955/20 text-rose-700 dark:text-rose-400 rounded-lg font-black border border-rose-100 dark:border-rose-900/30 uppercase tracking-wide">
+                        <Lock className="w-3 h-3 text-rose-500" />
+                        {language === "en" ? "Banned" : "Đã khóa"}
+                      </span>
+                    ) : user.banUntil && user.banUntil > Date.now() ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 dark:bg-amber-955/20 text-amber-700 dark:text-amber-400 rounded-lg font-black border border-amber-100 dark:border-amber-900/30 uppercase tracking-wide w-max">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          {language === "en" ? "Restricted" : "Hạn chế"}
+                        </span>
+                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide pl-1.5">
+                          {getRemainingBanTime(user.banUntil)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-700 dark:text-emerald-400 rounded-lg font-black border border-emerald-100 dark:border-emerald-900/30 uppercase tracking-wide">
+                        <Unlock className="w-3 h-3 text-emerald-500" />
+                        {language === "en" ? "Active" : "Bình thường"}
                       </span>
                     )}
                   </td>
@@ -343,6 +391,74 @@ export const MemberManagementPanel: React.FC<MemberManagementPanelProps> = ({
                   <option value="referee">Trọng tài (Referee)</option>
                   <option value="admin">Quản trị viên (Admin)</option>
                 </select>
+              </div>
+
+              {/* Account Status / Ban Settings */}
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">
+                  {language === "en" ? "Account Status / Spam Control" : "Trạng thái hoạt động / Chống Spam"}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditIsBanned(false);
+                      setEditBanUntil(0);
+                    }}
+                    className={`px-2 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 border ${
+                      !editIsBanned && (!editBanUntil || editBanUntil <= Date.now())
+                        ? "bg-emerald-55 border-emerald-300 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 font-extrabold shadow-xs"
+                        : "bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800"
+                    }`}
+                  >
+                    <Unlock className="w-4 h-4 shrink-0" />
+                    <span>{language === "en" ? "Active" : "Bình thường"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditIsBanned(false);
+                      setEditBanUntil(Date.now() + 24 * 60 * 60 * 1000);
+                    }}
+                    className={`px-2 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 border ${
+                      !editIsBanned && editBanUntil > Date.now()
+                        ? "bg-amber-55 border-amber-300 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 font-extrabold shadow-xs"
+                        : "bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800"
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{language === "en" ? "Restrict 24h" : "Hạn chế 24h"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={editingUser.uid === currentUser?.uid}
+                    onClick={() => {
+                      setEditIsBanned(true);
+                      setEditBanUntil(0);
+                    }}
+                    className={`px-2 py-2.5 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all flex flex-col items-center justify-center gap-1.5 border ${
+                      editIsBanned
+                        ? "bg-rose-55 border-rose-300 dark:border-rose-800/40 text-rose-700 dark:text-rose-400 font-extrabold shadow-xs"
+                        : "bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800"
+                    } disabled:opacity-40 disabled:pointer-events-none`}
+                    title={editingUser.uid === currentUser?.uid ? (language === "en" ? "You cannot ban yourself" : "Không thể tự khóa chính mình") : ""}
+                  >
+                    <Lock className="w-4 h-4 shrink-0" />
+                    <span>{language === "en" ? "Permanently Ban" : "Khóa vĩnh viễn"}</span>
+                  </button>
+                </div>
+                {editBanUntil > Date.now() && (
+                  <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1.5 uppercase tracking-wide">
+                    {language === "en" ? "⚠️ Temporary 24h creation restriction active." : "⚠️ Đang áp dụng hạn chế tạo giải đấu trong 24 giờ."}
+                  </p>
+                )}
+                {editIsBanned && (
+                  <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-1.5 uppercase tracking-wide">
+                    {language === "en" ? "🚫 Account permanently banned from creating tournaments." : "🚫 Tài khoản đã bị khóa tạo giải đấu vĩnh viễn."}
+                  </p>
+                )}
               </div>
 
               {/* Feedback messages */}

@@ -5,7 +5,8 @@ import {
   deleteOnlineTournament,
   createOnlineTournament,
   updateOnlineTournament,
-  TournamentData 
+  TournamentData,
+  getFriendlyErrorMessage
 } from "../lib/firebaseService";
 import { auth } from "../firebase";
 import { 
@@ -1002,9 +1003,10 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
       if (onRedirectToCreateTournament) {
         onRedirectToCreateTournament();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to publish tournament online:", err);
-      alert("Đường truyền tải lên đám mây bị lỗi. Vui lòng kiểm tra lại mạng!");
+      const friendlyMsg = getFriendlyErrorMessage(err, language);
+      alert(friendlyMsg);
     } finally {
       setCreating(false);
     }
