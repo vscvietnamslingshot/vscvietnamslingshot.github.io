@@ -436,3 +436,52 @@ export async function deleteVscSystemClub(clubId: string) {
   }
 }
 
+/**
+ * Subscribes to all users in real-time for QLTV admin management
+ */
+export function subscribeToAllUsers(callback: (users: any[]) => void) {
+  const usersRef = collection(db, "users");
+  return onSnapshot(usersRef, (snapshot) => {
+    const list: any[] = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      list.push({
+        ...data,
+        uid: docSnap.id
+      });
+    });
+    callback(list);
+  }, (error) => {
+    console.error("Error subscribing to users list:", error);
+  });
+}
+
+/**
+ * Updates a user profile as an administrator (including custom roles & clubs)
+ */
+export async function updateUserProfileAdmin(uid: string, profileData: {
+  displayName?: string;
+  photoURL?: string;
+  club?: string;
+  role?: string;
+}) {
+  try {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, sanitizeFirestoreData(profileData));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
+  }
+}
+
+/**
+ * Deletes a user profile as an administrator
+ */
+export async function deleteUserProfileAdmin(uid: string) {
+  try {
+    const userRef = doc(db, "users", uid);
+    await deleteDoc(userRef);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `users/${uid}`);
+  }
+}
+

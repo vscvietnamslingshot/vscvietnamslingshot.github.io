@@ -2203,6 +2203,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   referee: true,
                   user: true,
                   guest: true,
+                },
+                {
+                  taskVi: "Quản lý thành viên hệ thống toàn cục (Tab QLTV)",
+                  taskEn: "Global user directory management (QLTV Tab)",
+                  admin: true,
+                  subAdmin: false,
+                  referee: false,
+                  user: false,
+                  guest: false,
+                  noteVi: "Chỉ dành riêng cho Admin tối cao của toàn hệ thống.",
+                  noteEn: "Restricted exclusively to system-level Global Administrators."
                 }
               ].map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/55 dark:hover:bg-slate-905/30 transition-colors">

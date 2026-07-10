@@ -515,6 +515,12 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         <p className="text-[11px] text-gray-500 mt-0.5">
           {language === "en" ? "List of tournaments manually archived in the current session." : "Danh sách các giải đấu được lưu trữ thủ công trong phiên hoạt động hiện tại."}
         </p>
+        <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 dark:bg-amber-950/25 px-3 py-1.5 rounded-xl border border-amber-200/40 inline-flex items-center gap-1.5 font-bold">
+          <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          {language === "en" 
+            ? "Auto-Cleanup: Backed-up records are automatically kept for 30 days and purged thereafter." 
+            : "Tự động dọn dẹp: Các giải đấu sao lưu sẽ tự động xóa khỏi bộ nhớ trong vòng 30 ngày kể từ khi tạo giải."}
+        </div>
       </div>
 
       {history.length === 0 ? (

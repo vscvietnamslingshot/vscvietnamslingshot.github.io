@@ -54,6 +54,7 @@ import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subsc
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
+import { MemberManagementPanel } from "./components/MemberManagementPanel";
 import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart, Menu } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
@@ -762,10 +763,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    let lastQuery = typeof window !== "undefined" ? window.location.search : "";
+    let lastQuery: string | null = null;
     const handleUrlChange = () => {
       const currentQuery = window.location.search;
-      if (currentQuery !== lastQuery) {
+      if (lastQuery === null || currentQuery !== lastQuery) {
         lastQuery = currentQuery;
         const params = new URLSearchParams(currentQuery);
         
@@ -1043,6 +1044,23 @@ export default function App() {
         targetTab: targetTab || "dashboard"
       });
     } else {
+      setAthletes([]);
+      setMasterAthletes([]);
+      setTeamAthletes([]);
+      setInputAthletes([]);
+      setTeamInputAthletes([]);
+      setMatchName("");
+      setHeaderTempName("");
+      setStartDate("");
+      setEndDate("");
+      setDistances(JSON.parse(JSON.stringify(DEFAULT_DISTANCES)));
+      setShotsCount(DEFAULT_SHOTS_COUNT);
+      setTeamDistances(JSON.parse(JSON.stringify(DEFAULT_DISTANCES)));
+      setTeamShotsCount(DEFAULT_SHOTS_COUNT);
+      setCompetitionMode("individual");
+      setDirectMaxPoints(undefined);
+      setTeamDirectMaxPoints(undefined);
+
       setActiveHistoryId(id);
       if (id) {
         setActiveTab(targetTab || "dashboard");
@@ -3402,6 +3420,8 @@ export default function App() {
     setCompetitionMode("individual");
     setDirectMaxPoints(undefined);
     setTeamDirectMaxPoints(undefined);
+    setSettingsSubTab("config");
+    setAthleteForceTab("athletes");
     
     // Explicitly delete cached active tournament identifier
     localStorage.removeItem("slingshot_active_history_id");
@@ -4358,21 +4378,36 @@ export default function App() {
                   )}
                 </button>
               )}
+
+              {isGlobalAdmin && (
+                <button
+                  onClick={() => changeTab("qltv")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 relative ${
+                    activeTab === "qltv" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-amber-300" />
+                  QLTV
+                </button>
+              )}
             </div>
           </div>
         </div>
         </div>
 
         {/* Mobile Header Bar (visible only on mobile/tablet) */}
-        <div className="flex md:hidden bg-[#9c0c13] text-white h-16 items-center justify-between px-4 relative z-40 border-b border-red-800 shadow-md">
+        <div className="flex md:hidden bg-[#9c0c13] text-white h-16 items-center justify-between px-4 sticky top-0 z-[100] border-b border-red-800 shadow-md">
           {/* Left Side: 3-bar menu icon */}
           <div className="flex items-center">
             <button
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="p-2 -ml-2 rounded-lg hover:bg-black/10 active:scale-95 transition-all cursor-pointer"
+              className="fixed top-3 left-3 z-[150] p-2 bg-[#9c0c13] text-white rounded-full shadow-lg border border-red-700 hover:bg-[#850a0f] active:scale-95 transition-all cursor-pointer flex items-center justify-center w-10 h-10"
+              id="mobile-floating-menu-btn"
             >
-              <Menu className="w-6 h-6 text-white" />
+              <Menu className="w-5.5 h-5.5 text-white" />
             </button>
+            {/* Spacer to preserve layout structure when menu is positioned fixed */}
+            <div className="w-10 h-10" />
             <div className="h-6 w-[1px] bg-white/20 ml-2" />
           </div>
 
@@ -4560,6 +4595,7 @@ export default function App() {
                         setShowExitAndCreateConfirmModal(true);
                       } else {
                         setActiveTab("settings");
+                        setSettingsSubTab("config");
                         setIsNewTournamentModalOpen(true);
                       }
                     }}
@@ -4700,6 +4736,24 @@ export default function App() {
                     {language === "en" ? "PREFERENCES & PROFILE" : "TÀI KHOẢN & NGÔN NGỮ"}
                   </div>
 
+                  {/* QLTV for Global Admins */}
+                  {isGlobalAdmin && (
+                    <button
+                      onClick={() => {
+                        changeTab("qltv");
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                        activeTab === "qltv"
+                          ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      }`}
+                    >
+                      <Users className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span>{language === "en" ? "Manage Users (QLTV)" : "Quản Lý Thành Viên (QLTV)"}</span>
+                    </button>
+                  )}
+
                   {/* My Bio */}
                   <button
                     onClick={() => {
@@ -4817,6 +4871,7 @@ export default function App() {
                   setShowExitAndCreateConfirmModal(true);
                 } else {
                   setActiveTab("settings");
+                  setSettingsSubTab("config");
                   setIsNewTournamentModalOpen(true);
                 }
               }}
@@ -6029,6 +6084,14 @@ export default function App() {
             />
           )}
 
+          {/* TAB 6: QLTV MEMBER MANAGEMENT PANEL */}
+          {activeTab === "qltv" && isGlobalAdmin && (
+            <MemberManagementPanel
+              currentUser={currentUser}
+              language={language}
+            />
+          )}
+
         </div>
 
       </main>
@@ -6584,6 +6647,7 @@ export default function App() {
                     setShowExitAndCreateConfirmModal(true);
                   } else {
                     setActiveTab("settings");
+                    setSettingsSubTab("config");
                     setIsNewTournamentModalOpen(true);
                   }
                 }}
