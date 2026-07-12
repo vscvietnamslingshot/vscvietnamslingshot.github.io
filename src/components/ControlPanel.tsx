@@ -44,6 +44,17 @@ interface ControlPanelProps {
   forceSubTab?: "profile" | "created" | "referee";
 }
 
+const getTournamentModeLabel = (tour: TournamentData): string => {
+  if (tour.tournamentType === "combined") {
+    return "Cá Nhân & Đồng Đội (Kết hợp)";
+  } else if (tour.tournamentType === "team") {
+    return "Hỏa lực Đồng Đội";
+  } else if (tour.tournamentType === "individual") {
+    return "Hỏa lực Cá Nhân";
+  }
+  return tour.competitionMode === "team" ? "Hỏa lực Đồng Đội" : "Hỏa lực Cá Nhân";
+};
+
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   onSelectTournament,
   activeHistoryId,
@@ -704,7 +715,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             {/* Summary info */}
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-1.5">
                               <div className="flex justify-between items-center text-slate-500">
-                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{isTeam ? "Hỏa lực Đồng Đội" : "Hỏa lực Cá Nhân"}</strong></span>
+                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
                                 <span>VĐV: <strong className="text-slate-700 dark:text-slate-300">{activeAthletesList.length}</strong></span>
                               </div>
                               <div className="flex justify-between items-center text-slate-500 border-t border-slate-200/40 dark:border-slate-800/40 pt-1.5">
@@ -792,7 +803,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             {/* Details with Creator */}
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-2">
                               <div className="flex justify-between items-center text-slate-500">
-                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{isTeam ? "Đồng đồng" : "Cá nhân"}</strong></span>
+                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
                                 <span>Số cự ly: <strong className="text-slate-700 dark:text-slate-300">{activeDistancesList.length}</strong></span>
                               </div>
                               <div className="flex justify-wrap gap-1 items-center text-[10px] text-slate-400 border-t border-slate-200/40 dark:border-slate-800/40 pt-2 leading-relaxed">

@@ -1927,11 +1927,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   }, [currentRankedList, topXCount, dashboardTab]);
 
   const pagedAthletes = useMemo(() => {
-    const startIdx = (currentPage - 1) * 10;
-    return slicedTopAthletes.slice(startIdx, startIdx + 10);
-  }, [slicedTopAthletes, currentPage]);
+    if (topXCount <= 25) {
+      return slicedTopAthletes;
+    }
+    const startIdx = (currentPage - 1) * 25;
+    return slicedTopAthletes.slice(startIdx, startIdx + 25);
+  }, [slicedTopAthletes, currentPage, topXCount]);
 
-  const totalPages = Math.ceil(slicedTopAthletes.length / 10);
+  const totalPages = useMemo(() => {
+    if (topXCount <= 25) {
+      return 1;
+    }
+    return Math.ceil(slicedTopAthletes.length / 25);
+  }, [slicedTopAthletes.length, topXCount]);
 
   // General Highlights
   const dashboardHighlights = useMemo(() => {
@@ -2507,7 +2515,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               </div>
             ) : (
               pagedAthletes.map((athlete, index) => {
-                const rank = athlete.status === "Bỏ thi" ? "-" : (athlete as any).dashboardRank || ((currentPage - 1) * 10 + index + 1);
+                const rank = athlete.status === "Bỏ thi" ? "-" : (athlete as any).dashboardRank || ((currentPage - 1) * 25 + index + 1);
                 const hasScore = athlete.displayScore > 0;
                 
                 return (
@@ -2555,7 +2563,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                           )}
                           {dashboardTab === "survival" && (
                             <span className="px-1 text-[8.5px] font-extrabold uppercase bg-indigo-50 text-indigo-700 rounded border border-indigo-200 shrink-0">
-                              {language === "en" ? "Survival Round:" : "Vòng sống sót:"} {athlete.survivalVal === distances.length ? (language === "en" ? "All" : "Toàn bộ") : `${athlete.survivalVal}`} {athlete.survivalVal < distances.length && distances[athlete.survivalVal] ? (language === "en" ? `(Eliminated at ${distances[athlete.survivalVal].distance}m)` : `(Loại ở ${distances[athlete.survivalVal].distance}m)`) : ""}
+                              {language === "en" ? "Survival Round:" : "Vòng sống sót:"} {athlete.survivalVal === activeDistances.length ? (language === "en" ? "All" : "Toàn bộ") : `${athlete.survivalVal}`} {athlete.survivalVal < activeDistances.length && activeDistances[athlete.survivalVal] ? (language === "en" ? `(Eliminated at ${activeDistances[athlete.survivalVal].distance}m)` : `(Loại ở ${activeDistances[athlete.survivalVal].distance}m)`) : ""}
                             </span>
                           )}
                         </div>
