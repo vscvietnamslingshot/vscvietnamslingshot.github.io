@@ -1056,7 +1056,7 @@ export default function App() {
     }
 
     // Immediately write any pending local changes to Firestore before switching to the new tournament
-    if (activeHistoryId && activeHistoryId !== targetId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
+    if (activeHistoryId && activeHistoryId !== targetId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc && currentTournamentDoc.id === activeHistoryId) {
       const isDifferent = (
         !deepEqual(matchName, currentTournamentDoc?.matchName) ||
         !deepEqual(startDate, currentTournamentDoc?.startDate) ||
@@ -2009,6 +2009,7 @@ export default function App() {
   useEffect(() => {
     if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) return;
     if (loadedTournamentIdRef.current !== activeHistoryId) return;
+    if (currentTournamentDoc?.id !== activeHistoryId) return;
     if (userRole !== "admin" && userRole !== "referee") return;
     if (!isTournamentConfigLoaded || !currentTournamentDoc) return;
 
@@ -2117,6 +2118,7 @@ export default function App() {
       return;
     }
 
+    const isOnlineTour = !!(activeHistoryId && activeHistoryId.startsWith("tour-"));
     const athletesToSave = masterAthletes.length > 0 ? masterAthletes : athletes;
 
     // 1. Update or Insert the tournament snapshot in the history archive
@@ -2125,7 +2127,7 @@ export default function App() {
       if (activeHistoryId) {
         existingIndex = prevHistory.findIndex((h) => h.id === activeHistoryId);
       }
-      if (existingIndex === -1) {
+      if (existingIndex === -1 && !isOnlineTour) {
         existingIndex = prevHistory.findIndex(
           (h) => h.matchName.trim().toLowerCase() === matchName.trim().toLowerCase()
         );
@@ -2149,8 +2151,8 @@ export default function App() {
         endDate: endDate,
       };
 
-      // Set active history ID safely
-      if (activeHistoryId !== matchId) {
+      // Set active history ID safely (ONLY if not an online tour)
+      if (!isOnlineTour && activeHistoryId !== matchId) {
         setTimeout(() => setActiveHistoryId(matchId), 0);
       }
 

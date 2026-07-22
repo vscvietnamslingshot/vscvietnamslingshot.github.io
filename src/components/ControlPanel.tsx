@@ -128,7 +128,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         copyModalTour.teamAthletes
       );
 
-      await createOnlineTournament(
+      const newTourId = await createOnlineTournament(
         copyMatchName.trim(),
         currentUser.uid,
         currentUser.email || "",
@@ -161,6 +161,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       alert(`Đã copy thành công giải đấu mới "${copyMatchName.trim()}"! Toàn bộ điểm số cũ đã được xóa sạch, giữ nguyên cấu hình và danh sách VĐV.`);
       setCopyModalTour(null);
+      if (newTourId && onSelectTournament) {
+        onSelectTournament(newTourId, { id: newTourId, matchName: copyMatchName.trim() });
+      }
     } catch (err: any) {
       console.error("Failed to copy tournament:", err);
       alert(`Lỗi khi sao chép giải đấu: ${err.message || err}`);
