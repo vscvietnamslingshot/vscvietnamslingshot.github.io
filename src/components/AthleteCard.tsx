@@ -25,6 +25,7 @@ interface AthleteCardProps {
   directMaxPoints?: number;
   isLockedByOtherReferee?: boolean;
   lockedByRefereeEmail?: string;
+  onSaveSingleAthlete?: (athlete: Athlete) => void;
 }
 
 export const AthleteCard: React.FC<AthleteCardProps> = ({
@@ -46,6 +47,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   directMaxPoints,
   isLockedByOtherReferee = false,
   lockedByRefereeEmail = "",
+  onSaveSingleAthlete,
 }) => {
   const { language, t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -644,25 +646,46 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
         }
 
         return (
-          <div className="mt-3 flex flex-wrap justify-between items-center text-xs text-gray-400 font-sans px-1">
-            <div>
+          <div className="mt-3 flex flex-wrap justify-between items-center text-xs text-gray-400 font-sans px-1 gap-y-2">
+            <div className="text-gray-500 dark:text-slate-400 font-medium">
               {labelText}: {" "}
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-gray-700 dark:text-slate-200">
                 {actualValSum}
               </span>
               /{totalValMax} {unitText} (
               {accuracy.toFixed(1)}
               %)
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {distances.map((dist, idx) => {
-                const rowData = rowScores.find((r) => r.distanceId === dist.id) || { hitCount: 0 };
-                return (
-                  <span key={dist.id} className="bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
-                    {language === "en" ? "R" : "V"}{idx + 1}: {rowData.hitCount} {isPointModeActive ? (language === "en" ? "pts" : "điểm") : (language === "en" ? "shots" : "viên")}
-                  </span>
-                );
-              })}
+            <div className="flex items-center gap-2.5 ml-auto flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {distances.map((dist, idx) => {
+                  const rowData = rowScores.find((r) => r.distanceId === dist.id) || { hitCount: 0 };
+                  return (
+                    <span key={dist.id} className="bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
+                      {language === "en" ? "R" : "V"}{idx + 1}: {rowData.hitCount} {isPointModeActive ? (language === "en" ? "pts" : "điểm") : (language === "en" ? "shots" : "viên")}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {onSaveSingleAthlete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isLockedByOtherReferee) {
+                      alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không thể thực hiện thao tác!`);
+                      return;
+                    }
+                    onSaveSingleAthlete(athlete);
+                  }}
+                  disabled={isLockedByOtherReferee}
+                  className="p-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg shadow-xs hover:shadow transition-all duration-150 cursor-pointer border border-emerald-500/80 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                  title={language === "en" ? "Save scores for this athlete" : "Lưu điểm cho riêng VĐV này"}
+                >
+                  <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+              )}
             </div>
           </div>
         );

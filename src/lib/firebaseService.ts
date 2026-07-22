@@ -194,6 +194,10 @@ export async function createOnlineTournament(
     clubs?: Club[];
     avatarUrl?: string;
     bannerUrl?: string;
+    referees?: string[];
+    subAdmins?: string[];
+    startDate?: string;
+    endDate?: string;
   }
 ): Promise<string> {
   // 1. Fetch user profile and check for existing bans/restrictions
@@ -290,8 +294,8 @@ export async function createOnlineTournament(
     creatorEmail,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    referees: [], // Admin can add referee emails later
-    subAdmins: [], // Sub admins with full admin rights
+    referees: config.referees || [], // Admin can add referee emails later
+    subAdmins: config.subAdmins || [], // Sub admins with full admin rights
     isPublic: true,
     ...config,
     avatarUrl: config.avatarUrl || VSC_DEFAULT_LOGO,
@@ -311,8 +315,14 @@ export async function createOnlineTournament(
  * Updates a tournament in Firestore (e.g. updating scores, configs, referees)
  */
 export async function updateOnlineTournament(id: string, updates: Partial<TournamentData>) {
+  if (!id) return;
   try {
     const tourRef = doc(db, "tournaments", id);
+    const snap = await getDoc(tourRef);
+    if (!snap.exists()) {
+      console.warn(`[updateOnlineTournament] Tournament ${id} does not exist. Skipping update.`);
+      return;
+    }
     const resolvedUpdates = { ...updates };
     if (resolvedUpdates.avatarUrl === "") {
       resolvedUpdates.avatarUrl = VSC_DEFAULT_LOGO;
@@ -325,7 +335,11 @@ export async function updateOnlineTournament(id: string, updates: Partial<Tourna
       ...sanitizedUpdates,
       updatedAt: serverTimestamp()
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "not-found" || error?.message?.includes("No document to update")) {
+      console.warn(`[updateOnlineTournament] Tournament ${id} not found for update.`);
+      return;
+    }
     handleFirestoreError(error, OperationType.UPDATE, `tournaments/${id}`);
   }
 }

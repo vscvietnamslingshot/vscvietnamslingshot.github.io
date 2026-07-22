@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { 
   Plus, 
+  Check,
   AlertTriangle,
   Wifi,
   WifiOff,
@@ -1048,6 +1049,12 @@ export default function App() {
     const targetId = id;
     const resolvedTargetTab = targetTab || "dashboard";
 
+    if (activeHistoryId && activeHistoryId !== targetId && hasUnsavedChanges) {
+      setPendingTabTarget({ type: "select_tour", payload: { id: targetId, tournament, targetTab: resolvedTargetTab } });
+      setIsUnsavedModalOpen(true);
+      return;
+    }
+
     // Immediately write any pending local changes to Firestore before switching to the new tournament
     if (activeHistoryId && activeHistoryId !== targetId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
       const isDifferent = (
@@ -1167,9 +1174,10 @@ export default function App() {
   // States for the Nhập Điểm (Enter Scores) tab
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isUnsavedModalOpen, setIsUnsavedModalOpen] = useState(false);
-  const [pendingTabTarget, setPendingTabTarget] = useState<{ type: "tab" | "exit"; value: string } | null>(null);
+  const [pendingTabTarget, setPendingTabTarget] = useState<{ type: "tab" | "exit" | "select_tour"; value?: string; payload?: any } | null>(null);
 
   const [isSaveConfirmModalOpen, setIsSaveConfirmModalOpen] = useState(false);
+  const [singleAthleteToSave, setSingleAthleteToSave] = useState<Athlete | null>(null);
   const [isSavingScores, setIsSavingScores] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -1188,16 +1196,11 @@ export default function App() {
   }, []);
 
   const changeTab = (targetTab: string) => {
-    if (activeTab === "input_scores" && targetTab !== "input_scores" && hasUnsavedChanges) {
-      setPendingTabTarget({ type: "tab", value: targetTab });
-      setIsUnsavedModalOpen(true);
-    } else {
-      setActiveTab(targetTab);
-    }
+    setActiveTab(targetTab);
   };
 
   const changeExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
-    if (activeTab === "input_scores" && hasUnsavedChanges) {
+    if (hasUnsavedChanges) {
       setPendingTabTarget({ type: "exit", value: filter });
       setIsUnsavedModalOpen(true);
     } else {
@@ -1227,244 +1230,125 @@ export default function App() {
 
   // --- Sync to LocalStorage and DeviceStorage whenever state changes ---
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_match_name", matchName);
-      deviceStorage.set("slingshot_match_name", matchName);
-    } catch (e) {
-      console.error("Failed to save match name to storage:", e);
-    }
+    deviceStorage.set("slingshot_match_name", matchName);
   }, [matchName]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_start_date", startDate);
-      deviceStorage.set("slingshot_start_date", startDate);
-    } catch (e) {
-      console.error("Failed to save start date to storage:", e);
-    }
+    deviceStorage.set("slingshot_start_date", startDate);
   }, [startDate]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_end_date", endDate);
-      deviceStorage.set("slingshot_end_date", endDate);
-    } catch (e) {
-      console.error("Failed to save end date to storage:", e);
-    }
+    deviceStorage.set("slingshot_end_date", endDate);
   }, [endDate]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_banner_url", bannerUrl);
-      deviceStorage.set("slingshot_banner_url", bannerUrl);
-    } catch (e) {
-      console.error("Failed to save banner url to storage:", e);
-    }
+    deviceStorage.set("slingshot_banner_url", bannerUrl);
   }, [bannerUrl]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_avatar_url", avatarUrl);
-      deviceStorage.set("slingshot_avatar_url", avatarUrl);
-    } catch (e) {
-      console.error("Failed to save avatar url to storage:", e);
-    }
+    deviceStorage.set("slingshot_avatar_url", avatarUrl);
   }, [avatarUrl]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_distances", JSON.stringify(distances));
-      deviceStorage.set("slingshot_distances", distances);
-    } catch (e) {
-      console.error("Failed to save distances to storage:", e);
-    }
+    deviceStorage.set("slingshot_distances", distances);
   }, [distances]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_shots_count", shotsCount.toString());
-      deviceStorage.set("slingshot_shots_count", shotsCount);
-    } catch (e) {
-      console.error("Failed to save shots count to storage:", e);
-    }
+    deviceStorage.set("slingshot_shots_count", shotsCount);
   }, [shotsCount]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_active_tournament_lane_capacity", laneCapacity.toString());
-      deviceStorage.set("slingshot_active_tournament_lane_capacity", laneCapacity);
-    } catch (e) {
-      console.error("Failed to save lane capacity to storage:", e);
-    }
+    deviceStorage.set("slingshot_active_tournament_lane_capacity", laneCapacity);
   }, [laneCapacity]);
 
   useEffect(() => {
-    try {
-      saveAvatarsFromAthletes(athletes);
-      localStorage.setItem("slingshot_athletes", JSON.stringify(stripBase64Avatars(athletes)));
-      deviceStorage.set("slingshot_athletes", stripBase64Avatars(athletes));
-    } catch (e) {
-      console.error("Failed to save athletes to storage:", e);
-    }
+    saveAvatarsFromAthletes(athletes);
+    deviceStorage.set("slingshot_athletes", stripBase64Avatars(athletes));
   }, [athletes]);
 
   useEffect(() => {
-    try {
-      saveAvatarsFromAthletes(inputAthletes);
-      localStorage.setItem("slingshot_input_athletes", JSON.stringify(stripBase64Avatars(inputAthletes)));
-      deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(inputAthletes));
-    } catch (e) {
-      console.error("Failed to save input athletes to storage:", e);
-    }
+    saveAvatarsFromAthletes(inputAthletes);
+    deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(inputAthletes));
   }, [inputAthletes]);
 
   useEffect(() => {
-    localStorage.setItem("slingshot_competition_mode", competitionMode);
     deviceStorage.set("slingshot_competition_mode", competitionMode);
   }, [competitionMode]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_clubs", JSON.stringify(clubs));
-      deviceStorage.set("slingshot_clubs", clubs);
-    } catch (e) {
-      console.error("Failed to save clubs to storage:", e);
-    }
+    deviceStorage.set("slingshot_clubs", clubs);
   }, [clubs]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_team_distances", JSON.stringify(teamDistances));
-      deviceStorage.set("slingshot_team_distances", teamDistances);
-    } catch (e) {
-      console.error("Failed to save team distances to storage:", e);
-    }
+    deviceStorage.set("slingshot_team_distances", teamDistances);
   }, [teamDistances]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_team_shots_count", teamShotsCount.toString());
-      deviceStorage.set("slingshot_team_shots_count", teamShotsCount);
-    } catch (e) {
-      console.error("Failed to save team shots count to storage:", e);
-    }
+    deviceStorage.set("slingshot_team_shots_count", teamShotsCount);
   }, [teamShotsCount]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_direct_max_shots", directMaxShots.toString());
-      deviceStorage.set("slingshot_direct_max_shots", directMaxShots);
-    } catch (e) {
-      console.error("Failed to save direct max shots to storage:", e);
-    }
+    deviceStorage.set("slingshot_direct_max_shots", directMaxShots);
   }, [directMaxShots]);
 
   useEffect(() => {
-    try {
-      if (directMaxPoints !== undefined && directMaxPoints !== null) {
-        localStorage.setItem("slingshot_direct_max_points", directMaxPoints.toString());
-        deviceStorage.set("slingshot_direct_max_points", directMaxPoints);
-      } else {
-        localStorage.removeItem("slingshot_direct_max_points");
-        deviceStorage.set("slingshot_direct_max_points", "");
-      }
-    } catch (e) {
-      console.error("Failed to save direct max points to storage:", e);
+    if (directMaxPoints !== undefined && directMaxPoints !== null) {
+      deviceStorage.set("slingshot_direct_max_points", directMaxPoints);
+    } else {
+      deviceStorage.set("slingshot_direct_max_points", "");
     }
   }, [directMaxPoints]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("slingshot_team_direct_max_shots", teamDirectMaxShots.toString());
-      deviceStorage.set("slingshot_team_direct_max_shots", teamDirectMaxShots);
-    } catch (e) {
-      console.error("Failed to save team direct max shots to storage:", e);
-    }
+    deviceStorage.set("slingshot_team_direct_max_shots", teamDirectMaxShots);
   }, [teamDirectMaxShots]);
 
   useEffect(() => {
-    try {
-      if (teamDirectMaxPoints !== undefined && teamDirectMaxPoints !== null) {
-        localStorage.setItem("slingshot_team_direct_max_points", teamDirectMaxPoints.toString());
-        deviceStorage.set("slingshot_team_direct_max_points", teamDirectMaxPoints);
-      } else {
-        localStorage.removeItem("slingshot_team_direct_max_points");
-        deviceStorage.set("slingshot_team_direct_max_points", "");
-      }
-    } catch (e) {
-      console.error("Failed to save team direct max points to storage:", e);
+    if (teamDirectMaxPoints !== undefined && teamDirectMaxPoints !== null) {
+      deviceStorage.set("slingshot_team_direct_max_points", teamDirectMaxPoints);
+    } else {
+      deviceStorage.set("slingshot_team_direct_max_points", "");
     }
   }, [teamDirectMaxPoints]);
 
   useEffect(() => {
-    try {
-      saveAvatarsFromAthletes(teamAthletes);
-      localStorage.setItem("slingshot_team_athletes", JSON.stringify(stripBase64Avatars(teamAthletes)));
-      deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(teamAthletes));
-    } catch (e) {
-      console.error("Failed to save team athletes to storage:", e);
-    }
+    saveAvatarsFromAthletes(teamAthletes);
+    deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(teamAthletes));
   }, [teamAthletes]);
 
   useEffect(() => {
-    try {
-      saveAvatarsFromAthletes(teamInputAthletes);
-      localStorage.setItem("slingshot_team_input_athletes", JSON.stringify(stripBase64Avatars(teamInputAthletes)));
-      deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(teamInputAthletes));
-    } catch (e) {
-      console.error("Failed to save team input athletes to storage:", e);
-    }
+    saveAvatarsFromAthletes(teamInputAthletes);
+    deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(teamInputAthletes));
   }, [teamInputAthletes]);
 
   useEffect(() => {
-    try {
-      saveAvatarsFromAthletes(masterAthletes);
-      localStorage.setItem("slingshot_master_athletes", JSON.stringify(stripBase64Avatars(masterAthletes)));
-      deviceStorage.set("slingshot_master_athletes", stripBase64Avatars(masterAthletes));
-    } catch (e) {
-      console.error("Failed to save master athletes to storage:", e);
-    }
+    saveAvatarsFromAthletes(masterAthletes);
+    deviceStorage.set("slingshot_master_athletes", stripBase64Avatars(masterAthletes));
   }, [masterAthletes]);
 
   useEffect(() => {
-    try {
-      history.forEach((hItem) => {
-        if (hItem.athletes) {
-          saveAvatarsFromAthletes(hItem.athletes);
-        }
-      });
-      localStorage.setItem("slingshot_history", JSON.stringify(stripBase64Avatars(history)));
-      deviceStorage.set("slingshot_history", stripBase64Avatars(history));
-    } catch (e) {
-      console.error("Failed to save history to storage:", e);
-    }
+    history.forEach((hItem) => {
+      if (hItem.athletes) {
+        saveAvatarsFromAthletes(hItem.athletes);
+      }
+    });
+    deviceStorage.set("slingshot_history", stripBase64Avatars(history));
   }, [history]);
 
   useEffect(() => {
-    try {
-      storedAthleteLists.forEach((listItem) => {
-        if (listItem.athletes) {
-          saveAvatarsFromAthletes(listItem.athletes);
-        }
-      });
-      localStorage.setItem("slingshot_stored_athlete_lists", JSON.stringify(stripBase64Avatars(storedAthleteLists)));
-      deviceStorage.set("slingshot_stored_athlete_lists", stripBase64Avatars(storedAthleteLists));
-    } catch (e) {
-      console.error("Failed to save stored athlete lists to storage:", e);
-    }
+    storedAthleteLists.forEach((listItem) => {
+      if (listItem.athletes) {
+        saveAvatarsFromAthletes(listItem.athletes);
+      }
+    });
+    deviceStorage.set("slingshot_stored_athlete_lists", stripBase64Avatars(storedAthleteLists));
   }, [storedAthleteLists]);
 
   useEffect(() => {
-    try {
-      if (activeHistoryId) {
-        localStorage.setItem("slingshot_active_history_id", activeHistoryId);
-        deviceStorage.set("slingshot_active_history_id", activeHistoryId);
-      } else {
-        localStorage.removeItem("slingshot_active_history_id");
-        deviceStorage.remove("slingshot_active_history_id");
-      }
-    } catch (e) {
-      console.error("Failed to save active history ID to storage:", e);
+    if (activeHistoryId) {
+      deviceStorage.set("slingshot_active_history_id", activeHistoryId);
+    } else {
+      deviceStorage.remove("slingshot_active_history_id");
     }
   }, [activeHistoryId]);
 
@@ -2113,6 +1997,8 @@ export default function App() {
         }
 
         setIsTournamentConfigLoaded(true);
+      } else {
+        setCurrentTournamentDoc(null);
       }
     });
 
@@ -2310,6 +2196,7 @@ export default function App() {
       const inputAth = inputAthletes.find((a) => a.id === m.id);
       
       const mergedScores: Record<string, (boolean | null)[]> = {};
+      const validDistanceIds = new Set(distances.map((d) => d.id));
       // Initialize with default empty slots first
       distances.forEach((d) => {
         mergedScores[d.id] = Array(shotsCount).fill(null);
@@ -2318,14 +2205,14 @@ export default function App() {
       // Override with activeAth scores
       if (activeAth) {
         Object.keys(activeAth.scores || {}).forEach((k) => {
-          if (activeAth.scores[k]) mergedScores[k] = [...activeAth.scores[k]];
+          if (validDistanceIds.has(k) && activeAth.scores[k]) mergedScores[k] = [...activeAth.scores[k]];
         });
       }
       
       // Override or merge inputAth scores
       if (inputAth) {
         Object.keys(inputAth.scores || {}).forEach((k) => {
-          if (inputAth.scores[k]) mergedScores[k] = [...inputAth.scores[k]];
+          if (validDistanceIds.has(k) && inputAth.scores[k]) mergedScores[k] = [...inputAth.scores[k]];
         });
       }
 
@@ -2357,6 +2244,7 @@ export default function App() {
       const inputAth = teamInputAthletes.find((a) => a.id === m.id);
       
       const mergedScores: Record<string, (boolean | null)[]> = {};
+      const validTeamDistanceIds = new Set(teamDistances.map((d) => d.id));
       // Initialize with default empty slots first
       teamDistances.forEach((d) => {
         mergedScores[d.id] = Array(teamShotsCount).fill(null);
@@ -2365,14 +2253,14 @@ export default function App() {
       // Override with activeAth scores
       if (activeAth) {
         Object.keys(activeAth.scores || {}).forEach((k) => {
-          if (activeAth.scores[k]) mergedScores[k] = [...activeAth.scores[k]];
+          if (validTeamDistanceIds.has(k) && activeAth.scores[k]) mergedScores[k] = [...activeAth.scores[k]];
         });
       }
       
       // Override or merge inputAth scores
       if (inputAth) {
         Object.keys(inputAth.scores || {}).forEach((k) => {
-          if (inputAth.scores[k]) mergedScores[k] = [...inputAth.scores[k]];
+          if (validTeamDistanceIds.has(k) && inputAth.scores[k]) mergedScores[k] = [...inputAth.scores[k]];
         });
       }
 
@@ -3161,9 +3049,12 @@ export default function App() {
           // Handle any pending tab changes
           if (pendingTabTarget) {
             if (pendingTabTarget.type === "tab") {
-              setActiveTab(pendingTabTarget.value);
+              setActiveTab(pendingTabTarget.value || "dashboard");
             } else if (pendingTabTarget.type === "exit") {
-              handleExitTournament(pendingTabTarget.value as any);
+              handleExitTournament((pendingTabTarget.value as any) || "all");
+            } else if (pendingTabTarget.type === "select_tour") {
+              const { id, tournament, targetTab } = pendingTabTarget.payload || {};
+              handleSelectTournament(id, tournament, targetTab);
             }
             setPendingTabTarget(null);
           } else {
@@ -3201,9 +3092,12 @@ export default function App() {
         // Handle any pending tab changes
         if (pendingTabTarget) {
           if (pendingTabTarget.type === "tab") {
-            setActiveTab(pendingTabTarget.value);
+            setActiveTab(pendingTabTarget.value || "dashboard");
           } else if (pendingTabTarget.type === "exit") {
-            handleExitTournament(pendingTabTarget.value as any);
+            handleExitTournament((pendingTabTarget.value as any) || "all");
+          } else if (pendingTabTarget.type === "select_tour") {
+            const { id, tournament, targetTab } = pendingTabTarget.payload || {};
+            handleSelectTournament(id, tournament, targetTab);
           }
           setPendingTabTarget(null);
         } else {
@@ -3213,6 +3107,138 @@ export default function App() {
       }, 2000);
 
       setIsSavingScores(false);
+    }
+  };
+
+  const executeSaveSingleAthlete = async () => {
+    if (!singleAthleteToSave) return;
+    setIsSavingScores(true);
+    setSaveStatus(null);
+
+    const target = singleAthleteToSave;
+    let nextAthletes = [...athletes];
+    let nextTeamAthletes = [...teamAthletes];
+    let nextInputAthletes = [...inputAthletes];
+    let nextTeamInputAthletes = [...teamInputAthletes];
+
+    if (competitionMode === "individual") {
+      const mergedAthletes = [...athletes];
+      const existingIdx = mergedAthletes.findIndex((a) => a.id === target.id);
+      if (existingIdx !== -1) {
+        mergedAthletes[existingIdx] = {
+          ...mergedAthletes[existingIdx],
+          scores: {
+            ...mergedAthletes[existingIdx].scores,
+            ...target.scores,
+          },
+          soloHits: {
+            ...(mergedAthletes[existingIdx].soloHits || {}),
+            ...(target.soloHits || {}),
+          },
+          soloRounds: {
+            ...(mergedAthletes[existingIdx].soloRounds || {}),
+            ...(target.soloRounds || {}),
+          },
+        };
+      } else {
+        mergedAthletes.push(target);
+      }
+      nextAthletes = mergedAthletes;
+      nextInputAthletes = inputAthletes.filter((a) => a.id !== target.id);
+    } else {
+      const mergedAthletes = [...teamAthletes];
+      const existingIdx = mergedAthletes.findIndex((a) => a.id === target.id);
+      if (existingIdx !== -1) {
+        mergedAthletes[existingIdx] = {
+          ...mergedAthletes[existingIdx],
+          scores: {
+            ...mergedAthletes[existingIdx].scores,
+            ...target.scores,
+          },
+          soloHits: {
+            ...(mergedAthletes[existingIdx].soloHits || {}),
+            ...(target.soloHits || {}),
+          },
+          soloRounds: {
+            ...(mergedAthletes[existingIdx].soloRounds || {}),
+            ...(target.soloRounds || {}),
+          },
+        };
+      } else {
+        mergedAthletes.push(target);
+      }
+      nextTeamAthletes = mergedAthletes;
+      nextTeamInputAthletes = teamInputAthletes.filter((a) => a.id !== target.id);
+    }
+
+    setPendingScrollAthleteId(target.id);
+
+    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+      try {
+        await updateOnlineTournament(activeHistoryId, {
+          athletes: nextAthletes,
+          teamAthletes: nextTeamAthletes,
+          inputAthletes: nextInputAthletes,
+          teamInputAthletes: nextTeamInputAthletes,
+        });
+
+        setAthletes(nextAthletes);
+        setTeamAthletes(nextTeamAthletes);
+        setInputAthletes(nextInputAthletes);
+        setTeamInputAthletes(nextTeamInputAthletes);
+
+        const currentActiveList = competitionMode === "individual" ? nextInputAthletes : nextTeamInputAthletes;
+        if (currentActiveList.length === 0) {
+          setHasUnsavedChanges(false);
+        }
+
+        setSaveStatus({
+          success: true,
+          message: `ĐÃ LƯU ĐIỂM VĐV ${target.name} (${target.id})! Kết quả đã đồng bộ lên mây.`,
+        });
+
+        setTimeout(() => {
+          setSingleAthleteToSave(null);
+          setSaveStatus(null);
+          setIsSavingScores(false);
+        }, 1200);
+      } catch (err: any) {
+        console.error("Single cloud save failed:", err);
+        setSaveStatus({
+          success: false,
+          message: `Lỗi lưu mây: ${err?.message || "Không phản hồi"}. Thử lại!`,
+        });
+        setIsSavingScores(false);
+      }
+    } else {
+      setAthletes(nextAthletes);
+      setTeamAthletes(nextTeamAthletes);
+      setInputAthletes(nextInputAthletes);
+      setTeamInputAthletes(nextTeamInputAthletes);
+
+      saveAvatarsFromAthletes(nextAthletes);
+      saveAvatarsFromAthletes(nextTeamAthletes);
+
+      deviceStorage.set("slingshot_athletes", stripBase64Avatars(nextAthletes));
+      deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(nextTeamAthletes));
+      deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(nextInputAthletes));
+      deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(nextTeamInputAthletes));
+
+      const currentActiveList = competitionMode === "individual" ? nextInputAthletes : nextTeamInputAthletes;
+      if (currentActiveList.length === 0) {
+        setHasUnsavedChanges(false);
+      }
+
+      setSaveStatus({
+        success: true,
+        message: `Đã lưu điểm thành công cho VĐV ${target.name}!`,
+      });
+
+      setTimeout(() => {
+        setSingleAthleteToSave(null);
+        setSaveStatus(null);
+        setIsSavingScores(false);
+      }, 1000);
     }
   };
 
@@ -4575,6 +4601,11 @@ export default function App() {
                     onClick={() => {
                       setIsMobileDrawerOpen(false);
                       if (activeHistoryId) {
+                        if (hasUnsavedChanges) {
+                          setPendingTabTarget({ type: "exit", value: "all" });
+                          setIsUnsavedModalOpen(true);
+                          return;
+                        }
                         handleExitTournament();
                       }
                       setActiveTab("settings");
@@ -4701,8 +4732,8 @@ export default function App() {
                     {/* Exit current tournament */}
                     <button
                       onClick={() => {
-                        handleExitTournament();
                         setIsMobileDrawerOpen(false);
+                        changeExitTournament("all");
                       }}
                       className="w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 text-rose-650 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
                     >
@@ -5061,250 +5092,238 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Add Athlete to Tournament panel inline form */}
-              {isAddingAthleteToTournament && (
-                <div className="bg-white dark:bg-slate-900 border-2 border-indigo-300 dark:border-indigo-900 rounded-2xl p-5 max-w-xl w-full mx-auto shadow-md relative animate-fadeIn">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wide">
-                      <UserPlus className="w-4 h-4 text-indigo-600" />
-                      Thêm VĐV hệ thống vào giải đấu
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setIsAddingAthleteToTournament(false);
-                        setTourAddSearch("");
-                        setSelectedTourAthleteIds([]);
-                      }}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Search input for Master Roster */}
-                  <div className="relative mb-3">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm hồ sơ theo ID, Tên, Đội..."
-                      value={tourAddSearch}
-                      onChange={(e) => setTourAddSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white font-medium"
-                    />
-                  </div>
-
-                  {/* Header tools for multi-select */}
-                  {(() => {
-                    const unselected = masterAthletes.filter(
-                      (m) => !currentAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                    );
-                    const filtered = unselected.filter((m) => {
-                      if (!tourAddSearch.trim()) return true;
-                      const s = tourAddSearch.toLowerCase();
-                      return (
-                        m.id.toLowerCase().includes(s) ||
-                        m.name.toLowerCase().includes(s) ||
-                        (m.team && m.team.toLowerCase().includes(s))
-                      );
-                    });
-
-                    if (filtered.length === 0) return null;
-
-                    const allFilteredSelected = filtered.every((f) => selectedTourAthleteIds.includes(f.id));
-                    const someFilteredSelected = filtered.some((f) => selectedTourAthleteIds.includes(f.id));
-
-                    const handleToggleSelectAll = () => {
-                      if (allFilteredSelected) {
-                        // Deselect all filtered items
-                        const filteredIds = filtered.map((f) => f.id);
-                        setSelectedTourAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
-                      } else {
-                        // Select all filtered items
-                        const filteredIds = filtered.map((f) => f.id);
-                        setSelectedTourAthleteIds((prev) => {
-                          const combined = [...prev, ...filteredIds];
-                          return Array.from(new Set(combined));
-                        });
-                      }
-                    };
-
-                    return (
-                      <div className="flex items-center justify-between mb-2 px-1 text-xs">
-                        <label className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={allFilteredSelected}
-                            ref={(el: HTMLInputElement | null) => {
-                              if (el) {
-                                el.indeterminate = someFilteredSelected && !allFilteredSelected;
-                              }
-                            }}
-                            onChange={handleToggleSelectAll}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span>Chọn tất cả kết quả ({filtered.length})</span>
-                        </label>
-                        {selectedTourAthleteIds.length > 0 && (
-                          <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
-                            Đã chọn: {selectedTourAthleteIds.length}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* List of master athletes not in tournament */}
-                  <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-slate-800 rounded-lg p-1 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col gap-1">
-                    {(() => {
-                      const unselected = masterAthletes.filter(
-                        (m) => !currentAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                      );
-                      const filtered = unselected.filter((m) => {
-                        if (!tourAddSearch.trim()) return true;
-                        const s = tourAddSearch.toLowerCase();
-                        return (
-                          m.id.toLowerCase().includes(s) ||
-                          m.name.toLowerCase().includes(s) ||
-                          (m.team && m.team.toLowerCase().includes(s))
-                        );
-                      });
-
-                      if (unselected.length === 0) {
-                        return (
-                          <div className="text-center py-5 text-xs text-slate-500 font-medium">
-                            Tất cả vận động viên trong hệ thống hiện đã có mặt ở giải đấu này.
-                          </div>
-                        );
-                      }
-
-                      if (filtered.length === 0) {
-                        return (
-                          <div className="text-center py-5 text-xs text-slate-500 font-medium">
-                            Không thấy hồ sơ nào có ID hoặc Tên khớp.
-                          </div>
-                        );
-                      }
-
-                      return filtered.map((m) => {
-                        const isChecked = selectedTourAthleteIds.includes(m.id);
-                        return (
-                          <div
-                            key={m.id}
-                            className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 gap-2 sm:gap-4 cursor-pointer border rounded-xl transition-all ${
-                              isChecked 
-                                ? "bg-indigo-50/70 border-indigo-300 dark:bg-indigo-950/40 dark:border-indigo-800" 
-                                : "hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border-transparent hover:border-indigo-300"
-                            }`}
-                            onClick={() => {
-                              setSelectedTourAthleteIds((prev) => 
-                                prev.includes(m.id) 
-                                  ? prev.filter((id) => id !== m.id) 
-                                  : [...prev, m.id]
-                              );
-                            }}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => {}} // Handled by row click, no-op to avoid react warnings
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer"
-                              />
-                              <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">
-                                ID: {m.id}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">{m.name}</span>
-                                  {m.status === "Bỏ thi" && (
-                                    <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0">
-                                      Bỏ thi
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-gray-500 font-normal block truncate w-full">
-                                  {m.team || "Tự do"} • {m.gender || "Nam"}
-                                </span>
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation(); // prevent row click toggle
-                                // Add single immediately
-                                const freshScores: Record<string, (boolean | null)[]> = {};
-                                currentDistances.forEach((d) => {
-                                  freshScores[d.id] = Array(currentShotsCount).fill(null);
-                                });
-                                const addedPlayer: Athlete = {
-                                  ...m,
-                                  scores: freshScores,
-                                };
-                                if (competitionMode === "individual") {
-                                  setAthletes((prev) => [...prev, addedPlayer]);
-                                } else {
-                                  setTeamAthletes((prev) => [...prev, addedPlayer]);
-                                }
-                                // Remove from selected if added
-                                setSelectedTourAthleteIds((prev) => prev.filter((id) => id !== m.id));
-                              }}
-                              className="bg-emerald-600 hover:bg-emerald-700 hover:scale-[1.02] text-white text-[11px] font-black px-3.5 py-2 rounded-xl transition-all duration-150 whitespace-nowrap cursor-pointer shadow-md active:scale-95 w-full sm:w-auto sm:shrink-0 flex items-center gap-1 border border-emerald-800 text-center justify-center font-sans uppercase tracking-wider mt-1.5 sm:mt-0 max-sm:flex-1"
-                            >
-                              <Plus className="w-3.5 h-3.5 stroke-[3]" /> Thêm
-                            </button>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-
-                  {/* Multi addition master action button */}
-                  {selectedTourAthleteIds.length > 0 && (
-                    <div className="mt-4">
+              {/* Modal for adding system athletes to Tournament Scoring */}
+              {isAddingAthleteToTournament && typeof document !== "undefined" && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+                    
+                    {/* Header */}
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+                      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide">
+                        <UserPlus className="w-4 h-4 text-indigo-600" />
+                        Thêm VĐV hệ thống vào giải đấu
+                      </h3>
                       <button
+                        type="button"
                         onClick={() => {
-                          const toAdd = masterAthletes.filter((m) => selectedTourAthleteIds.includes(m.id));
-                          const newAthletes: Athlete[] = toAdd.map((m) => {
-                            const freshScores: Record<string, (boolean | null)[]> = {};
-                            currentDistances.forEach((d) => {
-                              freshScores[d.id] = Array(currentShotsCount).fill(null);
-                            });
-                            return {
-                              ...m,
-                              scores: freshScores,
-                            };
-                          });
-                          if (competitionMode === "individual") {
-                            setAthletes((prev) => [...prev, ...newAthletes]);
-                          } else {
-                            setTeamAthletes((prev) => [...prev, ...newAthletes]);
-                          }
-                          setSelectedTourAthleteIds([]);
                           setIsAddingAthleteToTournament(false);
                           setTourAddSearch("");
+                          setSelectedTourAthleteIds([]);
                         }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold py-2 px-4 rounded-xl transition-all duration-150 shadow-md flex items-center justify-center gap-1 active:scale-[0.99]"
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                       >
-                        Thêm {selectedTourAthleteIds.length} VĐV đã chọn vào giải đấu
+                        <X className="w-5 h-5" />
                       </button>
                     </div>
-                  )}
 
-                  <div className="mt-3 text-[10.5px] text-slate-400 text-center">
-                    Ý kiến: Nếu chưa đăng ký VĐV này, hãy chuyển qua tab{" "}
-                    <button
-                      onClick={() => {
-                        setActiveTab("settings");
-                        setSettingsSubTab("athletes");
-                        setIsAddingAthleteToTournament(false);
-                        setSelectedTourAthleteIds([]);
-                      }}
-                      className="font-bold text-indigo-600 hover:underline cursor-pointer"
-                    >
-                      Quản Lý VĐV
-                    </button>{" "}
-                    để đăng ký hồ sơ vĩnh viễn trước.
+                    {/* Search & Select All Tools */}
+                    <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Tìm kiếm hồ sơ theo ID, Tên, Đội..."
+                          value={tourAddSearch}
+                          onChange={(e) => setTourAddSearch(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium dark:text-white"
+                        />
+                      </div>
+
+                      {(() => {
+                        const unselected = masterAthletes.filter(
+                          (m) => !currentAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
+                        );
+                        const filtered = unselected.filter((m) => {
+                          if (!tourAddSearch.trim()) return true;
+                          const s = tourAddSearch.toLowerCase();
+                          return (
+                            m.id.toLowerCase().includes(s) ||
+                            m.name.toLowerCase().includes(s) ||
+                            (m.team && m.team.toLowerCase().includes(s))
+                          );
+                        });
+
+                        if (filtered.length === 0) return null;
+
+                        const allFilteredSelected = filtered.every((f) => selectedTourAthleteIds.includes(f.id));
+
+                        const handleToggleSelectAll = () => {
+                          if (allFilteredSelected) {
+                            const filteredIds = filtered.map((f) => f.id);
+                            setSelectedTourAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+                          } else {
+                            const filteredIds = filtered.map((f) => f.id);
+                            setSelectedTourAthleteIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+                          }
+                        };
+
+                        return (
+                          <div className="flex items-center justify-between px-1 text-xs pt-1">
+                            <button
+                              type="button"
+                              onClick={handleToggleSelectAll}
+                              className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>{allFilteredSelected ? "Bỏ chọn tất cả" : `Chọn tất cả kết quả (${filtered.length})`}</span>
+                            </button>
+                            {selectedTourAthleteIds.length > 0 && (
+                              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                Đã chọn: {selectedTourAthleteIds.length} VĐV
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Athlete Roster Scroll Area */}
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[220px]">
+                      {(() => {
+                        const unselected = masterAthletes.filter(
+                          (m) => !currentAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
+                        );
+                        const filtered = unselected.filter((m) => {
+                          if (!tourAddSearch.trim()) return true;
+                          const s = tourAddSearch.toLowerCase();
+                          return (
+                            m.id.toLowerCase().includes(s) ||
+                            m.name.toLowerCase().includes(s) ||
+                            (m.team && m.team.toLowerCase().includes(s))
+                          );
+                        });
+
+                        if (unselected.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                              Tất cả vận động viên trong hệ thống hiện đã có mặt ở giải đấu này.
+                            </div>
+                          );
+                        }
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                              Không tìm thấy vận động viên nào phù hợp với tìm kiếm.
+                            </div>
+                          );
+                        }
+
+                        return filtered.map((m) => {
+                          const isChecked = selectedTourAthleteIds.includes(m.id);
+                          return (
+                            <div
+                              key={m.id}
+                              onClick={() => {
+                                setSelectedTourAthleteIds((prev) =>
+                                  prev.includes(m.id) ? prev.filter((id) => id !== m.id) : [...prev, m.id]
+                                );
+                              }}
+                              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                                isChecked
+                                  ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-indigo-500 dark:border-indigo-600 shadow-sm ring-1 ring-indigo-500"
+                                  : "bg-slate-50/50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                                    isChecked
+                                      ? "bg-indigo-600 border-indigo-600 text-white"
+                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-transparent"
+                                  }`}
+                                >
+                                  <Check className="w-4 h-4 stroke-[3]" />
+                                </div>
+                                <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded shrink-0 border border-indigo-200 dark:border-indigo-900">
+                                  ID: {m.id}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</span>
+                                    {m.status === "Bỏ thi" && (
+                                      <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0">
+                                        Bỏ thi
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-gray-500 dark:text-slate-400 block truncate">
+                                    {m.team || "Tự do"} • {m.gender || "Nam"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+
+                    {/* Footer: HỦY and GỌI X VĐV */}
+                    <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between gap-3">
+                      <div className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-none">
+                        Nếu chưa có VĐV, vào tab{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab("settings");
+                            setSettingsSubTab("athletes");
+                            setIsAddingAthleteToTournament(false);
+                            setSelectedTourAthleteIds([]);
+                          }}
+                          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                        >
+                          Quản Lý VĐV
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingAthleteToTournament(false);
+                            setTourAddSearch("");
+                            setSelectedTourAthleteIds([]);
+                          }}
+                          className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          HỦY
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedTourAthleteIds.length === 0) {
+                              alert("Vui lòng chọn ít nhất 1 vận động viên!");
+                              return;
+                            }
+                            const toAdd = masterAthletes.filter((m) => selectedTourAthleteIds.includes(m.id));
+                            const newAthletes: Athlete[] = toAdd.map((m) => {
+                              const freshScores: Record<string, (boolean | null)[]> = {};
+                              currentDistances.forEach((d) => {
+                                freshScores[d.id] = Array(currentShotsCount).fill(null);
+                              });
+                              return {
+                                ...m,
+                                scores: freshScores,
+                              };
+                            });
+                            if (competitionMode === "individual") {
+                              setAthletes((prev) => [...prev, ...newAthletes]);
+                            } else {
+                              setTeamAthletes((prev) => [...prev, ...newAthletes]);
+                            }
+                            setSelectedTourAthleteIds([]);
+                            setIsAddingAthleteToTournament(false);
+                            setTourAddSearch("");
+                          }}
+                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          GỌI {selectedTourAthleteIds.length} VĐV
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
 
               {/* The giant Centered button below cards list as described by User */}
@@ -5414,250 +5433,241 @@ export default function App() {
                       directMaxPoints={competitionMode === "individual" ? directMaxPoints : teamDirectMaxPoints}
                       isLockedByOtherReferee={isLockedByOtherReferee}
                       lockedByRefereeEmail={lockedByRefereeEmail}
+                      onSaveSingleAthlete={(ath) => {
+                        setSingleAthleteToSave(ath);
+                        setSaveStatus(null);
+                      }}
                     />
                   );
                 })}
               </div>
 
-              {/* Add Athlete to Input Board panel inline form */}
-              {isAddingAthleteToInputBoard && (
-                <div className="bg-white dark:bg-slate-900 border-2 border-indigo-300 dark:border-indigo-900 rounded-2xl p-5 max-w-xl w-full mx-auto shadow-md relative animate-fadeIn">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wide">
-                      <UserPlus className="w-4 h-4 text-indigo-600" />
-                      Chọn VĐV hệ thống để Nhập Điểm
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setIsAddingAthleteToInputBoard(false);
-                        setInputBoardAddSearch("");
-                        setSelectedInputBoardAthleteIds([]);
-                      }}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+              {/* Modal for selecting system athletes for Input Board (Nhập Điểm) */}
+              {isAddingAthleteToInputBoard && typeof document !== "undefined" && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+                    
+                    {/* Header */}
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+                      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide">
+                        <UserPlus className="w-4 h-4 text-indigo-600" />
+                        Chọn VĐV hệ thống để Nhập Điểm
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingAthleteToInputBoard(false);
+                          setInputBoardAddSearch("");
+                          setSelectedInputBoardAthleteIds([]);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
 
-                  {/* Search input for Master Roster */}
-                  <div className="relative mb-3">
-                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm hồ sơ theo ID, Tên, Đội..."
-                      value={inputBoardAddSearch}
-                      onChange={(e) => setInputBoardAddSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white font-medium"
-                    />
-                  </div>
-
-                  {/* Header tools for multi-select */}
-                  {(() => {
-                    const unselected = masterAthletes.filter(
-                      (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                    );
-                    const filtered = unselected.filter((m) => {
-                      if (!inputBoardAddSearch.trim()) return true;
-                      const s = inputBoardAddSearch.toLowerCase();
-                      return (
-                        m.id.toLowerCase().includes(s) ||
-                        m.name.toLowerCase().includes(s) ||
-                        (m.team && m.team.toLowerCase().includes(s))
-                      );
-                    });
-
-                    if (filtered.length === 0) return null;
-
-                    // Keep all filtered athletes selectable
-                    const allowedFiltered = filtered;
-                    const allFilteredSelected = allowedFiltered.length > 0 && allowedFiltered.every((f) => selectedInputBoardAthleteIds.includes(f.id));
-                    const someFilteredSelected = allowedFiltered.some((f) => selectedInputBoardAthleteIds.includes(f.id));
-
-                    const handleToggleSelectAll = () => {
-                      if (allFilteredSelected) {
-                        const filteredIds = allowedFiltered.map((f) => f.id);
-                        setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
-                      } else {
-                        const filteredIds = allowedFiltered.map((f) => f.id);
-                        setSelectedInputBoardAthleteIds((prev) => {
-                          const combined = [...prev, ...filteredIds];
-                          return Array.from(new Set(combined));
-                        });
-                      }
-                    };
-
-                    return (
-                      <div className="flex items-center justify-between mb-2 px-1 text-xs">
-                        {allowedFiltered.length > 0 ? (
-                          <label className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={allFilteredSelected}
-                              ref={(el: HTMLInputElement | null) => {
-                                if (el) {
-                                  el.indeterminate = someFilteredSelected && !allFilteredSelected;
-                                }
-                              }}
-                              onChange={handleToggleSelectAll}
-                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span>Chọn tất cả ({allowedFiltered.length}) vđv</span>
-                          </label>
-                        ) : (
-                          <span className="text-gray-400 font-normal">Không có vận động viên nào khác để chọn.</span>
-                        )}
-                        {selectedInputBoardAthleteIds.length > 0 && (
-                          <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
-                            Đã chọn: {selectedInputBoardAthleteIds.length}
-                          </span>
-                        )}
+                    {/* Search & Select All Tools */}
+                    <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Tìm kiếm hồ sơ theo ID, Tên, Đội..."
+                          value={inputBoardAddSearch}
+                          onChange={(e) => setInputBoardAddSearch(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium dark:text-white"
+                        />
                       </div>
-                    );
-                  })()}
 
-                  {/* List of master athletes not in inputAthletes */}
-                  <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-slate-800 rounded-lg p-1 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col gap-1">
-                    {(() => {
-                      const unselected = masterAthletes.filter(
-                        (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                      );
-                      const filtered = unselected.filter((m) => {
-                        if (!inputBoardAddSearch.trim()) return true;
-                        const s = inputBoardAddSearch.toLowerCase();
-                        return (
-                          m.id.toLowerCase().includes(s) ||
-                          m.name.toLowerCase().includes(s) ||
-                          (m.team && m.team.toLowerCase().includes(s))
+                      {(() => {
+                        const unselected = masterAthletes.filter(
+                          (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
                         );
-                      });
+                        const filtered = unselected.filter((m) => {
+                          if (!inputBoardAddSearch.trim()) return true;
+                          const s = inputBoardAddSearch.toLowerCase();
+                          return (
+                            m.id.toLowerCase().includes(s) ||
+                            m.name.toLowerCase().includes(s) ||
+                            (m.team && m.team.toLowerCase().includes(s))
+                          );
+                        });
 
-                      if (unselected.length === 0) {
+                        if (filtered.length === 0) return null;
+
+                        const allowedFiltered = filtered;
+                        const allFilteredSelected = allowedFiltered.length > 0 && allowedFiltered.every((f) => selectedInputBoardAthleteIds.includes(f.id));
+
+                        const handleToggleSelectAll = () => {
+                          if (allFilteredSelected) {
+                            const filteredIds = allowedFiltered.map((f) => f.id);
+                            setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+                          } else {
+                            const filteredIds = allowedFiltered.map((f) => f.id);
+                            setSelectedInputBoardAthleteIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+                          }
+                        };
+
                         return (
-                          <div className="text-center py-5 text-xs text-slate-500 font-medium">
-                            Tất cả vận động viên trong hệ thống hiện đã có mặt ở bảng Nhập Điểm này.
-                          </div>
-                        );
-                      }
-
-                      if (filtered.length === 0) {
-                        return (
-                          <div className="text-center py-5 text-xs text-slate-500 font-medium">
-                            Không thấy hồ sơ nào có ID hoặc Tên khớp.
-                          </div>
-                        );
-                      }
-
-                      const sortedFiltered = [...filtered].sort((a, b) => {
-                        const scoreA = currentAthletes.find((x) => x.id === a.id);
-                        const scoreB = currentAthletes.find((x) => x.id === b.id);
-                        
-                        const statusA = !scoreA ? 0 : (currentDistances.some((d) => !scoreA.scores[d.id] || scoreA.scores[d.id].every(s => s === null)) ? 1 : 2);
-                        const statusB = !scoreB ? 0 : (currentDistances.some((d) => !scoreB.scores[d.id] || scoreB.scores[d.id].every(s => s === null)) ? 1 : 2);
-                        
-                        if (statusA !== statusB) {
-                          return statusA - statusB;
-                        }
-                        return a.id.localeCompare(b.id, undefined, { numeric: true });
-                      });
-
-                      return sortedFiltered.map((m) => {
-                        const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
-                        const isAlreadyInScoring = !!scoringAthlete;
-                        const isMissingSomeDistances = scoringAthlete 
-                          ? currentDistances.some((d) => {
-                              const shots = scoringAthlete.scores[d.id];
-                              return !shots || shots.every((s) => s === null);
-                            })
-                          : false;
-                        
-                        // Check if another referee has called this athlete in the document lists
-                        const activeListInDoc = competitionMode === "individual"
-                          ? (currentTournamentDoc?.inputAthletes || [])
-                          : (currentTournamentDoc?.teamInputAthletes || []);
-                        const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                        const otherRefereeEmail = documentActivePlayer?.calledBy && 
-                          documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
-                          ? documentActivePlayer.calledBy
-                          : null;
-                        
-                        const isCallerBlocked = !!otherRefereeEmail;
-                        const isSelectionBlocked = isCallerBlocked;
-                        const isChecked = selectedInputBoardAthleteIds.includes(m.id);
-                        
-                        return (
-                          <div
-                            key={m.id}
-                            className={`flex flex-col sm:flex-row sm:items-center justify-between p-2.5 gap-2 sm:gap-4 border rounded-xl transition-all ${
-                              isSelectionBlocked
-                                ? "bg-amber-50/45 dark:bg-amber-955/10 border-amber-200 dark:border-amber-955/60 opacity-65 cursor-not-allowed"
-                                : isChecked
-                                ? "bg-indigo-50/70 border-indigo-300 dark:bg-indigo-950/40 dark:border-indigo-800 cursor-pointer"
-                                : "hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border-transparent hover:border-indigo-300 cursor-pointer"
-                            }`}
-                            onClick={() => {
-                              if (isCallerBlocked) {
-                                alert(`Cảnh báo: Vận động viên "${m.name}" đang được gọi ghi điểm bởi trọng tài khác (${otherRefereeEmail})!`);
-                                return;
-                              }
-                              if (isSelectionBlocked) {
-                                alert(`Cảnh báo: Vận động viên "${m.name}" đã hoàn thành đầy đủ tất cả các cự ly trong bảng Ghi Điểm! Không thể chọn thêm.`);
-                                return;
-                              }
-                              setSelectedInputBoardAthleteIds((prev) => 
-                                prev.includes(m.id) 
-                                  ? prev.filter((id) => id !== m.id) 
-                                  : [...prev, m.id]
-                              );
-                            }}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={isSelectionBlocked}
-                                onChange={() => {}} // Handled by row click, no-op to avoid react warnings
-                                className={`rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0 ${
-                                  isSelectionBlocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                                }`}
-                              />
-                              <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">
-                                ID: {m.id}
+                          <div className="flex items-center justify-between px-1 text-xs pt-1">
+                            <button
+                              type="button"
+                              onClick={handleToggleSelectAll}
+                              className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>{allFilteredSelected ? "Bỏ chọn tất cả" : `Chọn tất cả kết quả (${allowedFiltered.length})`}</span>
+                            </button>
+                            {selectedInputBoardAthleteIds.length > 0 && (
+                              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                Đã chọn: {selectedInputBoardAthleteIds.length} VĐV
                               </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap font-sans">
-                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">{m.name}</span>
-                                  {isCallerBlocked ? (
-                                    <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0 animate-pulse">
-                                      🔒 Đang được gọi bởi: {otherRefereeEmail}
-                                    </span>
-                                  ) : (
-                                    <>
-                                      {isAlreadyInScoring && (
-                                        isMissingSomeDistances ? (
-                                          <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0">
-                                            Đã có điểm (Chưa đủ cự ly)
-                                          </span>
-                                        ) : (
-                                          <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-900/60 uppercase whitespace-nowrap shrink-0">
-                                            Đã đủ tất cả cự ly
-                                          </span>
-                                        )
-                                      )}
-                                      {m.status === "Bỏ thi" && (
-                                        <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0 animate-pulse">
-                                          Bỏ thi
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-gray-500 font-normal block truncate w-full">
-                                  {m.team || "Tự do"} • {m.gender || "Nam"}
-                                </span>
-                              </div>
-                            </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
-                            <div className="flex items-center gap-1.5 w-full sm:w-auto sm:shrink-0 justify-end mt-1.5 sm:mt-0">
+                    {/* Athlete Roster Scroll Area */}
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[220px]">
+                      {(() => {
+                        const unselected = masterAthletes.filter(
+                          (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
+                        );
+                        const filtered = unselected.filter((m) => {
+                          if (!inputBoardAddSearch.trim()) return true;
+                          const s = inputBoardAddSearch.toLowerCase();
+                          return (
+                            m.id.toLowerCase().includes(s) ||
+                            m.name.toLowerCase().includes(s) ||
+                            (m.team && m.team.toLowerCase().includes(s))
+                          );
+                        });
+
+                        if (unselected.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                              Tất cả vận động viên trong hệ thống hiện đã có mặt ở bảng Nhập Điểm này.
+                            </div>
+                          );
+                        }
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                              Không thấy hồ sơ nào có ID hoặc Tên khớp.
+                            </div>
+                          );
+                        }
+
+                        const sortedFiltered = [...filtered].sort((a, b) => {
+                          const scoreA = currentAthletes.find((x) => x.id === a.id);
+                          const scoreB = currentAthletes.find((x) => x.id === b.id);
+                          
+                          const statusA = !scoreA ? 0 : (currentDistances.some((d) => !scoreA.scores[d.id] || scoreA.scores[d.id].every(s => s === null)) ? 1 : 2);
+                          const statusB = !scoreB ? 0 : (currentDistances.some((d) => !scoreB.scores[d.id] || scoreB.scores[d.id].every(s => s === null)) ? 1 : 2);
+                          
+                          if (statusA !== statusB) {
+                            return statusA - statusB;
+                          }
+                          return a.id.localeCompare(b.id, undefined, { numeric: true });
+                        });
+
+                        return sortedFiltered.map((m) => {
+                          const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
+                          const isAlreadyInScoring = !!scoringAthlete;
+                          const isMissingSomeDistances = scoringAthlete 
+                            ? currentDistances.some((d) => {
+                                const shots = scoringAthlete.scores[d.id];
+                                return !shots || shots.every((s) => s === null);
+                              })
+                            : false;
+                          
+                          const activeListInDoc = competitionMode === "individual"
+                            ? (currentTournamentDoc?.inputAthletes || [])
+                            : (currentTournamentDoc?.teamInputAthletes || []);
+                          const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
+                          const otherRefereeEmail = documentActivePlayer?.calledBy && 
+                            documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
+                            ? documentActivePlayer.calledBy
+                            : null;
+                          
+                          const isCallerBlocked = !!otherRefereeEmail;
+                          const isSelectionBlocked = isCallerBlocked;
+                          const isChecked = selectedInputBoardAthleteIds.includes(m.id);
+                          
+                          return (
+                            <div
+                              key={m.id}
+                              onClick={() => {
+                                if (isCallerBlocked) {
+                                  alert(`Cảnh báo: Vận động viên "${m.name}" đang được gọi ghi điểm bởi trọng tài khác (${otherRefereeEmail})!`);
+                                  return;
+                                }
+                                if (isSelectionBlocked) {
+                                  alert(`Cảnh báo: Vận động viên "${m.name}" đã hoàn thành đầy đủ tất cả các cự ly trong bảng Ghi Điểm! Không thể chọn thêm.`);
+                                  return;
+                                }
+                                setSelectedInputBoardAthleteIds((prev) => 
+                                  prev.includes(m.id) 
+                                    ? prev.filter((id) => id !== m.id) 
+                                    : [...prev, m.id]
+                                );
+                              }}
+                              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                                isSelectionBlocked
+                                  ? "bg-amber-50/45 dark:bg-amber-955/10 border-amber-200 dark:border-amber-955/60 opacity-65 cursor-not-allowed"
+                                  : isChecked
+                                  ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-indigo-500 dark:border-indigo-600 shadow-sm ring-1 ring-indigo-500"
+                                  : "bg-slate-50/50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                                    isChecked
+                                      ? "bg-indigo-600 border-indigo-600 text-white"
+                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-transparent"
+                                  }`}
+                                >
+                                  <Check className="w-4 h-4 stroke-[3]" />
+                                </div>
+                                <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded shrink-0 border border-indigo-200 dark:border-indigo-900">
+                                  ID: {m.id}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</span>
+                                    {isCallerBlocked ? (
+                                      <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0 animate-pulse">
+                                        🔒 Đang được gọi bởi: {otherRefereeEmail}
+                                      </span>
+                                    ) : (
+                                      <>
+                                        {isAlreadyInScoring && (
+                                          isMissingSomeDistances ? (
+                                            <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0">
+                                              Đã có điểm (Chưa đủ cự ly)
+                                            </span>
+                                          ) : (
+                                            <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-900/60 uppercase whitespace-nowrap shrink-0">
+                                              Đã đủ tất cả cự ly
+                                            </span>
+                                          )
+                                        )}
+                                        {m.status === "Bỏ thi" && (
+                                          <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0 animate-pulse">
+                                            Bỏ thi
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-gray-500 dark:text-slate-400 block truncate">
+                                    {m.team || "Tự do"} • {m.gender || "Nam"}
+                                  </span>
+                                </div>
+                              </div>
+
                               {isAlreadyInScoring && (
                                 <button
                                   type="button"
@@ -5668,152 +5678,119 @@ export default function App() {
                                     setIsAddingAthleteToInputBoard(false);
                                     setSelectedInputBoardAthleteIds([]);
                                   }}
-                                  className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-700 text-white border border-emerald-700 hover:scale-[1.02] text-[11px] font-black px-3.5 py-2 rounded-xl transition-all duration-150 whitespace-nowrap flex items-center gap-1 text-center justify-center font-sans uppercase tracking-wider shadow-md active:scale-95 cursor-pointer max-sm:flex-1"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                                 >
                                   <Eye className="w-3.5 h-3.5" /> Xem
                                 </button>
                               )}
-
-                              <button
-                                type="button"
-                                disabled={isCallerBlocked}
-                                onClick={(e) => {
-                                  e.stopPropagation(); // prevent row click toggle
-                                  if (isCallerBlocked) {
-                                    alert(`Vận động viên này đang được gọi ghi điểm bởi trọng tài khác (${otherRefereeEmail})!`);
-                                    return;
-                                  }
-                                  // Deep clone scores if they already have some in Ghi Điểm
-                                  const freshScores: Record<string, (boolean | null)[]> = {};
-                                  currentDistances.forEach((d) => {
-                                    if (scoringAthlete && scoringAthlete.scores[d.id]) {
-                                      freshScores[d.id] = [...scoringAthlete.scores[d.id]];
-                                    } else {
-                                      freshScores[d.id] = Array(currentShotsCount).fill(null);
-                                    }
-                                  });
-
-                                  const addedPlayer: Athlete = {
-                                    ...m,
-                                    scores: freshScores,
-                                    soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
-                                    calledBy: currentUser?.email || "anonymous",
-                                  };
-                                  if (competitionMode === "individual") {
-                                    setInputAthletes((prev) => [...prev, addedPlayer]);
-                                  } else {
-                                    setTeamInputAthletes((prev) => [...prev, addedPlayer]);
-                                  }
-                                  // Remove from selected if added
-                                  setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => id !== m.id));
-                                  // Auto close selection panel and mark unsaved changes
-                                  setIsAddingAthleteToInputBoard(false);
-                                  setInputBoardAddSearch("");
-                                  setHasUnsavedChanges(true);
-                                }}
-                                className={`text-[11px] font-black px-3.5 py-2 rounded-xl transition-all duration-150 whitespace-nowrap flex items-center gap-1 border text-center justify-center font-sans uppercase tracking-wider shadow-md active:scale-95 cursor-pointer max-sm:flex-1 ${
-                                  isCallerBlocked
-                                    ? "bg-slate-300 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-800 cursor-not-allowed opacity-[0.6] shadow-none scale-100"
-                                    : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white border border-indigo-700 hover:scale-[1.02]"
-                                }`}
-                              >
-                                <Plus className="w-3.5 h-3.5 stroke-[3]" /> Thêm
-                              </button>
                             </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                          );
+                        });
+                      })()}
+                    </div>
 
-                  {/* Multi addition master action button */}
-                  {selectedInputBoardAthleteIds.length > 0 && (
-                    <div className="mt-4">
-                      <button
-                        onClick={() => {
-                          const toAdd = masterAthletes.filter((m) => selectedInputBoardAthleteIds.includes(m.id));
-                          
-                          const activeListInDoc = competitionMode === "individual"
-                            ? (currentTournamentDoc?.inputAthletes || [])
-                            : (currentTournamentDoc?.teamInputAthletes || []);
-
-                          const validToAdd: typeof masterAthletes = [];
-                          const skippedNames: string[] = [];
-
-                          toAdd.forEach((m) => {
-                            const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                            const otherRefereeEmail = documentActivePlayer?.calledBy && 
-                              documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
-                              ? documentActivePlayer.calledBy
-                              : null;
-                            if (otherRefereeEmail) {
-                              skippedNames.push(`${m.name} (bởi ${otherRefereeEmail})`);
-                            } else {
-                              validToAdd.push(m);
+                    {/* Footer: HỦY and GỌI X VĐV */}
+                    <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between gap-3">
+                      <div className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-none">
+                        Nếu chưa có VĐV, vào tab{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab("settings");
+                            setSettingsSubTab("athletes");
+                            setIsAddingAthleteToInputBoard(false);
+                            setSelectedInputBoardAthleteIds([]);
+                          }}
+                          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                        >
+                          Quản Lý VĐV
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingAthleteToInputBoard(false);
+                            setInputBoardAddSearch("");
+                            setSelectedInputBoardAthleteIds([]);
+                          }}
+                          className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          HỦY
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedInputBoardAthleteIds.length === 0) {
+                              alert("Vui lòng chọn ít nhất 1 vận động viên!");
+                              return;
                             }
-                          });
+                            const toAdd = masterAthletes.filter((m) => selectedInputBoardAthleteIds.includes(m.id));
+                            
+                            const activeListInDoc = competitionMode === "individual"
+                              ? (currentTournamentDoc?.inputAthletes || [])
+                              : (currentTournamentDoc?.teamInputAthletes || []);
 
-                          if (skippedNames.length > 0) {
-                            alert(`Bỏ qua các vận động viên sau do đang được nhập điểm bởi trọng tài khác:\n- ${skippedNames.join("\n- ")}`);
-                          }
+                            const validToAdd: typeof masterAthletes = [];
+                            const skippedNames: string[] = [];
 
-                          if (validToAdd.length === 0) {
+                            toAdd.forEach((m) => {
+                              const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
+                              const otherRefereeEmail = documentActivePlayer?.calledBy && 
+                                documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
+                                ? documentActivePlayer.calledBy
+                                : null;
+                              if (otherRefereeEmail) {
+                                skippedNames.push(`${m.name} (bởi ${otherRefereeEmail})`);
+                              } else {
+                                validToAdd.push(m);
+                              }
+                            });
+
+                            if (skippedNames.length > 0) {
+                              alert(`Bỏ qua các vận động viên sau do đang được nhập điểm bởi trọng tài khác:\n- ${skippedNames.join("\n- ")}`);
+                            }
+
+                            if (validToAdd.length > 0) {
+                              const newAthletes: Athlete[] = validToAdd.map((m) => {
+                                const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
+                                const freshScores: Record<string, (boolean | null)[]> = {};
+                                currentDistances.forEach((d) => {
+                                  if (scoringAthlete && scoringAthlete.scores[d.id]) {
+                                    freshScores[d.id] = [...scoringAthlete.scores[d.id]];
+                                  } else {
+                                    freshScores[d.id] = Array(currentShotsCount).fill(null);
+                                  }
+                                });
+                                return {
+                                  ...m,
+                                  scores: freshScores,
+                                  soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
+                                  calledBy: currentUser?.email || "anonymous",
+                                };
+                              });
+                              if (competitionMode === "individual") {
+                                setInputAthletes((prev) => [...prev, ...newAthletes]);
+                              } else {
+                                setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
+                              }
+                              setHasUnsavedChanges(true);
+                            }
                             setSelectedInputBoardAthleteIds([]);
                             setIsAddingAthleteToInputBoard(false);
                             setInputBoardAddSearch("");
-                            return;
-                          }
-
-                          const newAthletes: Athlete[] = validToAdd.map((m) => {
-                            const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
-                            const freshScores: Record<string, (boolean | null)[]> = {};
-                            currentDistances.forEach((d) => {
-                              if (scoringAthlete && scoringAthlete.scores[d.id]) {
-                                freshScores[d.id] = [...scoringAthlete.scores[d.id]];
-                              } else {
-                                freshScores[d.id] = Array(currentShotsCount).fill(null);
-                              }
-                            });
-                            return {
-                              ...m,
-                              scores: freshScores,
-                              soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
-                              calledBy: currentUser?.email || "anonymous",
-                            };
-                          });
-                          if (competitionMode === "individual") {
-                            setInputAthletes((prev) => [...prev, ...newAthletes]);
-                          } else {
-                            setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
-                          }
-                          setHasUnsavedChanges(true);
-                          setSelectedInputBoardAthleteIds([]);
-                          setIsAddingAthleteToInputBoard(false);
-                          setInputBoardAddSearch("");
-                        }}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-extrabold py-2 px-4 rounded-xl transition-all duration-150 shadow-md flex items-center justify-center gap-1 active:scale-[0.99]"
-                      >
-                        Thêm {selectedInputBoardAthleteIds.length} VĐV đã chọn vào bảng nhập điểm
-                      </button>
+                          }}
+                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          GỌI {selectedInputBoardAthleteIds.length} VĐV
+                        </button>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="mt-3 text-[10.5px] text-slate-400 text-center">
-                    Ý kiến: Nếu chưa đăng ký VĐV này, hãy chuyển qua tab{" "}
-                    <button
-                      onClick={() => {
-                        setActiveTab("settings");
-                        setSettingsSubTab("athletes");
-                        setIsAddingAthleteToInputBoard(false);
-                        setSelectedInputBoardAthleteIds([]);
-                      }}
-                      className="font-bold text-indigo-600 hover:underline cursor-pointer"
-                    >
-                      Quản Lý VĐV
-                    </button>{" "}
-                    để đăng ký hồ sơ vĩnh viễn trước.
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
 
               {/* The action buttons panel - PLUS & SAVE SIDE BY SIDE */}
@@ -6492,6 +6469,117 @@ export default function App() {
         </div>
       )}
 
+      {/* 1B. Single Athlete Save Confirm Modal */}
+      {singleAthleteToSave && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10008] p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl relative text-left">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-2xl border border-emerald-100 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400">
+                <Save className="w-5.5 h-5.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
+                  Xác nhận Lưu Điểm VĐV
+                </h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  Thao tác chuyển điểm số VĐV sang danh sách Ghi Điểm
+                </p>
+              </div>
+            </div>
+
+            {/* Target Athlete Details Header Card */}
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 mb-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-mono font-black text-xs flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
+                {singleAthleteToSave.id}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate">
+                  {singleAthleteToSave.name}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  Đội: {singleAthleteToSave.team || "Tự do"} • {singleAthleteToSave.gender || "Nam"}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-4">
+              Hệ thống sẽ đồng bộ toàn bộ điểm số của vận động viên <span className="text-indigo-600 dark:text-indigo-400 font-bold">{singleAthleteToSave.name}</span> từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ trước khi xác nhận.
+            </p>
+
+            {/* Network connectivity feedback */}
+            <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                Trạng thái kết nối:
+              </span>
+              {networkStatus === "offline" ? (
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <WifiOff className="w-3.5 h-3.5" />
+                  Mất mạng (Lưu máy)
+                </span>
+              ) : (
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <Wifi className="w-3.5 h-3.5" />
+                  Trực tuyến (Đồng bộ mây)
+                </span>
+              )}
+            </div>
+
+            {/* Save operations status banner */}
+            {saveStatus && (
+              <div className={`p-3.5 rounded-2xl text-xs font-semibold mb-4 leading-relaxed border ${
+                saveStatus.success 
+                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50" 
+                  : "bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/50"
+              }`}>
+                <div className="flex gap-2 items-start">
+                  <div className="mt-0.5 shrink-0">
+                    {saveStatus.success ? (
+                      <span className="text-emerald-500 font-bold">✔</span>
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                    )}
+                  </div>
+                  <span>{saveStatus.message}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={() => {
+                  setSingleAthleteToSave(null);
+                  setSaveStatus(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
+              >
+                Hủy kiểm tra lại
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingScores}
+                onClick={executeSaveSingleAthlete}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md text-center flex items-center justify-center gap-1.5 disabled:opacity-50 font-extrabold"
+              >
+                {isSavingScores ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    Lưu VĐV này
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. CHƯA LƯU ĐIỂM Warning Modal (Guard Tab Navigation) */}
       {isUnsavedModalOpen && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10007] p-4 animate-fadeIn">
@@ -6574,15 +6662,37 @@ export default function App() {
               <button
                 type="button"
                 disabled={isSavingScores}
-                onClick={() => {
+                onClick={async () => {
+                  // Clear temporary draft input athletes called into the scoring board
+                  setInputAthletes([]);
+                  setTeamInputAthletes([]);
+                  try {
+                    localStorage.removeItem("slingshot_input_athletes");
+                    localStorage.removeItem("slingshot_team_input_athletes");
+                  } catch (e) {
+                    console.error("Failed to clear local draft scores:", e);
+                  }
+
+                  // If online tournament, sync empty draft inputAthletes to Cloud DB
+                  if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                    updateOnlineTournament(activeHistoryId, {
+                      inputAthletes: [],
+                      teamInputAthletes: [],
+                    }).catch(err => console.error("Cloud discard sync failed:", err));
+                  }
+
                   setHasUnsavedChanges(false);
                   setIsUnsavedModalOpen(false);
                   setSaveStatus(null);
+
                   if (pendingTabTarget) {
                     if (pendingTabTarget.type === "tab") {
-                      setActiveTab(pendingTabTarget.value);
+                      setActiveTab(pendingTabTarget.value || "dashboard");
                     } else if (pendingTabTarget.type === "exit") {
-                      handleExitTournament(pendingTabTarget.value as any);
+                      handleExitTournament((pendingTabTarget.value as any) || "all");
+                    } else if (pendingTabTarget.type === "select_tour") {
+                      const { id, tournament, targetTab } = pendingTabTarget.payload || {};
+                      handleSelectTournament(id, tournament, targetTab);
                     }
                     setPendingTabTarget(null);
                   }
@@ -6599,6 +6709,7 @@ export default function App() {
                   setIsUnsavedModalOpen(false);
                   setPendingTabTarget(null);
                   setSaveStatus(null);
+                  setActiveTab("input_scores");
                 }}
                 className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
               >
@@ -6625,6 +6736,11 @@ export default function App() {
               <button
                 onClick={() => {
                   if (activeHistoryId) {
+                    if (hasUnsavedChanges) {
+                      setPendingTabTarget({ type: "exit", value: "all" });
+                      setIsUnsavedModalOpen(true);
+                      return;
+                    }
                     handleExitTournament();
                   }
                   setActiveTab("settings");

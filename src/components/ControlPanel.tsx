@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { 
   subscribeToTournamentsList, 
   deleteOnlineTournament,
+  createOnlineTournament,
   getUserProfile,
   updateUserProfile,
   TournamentData 
@@ -32,7 +33,9 @@ import {
   Save,
   CheckCircle,
   HelpCircle,
-  Clock
+  Clock,
+  Copy,
+  RefreshCw
 } from "lucide-react";
 import { Athlete, DistanceConfig } from "../types";
 import { getHitCount } from "../utils/qualification";
@@ -44,15 +47,27 @@ interface ControlPanelProps {
   forceSubTab?: "profile" | "created" | "referee";
 }
 
-const getTournamentModeLabel = (tour: TournamentData): string => {
-  if (tour.tournamentType === "combined") {
-    return "Cá Nhân & Đồng Đội (Kết hợp)";
-  } else if (tour.tournamentType === "team") {
-    return "Hỏa lực Đồng Đội";
-  } else if (tour.tournamentType === "individual") {
-    return "Hỏa lực Cá Nhân";
+export const resolveTournamentType = (tour: TournamentData): "individual" | "team" | "combined" => {
+  if (tour.tournamentType) return tour.tournamentType;
+  if (tour.competitionMode === "team") return "team";
+  if (tour.competitionMode === "individual") {
+    if ((tour.teamDistances && tour.teamDistances.length > 0) || (tour.teamAthletes && tour.teamAthletes.length > 0)) {
+      return "combined";
+    }
+    return "individual";
   }
-  return tour.competitionMode === "team" ? "Hỏa lực Đồng Đội" : "Hỏa lực Cá Nhân";
+  return "combined";
+};
+
+const getTournamentModeLabel = (tour: TournamentData): string => {
+  const mode = resolveTournamentType(tour);
+  if (mode === "combined") {
+    return "Cá Nhân & Đồng Đội (Kết hợp)";
+  } else if (mode === "team") {
+    return "Đồng Đội";
+  } else {
+    return "Cá Nhân";
+  }
 };
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -66,6 +81,93 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [showConfirmDeleteId, setShowConfirmDeleteId] = useState<string | null>(null);
+  
+  // State for Copy Tournament Modal
+  const [copyModalTour, setCopyModalTour] = useState<TournamentData | null>(null);
+  const [copyMatchName, setCopyMatchName] = useState("");
+  const [isCopying, setIsCopying] = useState(false);
+
+  const handleOpenCopyModal = (tour: TournamentData) => {
+    setCopyModalTour(tour);
+    setCopyMatchName(`${tour.matchName} (Bản sao)`);
+  };
+
+  const handleConfirmCopy = async () => {
+    if (!copyModalTour || !currentUser) return;
+    if (!copyMatchName.trim()) {
+      alert("Vui lòng nhập tên giải đấu mới!");
+      return;
+    }
+    setIsCopying(true);
+    try {
+      const cleanAthleteScores = (ath: Athlete): Athlete => ({
+        ...ath,
+        scores: {},
+        soloHits: {},
+        soloRounds: {},
+        calledBy: "",
+      });
+
+      const mapCleanUniqueAthletes = (...lists: (Athlete[] | undefined)[]): Athlete[] => {
+        const map = new Map<string, Athlete>();
+        lists.forEach(list => {
+          (list || []).forEach(ath => {
+            if (ath && ath.id && !map.has(ath.id)) {
+              map.set(ath.id, cleanAthleteScores(ath));
+            }
+          });
+        });
+        return Array.from(map.values());
+      };
+
+      const allMasterAthletes = mapCleanUniqueAthletes(
+        copyModalTour.masterAthletes,
+        copyModalTour.inputAthletes,
+        copyModalTour.athletes,
+        copyModalTour.teamInputAthletes,
+        copyModalTour.teamAthletes
+      );
+
+      await createOnlineTournament(
+        copyMatchName.trim(),
+        currentUser.uid,
+        currentUser.email || "",
+        {
+          competitionMode: copyModalTour.competitionMode || "individual",
+          tournamentType: copyModalTour.tournamentType || "individual",
+          shotsCount: copyModalTour.shotsCount || 10,
+          teamShotsCount: copyModalTour.teamShotsCount || 10,
+          laneCapacity: copyModalTour.laneCapacity,
+          directMaxPoints: copyModalTour.directMaxPoints,
+          teamDirectMaxPoints: copyModalTour.teamDirectMaxPoints,
+          directMaxShots: copyModalTour.directMaxShots,
+          teamDirectMaxShots: copyModalTour.teamDirectMaxShots,
+          distances: copyModalTour.distances || [],
+          teamDistances: copyModalTour.teamDistances || [],
+          athletes: [], // Clean individual recorded scores
+          teamAthletes: [], // Clean team recorded scores
+          inputAthletes: [], // Empty draft scoring grid
+          teamInputAthletes: [], // Empty draft team scoring grid
+          masterAthletes: allMasterAthletes,
+          clubs: copyModalTour.clubs || [],
+          avatarUrl: copyModalTour.avatarUrl,
+          bannerUrl: copyModalTour.bannerUrl,
+          referees: copyModalTour.referees || [],
+          subAdmins: copyModalTour.subAdmins || [],
+          startDate: copyModalTour.startDate,
+          endDate: copyModalTour.endDate,
+        }
+      );
+
+      alert(`Đã copy thành công giải đấu mới "${copyMatchName.trim()}"! Toàn bộ điểm số cũ đã được xóa sạch, giữ nguyên cấu hình và danh sách VĐV.`);
+      setCopyModalTour(null);
+    } catch (err: any) {
+      console.error("Failed to copy tournament:", err);
+      alert(`Lỗi khi sao chép giải đấu: ${err.message || err}`);
+    } finally {
+      setIsCopying(false);
+    }
+  };
   
   // Tab can be profile (hồ sơ của tôi), created (giải tôi tạo), referee (giải tôi trọng tài)
   const [subTab, setSubTab] = useState<"profile" | "created" | "referee">("profile");
@@ -332,6 +434,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     try {
       await deleteOnlineTournament(id);
       setShowConfirmDeleteId(null);
+      if (activeHistoryId === id) {
+        onSelectTournament("", null);
+      }
     } catch (err) {
       console.error(err);
       alert("Không thể xóa giải đấu này. Bạn không phải trưởng giải hoặc không có quyền!");
@@ -737,6 +842,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                               >
                                 <Trash2 className="w-4 h-4" /> Xóa
                               </button>
+
+                              <button
+                                onClick={() => handleOpenCopyModal(tour)}
+                                className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                title="Copy giải thành giải mới (Xóa hết điểm số cũ, giữ nguyên cấu hình)"
+                              >
+                                <Copy className="w-3.5 h-3.5" /> Sao chép
+                              </button>
                               
                               <button
                                 onClick={() => onSelectTournament(tour.id, tour)}
@@ -863,6 +976,78 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 Đồng ý Xóa
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {copyModalTour && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10009] p-4 animate-fadeIn text-slate-800 dark:text-slate-100 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 my-auto">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-2xl shrink-0">
+                <Copy className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  Xác nhận Sao Chép Giải Đấu
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Tạo bản sao mới giữ nguyên cấu hình & xóa sạch điểm số
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 font-sans text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Giải đấu gốc:</span>
+                <strong className="text-sm text-slate-900 dark:text-slate-100 font-extrabold">{copyModalTour.matchName}</strong>
+                <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
+                  <span>Thể thức: <strong>{getTournamentModeLabel(copyModalTour)}</strong></span>
+                  <span>VĐV: <strong>{(copyModalTour.athletes?.length || 0) + (copyModalTour.inputAthletes?.length || 0)}</strong></span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
+                  Tên giải đấu mới (Bản sao):
+                </label>
+                <input
+                  type="text"
+                  value={copyMatchName}
+                  onChange={(e) => setCopyMatchName(e.target.value)}
+                  placeholder="Nhập tên giải mới..."
+                  className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-bold text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Hệ thống sẽ giữ nguyên toàn bộ cấu hình, cự ly, sơ đồ & danh sách VĐV. <strong>Tất cả điểm số (Ghi Điểm cá nhân và đồng đội) sẽ được XÓA SẠCH</strong> để sẵn sàng ghi điểm cho giải mới.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setCopyModalTour(null)}
+                disabled={isCopying}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCopy}
+                disabled={isCopying}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wide rounded-xl shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isCopying ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                Xác nhận Sao Chép
               </button>
             </div>
           </div>

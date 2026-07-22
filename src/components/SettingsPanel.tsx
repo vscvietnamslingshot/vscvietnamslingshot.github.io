@@ -2812,6 +2812,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       return { ...athlete, scores: newScores };
                     });
                     setAthletes(updatedAthletes);
+
+                    if (setInputAthletes) {
+                      setInputAthletes((prev: Athlete[]) => (Array.isArray(prev) ? prev : []).map((athlete) => {
+                        const newScores = { ...athlete.scores };
+                        delete newScores[confirmDeleteDistanceId];
+                        return { ...athlete, scores: newScores };
+                      }));
+                    }
+
+                    if (activeHistoryId && activeHistoryId.startsWith("tour-") && auth.currentUser) {
+                      updateOnlineTournament(activeHistoryId, {
+                        distances: updatedDistances,
+                        athletes: updatedAthletes,
+                      }).catch(err => console.error("Cloud update distances failed:", err));
+                    }
                   } else {
                     if (teamDistances.length <= 1) {
                       setDistanceError("Bắt buộc giữ tối thiểu 1 cự ly bắn đồng đội!");
@@ -2829,6 +2844,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       return { ...athlete, scores: newScores };
                     });
                     setTeamAthletes(updatedAthletes);
+
+                    if (setTeamInputAthletes) {
+                      setTeamInputAthletes((prev: Athlete[]) => (Array.isArray(prev) ? prev : []).map((athlete) => {
+                        const newScores = { ...athlete.scores };
+                        delete newScores[confirmDeleteDistanceId];
+                        return { ...athlete, scores: newScores };
+                      }));
+                    }
+
+                    if (activeHistoryId && activeHistoryId.startsWith("tour-") && auth.currentUser) {
+                      updateOnlineTournament(activeHistoryId, {
+                        teamDistances: updatedDistances,
+                        teamAthletes: updatedAthletes,
+                      }).catch(err => console.error("Cloud update teamDistances failed:", err));
+                    }
                   }
                   setConfirmDeleteDistanceId(null);
                   setConfirmDeleteDistanceType(null);
