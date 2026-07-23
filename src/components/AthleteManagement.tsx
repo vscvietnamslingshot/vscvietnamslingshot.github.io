@@ -340,6 +340,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const [formEmail, setFormEmail] = useState("");
   
   const [validationError, setValidationError] = useState("");
+  const [duplicateSysMatch, setDuplicateSysMatch] = useState<Athlete | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [expandedListId, setExpandedListId] = useState<string | null>(null);
   const [customSaveName, setCustomSaveName] = useState("");
@@ -377,6 +378,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setIsEditing(false);
     setIsCreating(false);
     setValidationError("");
+    setDuplicateSysMatch(null);
     setIsConfirmingDelete(false);
   };
 
@@ -385,17 +387,18 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setIsEditing(false);
     setSelectedAthlete(null);
     setValidationError("");
+    setDuplicateSysMatch(null);
     setIsConfirmingDelete(false);
 
-    // Generate automatic unique ID string
+    // Generate automatic unique ID string skipping any existing IDs
     let nextIdNum = 1;
-    if (currentRoster.length > 0) {
-      const ids = currentRoster.map((a) => parseInt(a.id, 10)).filter((n) => !isNaN(n));
-      if (ids.length > 0) {
-        nextIdNum = Math.max(...ids) + 1;
-      } else {
-        nextIdNum = currentRoster.length + 1;
-      }
+    const allExistingIds = new Set([
+      ...currentRoster.map((a) => a.id.trim().toLowerCase()),
+      ...vscSystemAthletes.map((a) => a.id.trim().toLowerCase()),
+      ...(currentActiveAthletes || []).map((a) => a.id.trim().toLowerCase()),
+    ]);
+    while (allExistingIds.has(nextIdNum.toString().padStart(4, "0").toLowerCase())) {
+      nextIdNum++;
     }
     const finalIdStr = nextIdNum.toString().padStart(4, "0");
 
@@ -419,6 +422,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setIsEditing(true);
     setIsCreating(false);
     setValidationError("");
+    setDuplicateSysMatch(null);
 
     setFormId(athlete.id);
     setFormName(athlete.name);
@@ -479,6 +483,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError("");
+    setDuplicateSysMatch(null);
 
     if (!formName.trim()) {
       setValidationError("Vui lòng điền họ tên vận động viên.");
@@ -486,21 +491,56 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     }
 
     if (!formId.trim()) {
-      setValidationError("Vui lòng nhập ID vận động viên.");
+      setValidationError("Vui lòng nhập Mã số VĐV (ID).");
       return;
     }
 
-    // Check duplicated ID only for new creations or modified IDs
+    const trimmedId = formId.trim();
+
+    // Check against VSC System Athletes database
+    const matchedSys = vscSystemAthletes.find(
+      (a) => a.id.trim().toLowerCase() === trimmedId.toLowerCase() && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+    );
+
+    // Check against Current Roster & Active Tournament Athletes
+    const matchedRoster = currentRoster.find(
+      (a) => a.id.trim().toLowerCase() === trimmedId.toLowerCase() && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+    );
+
+    const matchedActive = (currentActiveAthletes || []).find(
+      (a) => a.id.trim().toLowerCase() === trimmedId.toLowerCase() && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+    );
+
     if (isCreating) {
-      const dupeId = currentRoster.some(a => a.id.trim() === formId.trim());
-      if (dupeId) {
-        setValidationError(`Mã số ID "${formId}" đã tồn tại trên hệ thống. Vui lòng nhập mã khác.`);
+      if (matchedSys) {
+        if (!isVscTab) {
+          setDuplicateSysMatch(matchedSys);
+          setValidationError(
+            `⚠️ TRÙNG MÃ VĐV HỆ THỐNG: Mã số VĐV (ID) "${trimmedId}" đã thuộc về VĐV "${matchedSys.name}" (${matchedSys.team || "Chưa có CLB"}) trên Hệ thống VSC. Bạn không cần tạo mới VĐV này! Vui lòng chọn "Thêm ngay VĐV này vào giải" bên dưới, hoặc đổi Mã số VĐV (ID) khác để tiếp tục đăng ký.`
+          );
+          return;
+        } else {
+          setValidationError(
+            `⚠️ TRÙNG MÃ VĐV HỆ THỐNG: Mã số VĐV (ID) "${trimmedId}" đã được đăng ký cho VĐV "${matchedSys.name}" (${matchedSys.team || "Tự do"}) trên Hệ thống VSC. Vui lòng thay đổi sang Mã số VĐV (ID) khác để tạo VĐV mới.`
+          );
+          return;
+        }
+      }
+
+      if (matchedRoster || matchedActive) {
+        const existingName = (matchedRoster || matchedActive)?.name;
+        const existingTeam = (matchedRoster || matchedActive)?.team || "Tự do";
+        setValidationError(
+          `⚠️ TRÙNG MÃ VĐV GIẢI ĐẤU: Mã số VĐV (ID) "${trimmedId}" đã tồn tại trong danh sách giải đấu này (VĐV: "${existingName}" - ${existingTeam}). Vui lòng kiểm tra lại hoặc đổi Mã số VĐV khác.`
+        );
         return;
       }
-    } else if (isEditing && selectedAthlete && selectedAthlete.id !== formId) {
-      const dupeId = currentRoster.some(a => a.id.trim() === formId.trim());
-      if (dupeId) {
-        setValidationError(`Mã danh tính ID "${formId}" đã tồn tại ở vận động viên khác.`);
+    } else if (isEditing && selectedAthlete && selectedAthlete.id.trim().toLowerCase() !== trimmedId.toLowerCase()) {
+      if (matchedSys || matchedRoster || matchedActive) {
+        const existingName = (matchedSys || matchedRoster || matchedActive)?.name;
+        setValidationError(
+          `⚠️ TRÙNG MÃ VĐV: Mã số VĐV (ID) "${trimmedId}" đã được đăng ký cho VĐV "${existingName}". Vui lòng chọn Mã số VĐV khác.`
+        );
         return;
       }
     }
@@ -2123,8 +2163,30 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
             </div>
 
             {validationError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-medium">
-                {validationError}
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 rounded-xl text-xs font-semibold leading-relaxed shadow-sm animate-fadeIn flex flex-col gap-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-base leading-none">⚠️</span>
+                  <div className="flex-1">{validationError}</div>
+                </div>
+                {duplicateSysMatch && !isVscTab && (
+                  <div className="mt-1 pt-2 border-t border-rose-200 dark:border-rose-800/60 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      👉 Gợi ý: Nạp trực tiếp VĐV <strong>"{duplicateSysMatch.name}"</strong> (ID: {duplicateSysMatch.id}) vào giải đấu:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAddVscToTournament(duplicateSysMatch);
+                        setIsCreating(false);
+                        setDuplicateSysMatch(null);
+                        setValidationError("");
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold flex items-center gap-1.5 shadow transition-all cursor-pointer hover:scale-105 active:scale-95"
+                    >
+                      <PlusCircle className="w-4 h-4" /> Thêm ngay VĐV này vào giải
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2248,10 +2310,77 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                     type="text"
                     required
                     value={formId}
-                    onChange={(e) => setFormId(e.target.value)}
+                    onChange={(e) => {
+                      setFormId(e.target.value);
+                      setValidationError("");
+                      setDuplicateSysMatch(null);
+                    }}
                     placeholder="e.g. 0004"
                     className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold"
                   />
+                  {(() => {
+                    if (!formId.trim()) return null;
+                    const trimmedId = formId.trim().toLowerCase();
+                    const liveSys = vscSystemAthletes.find(
+                      (a) => a.id.trim().toLowerCase() === trimmedId && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+                    );
+                    const liveRoster = currentRoster.find(
+                      (a) => a.id.trim().toLowerCase() === trimmedId && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+                    );
+                    const liveActive = (currentActiveAthletes || []).find(
+                      (a) => a.id.trim().toLowerCase() === trimmedId && (!selectedAthlete || selectedAthlete.id.trim().toLowerCase() !== a.id.trim().toLowerCase())
+                    );
+
+                    if (isCreating && liveSys && !isVscTab) {
+                      return (
+                        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex flex-col gap-1.5 shadow-sm">
+                          <div>
+                            ⚠️ ID <strong>"{liveSys.id}"</strong> trùng với VĐV <strong>"{liveSys.name}"</strong> ({liveSys.team || "Chưa có CLB"}) trên Hệ thống VSC.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddVscToTournament(liveSys);
+                              setIsCreating(false);
+                              setDuplicateSysMatch(null);
+                              setValidationError("");
+                            }}
+                            className="py-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" /> Nạp VĐV "{liveSys.name}" vào giải ngay
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (isCreating && liveSys && isVscTab) {
+                      return (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          ⚠️ Mã ID này đã thuộc về VĐV "{liveSys.name}" trên Hệ thống VSC. Vui lòng đổi ID khác.
+                        </p>
+                      );
+                    }
+
+                    if (isCreating && !liveSys && (liveRoster || liveActive)) {
+                      const matchName = (liveRoster || liveActive)?.name;
+                      return (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          ⚠️ Mã ID này đã thuộc về VĐV "{matchName}" trong danh sách giải đấu. Vui lòng đổi ID khác.
+                        </p>
+                      );
+                    }
+
+                    if (isEditing && selectedAthlete && selectedAthlete.id.trim().toLowerCase() !== trimmedId && (liveSys || liveRoster || liveActive)) {
+                      const matchName = (liveSys || liveRoster || liveActive)?.name;
+                      return (
+                        <p className="mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          ⚠️ Mã ID này đã thuộc về VĐV "{matchName}". Vui lòng đổi ID khác.
+                        </p>
+                      );
+                    }
+
+                    return null;
+                  })()}
                 </div>
 
                 {/* Full name */}

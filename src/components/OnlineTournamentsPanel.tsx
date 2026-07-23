@@ -32,7 +32,9 @@ import {
   Share2,
   Eye,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Athlete, DistanceConfig, VSC_DEFAULT_LOGO } from "../types";
 import { getHitCount, calculateRounds } from "../utils/qualification";
@@ -241,6 +243,85 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   }, [isDesktop]);
 
   const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const featuredScrollRef = React.useRef<HTMLDivElement>(null);
+  const mostViewedScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Mouse drag-to-scroll helper hook
+  const useDragToScroll = () => {
+    const isDown = React.useRef(false);
+    const startX = React.useRef(0);
+    const scrollLeft = React.useRef(0);
+    const isDragging = React.useRef(false);
+
+    const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      const el = e.currentTarget;
+      isDown.current = true;
+      isDragging.current = false;
+      startX.current = e.pageX - el.offsetLeft;
+      scrollLeft.current = el.scrollLeft;
+      el.style.scrollBehavior = "auto";
+      el.style.userSelect = "none";
+    };
+
+    const onMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDown.current) return;
+      isDown.current = false;
+      const el = e.currentTarget;
+      el.style.cursor = "grab";
+      el.style.scrollBehavior = "smooth";
+      el.style.removeProperty("user-select");
+    };
+
+    const onMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDown.current) return;
+      isDown.current = false;
+      const el = e.currentTarget;
+      el.style.cursor = "grab";
+      el.style.scrollBehavior = "smooth";
+      el.style.removeProperty("user-select");
+    };
+
+    const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDown.current) return;
+      const el = e.currentTarget;
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startX.current) * 1.25;
+      if (Math.abs(walk) > 4) {
+        if (!isDragging.current) {
+          isDragging.current = true;
+          el.style.cursor = "grabbing";
+        }
+        el.scrollLeft = scrollLeft.current - walk;
+      }
+    };
+
+    const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isDragging.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        isDragging.current = false;
+      }
+    };
+
+    return {
+      onMouseDown,
+      onMouseLeave,
+      onMouseUp,
+      onMouseMove,
+      onClickCapture,
+    };
+  };
+
+  const featuredDragProps = useDragToScroll();
+  const mostViewedDragProps = useDragToScroll();
+
+  const scrollContainer = (ref: React.RefObject<HTMLDivElement>, direction: "left" | "right") => {
+    if (ref.current) {
+      const scrollAmount = direction === "left" ? -340 : 340;
+      ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -1582,26 +1663,48 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
             return (
               <div>
-                <div className="flex items-center mb-4 mt-2 select-none">
-                  <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
-                    <span className="mr-1">{language === "en" ? "Featured Tournaments" : "Giải đấu nổi bật"}</span>
-                    <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+                <div className="flex items-center justify-between mb-4 mt-2 select-none">
+                  <div className="flex items-center flex-1">
+                    <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                      <span className="mr-1">{language === "en" ? "Featured Tournaments" : "Giải đấu nổi bật"}</span>
+                      <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+                    </div>
+                    <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
                   </div>
-                  <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
+
+                  {finalFeatured.length > 0 && (
+                    <div className="flex items-center gap-1.5 ml-3">
+                      <button
+                        type="button"
+                        onClick={() => scrollContainer(featuredScrollRef, "left")}
+                        className="p-1.5 rounded-full bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                        title={language === "en" ? "Scroll left" : "Cuộn sang trái"}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollContainer(featuredScrollRef, "right")}
+                        className="p-1.5 rounded-full bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                        title={language === "en" ? "Scroll right" : "Cuộn sang phải"}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
-                {/* Mobile view: Swipe horizontally */}
-                <div className="flex sm:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1">
+                {/* 1 Hàng Ngang - Horizontal Scroll Row for both Mobile and Web with Mouse Drag */}
+                <div
+                  ref={featuredScrollRef}
+                  {...featuredDragProps}
+                  className="flex overflow-x-auto gap-4 pb-4 pt-1 cursor-grab active:cursor-grabbing select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1"
+                >
                   {finalFeatured.map(tour => (
-                    <div key={tour.id} className="w-[280px] shrink-0 snap-center">
+                    <div key={tour.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
                       {renderTournamentCard(tour)}
                     </div>
                   ))}
-                </div>
-
-                {/* Desktop view: 2 rows of up to 4 columns */}
-                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {finalFeatured.map(tour => renderTournamentCard(tour))}
                 </div>
               </div>
             );
@@ -1615,26 +1718,48 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
             return (
               <div>
-                <div className="flex items-center mb-4 mt-2 select-none">
-                  <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
-                    <span className="mr-1">{language === "en" ? "Most Viewed" : "Giải nhiều người xem"}</span>
-                    <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+                <div className="flex items-center justify-between mb-4 mt-2 select-none">
+                  <div className="flex items-center flex-1">
+                    <div className="bg-red-600 text-white font-extrabold uppercase text-xs sm:text-sm px-4 py-2 rounded-r-lg relative flex items-center shadow-md">
+                      <span className="mr-1">{language === "en" ? "Most Viewed" : "Giải nhiều người xem"}</span>
+                      <div className="absolute right-0 top-0 bottom-0 w-3 bg-red-600 transform skew-x-12 translate-x-1.5 rounded-r-md -z-10" />
+                    </div>
+                    <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
                   </div>
-                  <div className="flex-1 h-[2px] bg-red-600/20 dark:bg-red-600/30 ml-4" />
+
+                  {mostViewedList.length > 0 && (
+                    <div className="flex items-center gap-1.5 ml-3">
+                      <button
+                        type="button"
+                        onClick={() => scrollContainer(mostViewedScrollRef, "left")}
+                        className="p-1.5 rounded-full bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                        title={language === "en" ? "Scroll left" : "Cuộn sang trái"}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollContainer(mostViewedScrollRef, "right")}
+                        className="p-1.5 rounded-full bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                        title={language === "en" ? "Scroll right" : "Cuộn sang phải"}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
-                {/* Mobile view: Swipe horizontally */}
-                <div className="flex sm:hidden overflow-x-auto gap-4 pb-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1">
+                {/* 1 Hàng Ngang - Horizontal Scroll Row for both Mobile and Web with Mouse Drag */}
+                <div
+                  ref={mostViewedScrollRef}
+                  {...mostViewedDragProps}
+                  className="flex overflow-x-auto gap-4 pb-4 pt-1 cursor-grab active:cursor-grabbing select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1"
+                >
                   {mostViewedList.map(tour => (
-                    <div key={tour.id} className="w-[280px] shrink-0 snap-center">
+                    <div key={tour.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
                       {renderTournamentCard(tour)}
                     </div>
                   ))}
-                </div>
-
-                {/* Desktop view: 2 rows of up to 4 columns */}
-                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {mostViewedList.map(tour => renderTournamentCard(tour))}
                 </div>
               </div>
             );

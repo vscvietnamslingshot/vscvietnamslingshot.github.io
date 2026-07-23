@@ -2839,8 +2839,15 @@ export default function App() {
   // Update input athlete details
   const handleUpdateInputAthlete = (athleteId: string, name: string, team: string, customId?: string) => {
     const checkId = customId ? customId.trim() : athleteId;
-    const isIdTaken = masterAthletes.some((a) => a.id === checkId && a.id !== athleteId);
-    const finalId = isIdTaken ? athleteId : checkId;
+    if (customId && customId.trim() !== athleteId) {
+      const isIdTaken = masterAthletes.some((a) => a.id.trim().toLowerCase() === checkId.toLowerCase() && a.id !== athleteId);
+      if (isIdTaken) {
+        const existingAthlete = masterAthletes.find((a) => a.id.trim().toLowerCase() === checkId.toLowerCase());
+        alert(`Mã số VĐV (ID) "${checkId}" đã tồn tại trên hệ thống (thuộc VĐV "${existingAthlete?.name || ''}" - ${existingAthlete?.team || 'Tự do'}). Vui lòng chọn Mã số khác!`);
+        return;
+      }
+    }
+    const finalId = checkId;
 
     setHasUnsavedChanges(true);
     // Update in Master Roster first
@@ -3255,15 +3262,14 @@ export default function App() {
     const activeAthList = competitionMode === "individual" ? athletes : teamAthletes;
     const finalName = name.trim() || `VĐV Mới ${activeAthList.length + 1}`;
     
-    // Auto-generate numeric ID based on maximum current numeric ID + 1
+    // Auto-generate numeric ID based on maximum current numeric ID + 1, skipping any existing IDs
     let nextIdNum = 1;
-    if (activeAthList.length > 0) {
-      const ids = activeAthList.map((a) => parseInt(a.id, 10)).filter((n) => !isNaN(n));
-      if (ids.length > 0) {
-        nextIdNum = Math.max(...ids) + 1;
-      } else {
-        nextIdNum = activeAthList.length + 1;
-      }
+    const existingIdsSet = new Set([
+      ...activeAthList.map((a) => a.id.trim().toLowerCase()),
+      ...masterAthletes.map((a) => a.id.trim().toLowerCase()),
+    ]);
+    while (existingIdsSet.has(nextIdNum.toString().padStart(4, "0").toLowerCase())) {
+      nextIdNum++;
     }
     const finalId = nextIdNum.toString().padStart(4, "0");
 
