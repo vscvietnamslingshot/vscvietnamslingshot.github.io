@@ -50,7 +50,7 @@ import { LiveBoard } from "./components/LiveBoard";
 import { VSCLogo, SlingshotIcon } from "./components/VSCLogo";
 
 // Firebase imports
-import { auth } from "./firebase";
+import { auth, db, doc, onSnapshot } from "./firebase";
 import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub, getFriendlyErrorMessage } from "./lib/firebaseService";
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
@@ -321,8 +321,8 @@ const PublishDraftModal: React.FC<{
                   onChange={(e) => setSelectedTourId(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  {onlineTournaments.map((tour) => (
-                    <option key={tour.id} value={tour.id}>
+                  {onlineTournaments.map((tour, idx) => (
+                    <option key={`app-tour-opt-${tour.id}-${idx}`} value={tour.id}>
                       {tour.matchName} {tour.id === defaultTourId ? (language === "en" ? " ⭐️ (Most recent)" : " ⭐️ (Gần đây nhất)") : ""}
                     </option>
                   ))}
@@ -852,11 +852,34 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => {
+    let unsubDoc: (() => void) | undefined;
+    const unsubAuth = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
+      if (unsubDoc) {
+        unsubDoc();
+        unsubDoc = undefined;
+      }
+      if (user) {
+        unsubDoc = onSnapshot(doc(db, "users", user.uid), (snap) => {
+          if (snap.exists()) {
+            setCurrentUserProfile(snap.data());
+          } else {
+            setCurrentUserProfile(null);
+          }
+        }, (err) => {
+          console.warn("Could not listen to user profile:", err);
+        });
+      } else {
+        setCurrentUserProfile(null);
+      }
     });
-    return () => unsub();
+    return () => {
+      unsubAuth();
+      if (unsubDoc) unsubDoc();
+    };
   }, []);
 
   // Deduplication safety effects
@@ -1469,7 +1492,10 @@ export default function App() {
   const isOnlineTournament = activeHistoryId?.startsWith("tour-");
   const isGlobalAdmin = !!(currentUser?.email && (
     currentUser.email.toLowerCase().trim() === "nahnatofficial@gmail.com" || 
-    currentUser.email.toLowerCase().trim() === "vscvietnamslingshot@gmail.com"
+    currentUser.email.toLowerCase().trim() === "vscvietnamslingshot@gmail.com" ||
+    currentUserProfile?.role === "admin" ||
+    currentUserProfile?.isGlobalAdmin === true ||
+    currentUser.role === "admin"
   ));
   const isTournamentOwner = currentUser && currentTournamentDoc && (currentTournamentDoc.creatorId === currentUser.uid || isGlobalAdmin);
   const isTournamentSubAdmin = currentUser && currentTournamentDoc && (currentTournamentDoc.subAdmins?.some((email: string) => email.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()));
@@ -2544,7 +2570,7 @@ export default function App() {
   const handleToggleInputScore = (athleteId: string, distanceId: string, shotIndex: number) => {
     const list = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
     const targetA = list.find((a) => a.id === athleteId);
-    if (targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
+    if (!isGlobalAdmin && targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
       return;
     }
     setHasUnsavedChanges(true);
@@ -2672,7 +2698,7 @@ export default function App() {
   const handleUpdateDirectInputScore = (athleteId: string, distanceId: string, value: number | null) => {
     const list = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
     const targetA = list.find((a) => a.id === athleteId);
-    if (targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
+    if (!isGlobalAdmin && targetA?.calledBy && targetA.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) {
       return;
     }
     setHasUnsavedChanges(true);
@@ -4819,6 +4845,7 @@ export default function App() {
           {/* TAB -1: HOME ONLINE TOURNAMENT COMPASS BOARD */}
           {activeTab === "home" && (
             <OnlineTournamentsPanel
+              isGlobalAdmin={isGlobalAdmin}
               activeHistoryId={activeHistoryId}
               onSelectTournament={handleSelectTournament}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -4993,9 +5020,9 @@ export default function App() {
                     ? (currentTournamentDoc?.inputAthletes || [])
                     : (currentTournamentDoc?.teamInputAthletes || []);
                   const docActiveInputPlayer = activeInputListInDoc.find((a) => a.id === athlete.id);
-                  const isLockedByOtherReferee = !!(athlete.calledBy && 
+                  const isLockedByOtherReferee = !isGlobalAdmin && (!!(athlete.calledBy && 
                     athlete.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()) || 
-                    !!(docActiveInputPlayer?.calledBy && docActiveInputPlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim());
+                    !!(docActiveInputPlayer?.calledBy && docActiveInputPlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()));
                   const lockedByRefereeEmail = athlete.calledBy || docActiveInputPlayer?.calledBy || "";
 
                   return (
@@ -5353,8 +5380,8 @@ export default function App() {
                   const isFirst = originalIndex === 0;
                   const isLast = originalIndex === currentInputAthletes.length - 1;
                   
-                  const isLockedByOtherReferee = !!(athlete.calledBy && 
-                    athlete.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim());
+                  const isLockedByOtherReferee = !isGlobalAdmin && (!!(athlete.calledBy && 
+                    athlete.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()));
                   const lockedByRefereeEmail = athlete.calledBy || "";
 
                   return (
@@ -5529,7 +5556,7 @@ export default function App() {
                             ? (currentTournamentDoc?.inputAthletes || [])
                             : (currentTournamentDoc?.teamInputAthletes || []);
                           const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                          const otherRefereeEmail = documentActivePlayer?.calledBy && 
+                          const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
                             documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
                             ? documentActivePlayer.calledBy
                             : null;
@@ -5679,7 +5706,7 @@ export default function App() {
 
                             toAdd.forEach((m) => {
                               const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                              const otherRefereeEmail = documentActivePlayer?.calledBy && 
+                              const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
                                 documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
                                 ? documentActivePlayer.calledBy
                                 : null;
@@ -5982,6 +6009,7 @@ export default function App() {
           {/* TAB 5: MY CONTROL PANEL */}
           {activeTab === "control_panel" && (
             <ControlPanel
+              isGlobalAdmin={isGlobalAdmin}
               activeHistoryId={activeHistoryId}
               onSelectTournament={(id, tournament) => handleSelectTournament(id, tournament, "dashboard")}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}

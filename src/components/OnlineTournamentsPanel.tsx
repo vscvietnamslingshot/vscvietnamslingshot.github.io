@@ -34,12 +34,14 @@ import {
   Copy,
   AlertTriangle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from "lucide-react";
 import { Athlete, DistanceConfig, VSC_DEFAULT_LOGO } from "../types";
 import { getHitCount, calculateRounds } from "../utils/qualification";
 
 interface OnlineTournamentsPanelProps {
+  isGlobalAdmin?: boolean;
   onSelectTournament: (id: string, tournament: TournamentData, targetTab?: string) => void;
   activeHistoryId: string | null;
   // Fallbacks to create from current local setup
@@ -71,6 +73,7 @@ interface OnlineTournamentsPanelProps {
 }
 
 export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
+  isGlobalAdmin,
   onSelectTournament,
   activeHistoryId,
   currentSetup,
@@ -436,18 +439,26 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   // List of Cloud Tournaments owned or co-managed by the current logged-in user
   const userOwnedTournaments = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.email === "nahnatofficial@gmail.com") return tournaments;
     const email = currentUser.email?.toLowerCase().trim() || "";
     return tournaments.filter(t => 
       t.creatorId === currentUser.uid || 
-      t.creatorEmail === currentUser.email ||
+      (email && t.creatorEmail && t.creatorEmail.toLowerCase().trim() === email) ||
       (t.subAdmins && t.subAdmins.some((subEmail: string) => subEmail.toLowerCase().trim() === email))
     );
   }, [tournaments, currentUser]);
 
   // Filtered and sorted list based on Status priority, then time descending
   const filteredTournaments = useMemo(() => {
-    let list = [...tournaments];
+    // Ensure deduplication by t.id
+    const seenIds = new Set<string>();
+    const uniqueTournaments: TournamentData[] = [];
+    for (const t of tournaments) {
+      if (t.id && !seenIds.has(t.id)) {
+        seenIds.add(t.id);
+        uniqueTournaments.push(t);
+      }
+    }
+    let list = uniqueTournaments;
     if (tabFilter === "active") {
       list = list.filter(t => getTournamentStatus(t.startDate, t.endDate) === "active");
     } else if (tabFilter === "followed") {
@@ -1284,7 +1295,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   };
 
   // Refactored reusable card rendering
-  const renderTournamentCard = (tour: TournamentData) => {
+  const renderTournamentCard = (tour: TournamentData, cardKey?: string) => {
     const isActive = activeHistoryId === tour.id;
     const isTeam = tour.competitionMode === "team";
     const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
@@ -1297,14 +1308,36 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
       : (language === "en" ? "Recent activity" : "Hoạt động gần đây");
 
     // Determine current user relation
-    const isOwner = currentUser && (tour.creatorId === currentUser.uid || currentUser.email === "nahnatofficial@gmail.com");
-    const isReferee = currentUser && tour.referees?.includes(currentUser.email || "");
+    const isCreator = !!(currentUser && (
+      tour.creatorId === currentUser.uid || 
+      (currentUser.email && tour.creatorEmail && tour.creatorEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim())
+    ));
+    const isSubAdmin = !!(currentUser && currentUser.email && tour.subAdmins?.some((subEmail: string) => subEmail.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()));
+    const isSysAdmin = !!(isGlobalAdmin || (currentUser?.email && (
+      currentUser.email.toLowerCase().trim() === "nahnatofficial@gmail.com" || 
+      currentUser.email.toLowerCase().trim() === "vscvietnamslingshot@gmail.com"
+    )));
+    const isReferee = !!(currentUser && currentUser.email && tour.referees?.includes(currentUser.email || ""));
+
+    const canManageOrDelete = isCreator || isSubAdmin || isSysAdmin;
 
     let roleTag = null;
-    if (isOwner) {
+    if (isCreator) {
       roleTag = (
         <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-emerald-400">
           <User className="w-3 h-3" /> {language === "en" ? "Organizer" : "Trưởng Giải"}
+        </span>
+      );
+    } else if (isSubAdmin) {
+      roleTag = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-teal-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-teal-500">
+          <User className="w-3 h-3" /> {language === "en" ? "Co-Organizer" : "Phó Giải"}
+        </span>
+      );
+    } else if (isSysAdmin) {
+      roleTag = (
+        <span className="text-[9px] font-black tracking-wider uppercase bg-indigo-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs ring-1 ring-indigo-500">
+          <Shield className="w-3 h-3" /> {language === "en" ? "System Admin" : "Admin Hệ Thống"}
         </span>
       );
     } else if (isReferee) {
@@ -1358,7 +1391,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
     return (
       <div 
-        key={tour.id}
+        key={cardKey || tour.id}
         className={`relative bg-white dark:bg-slate-900 rounded-3xl border transition-all p-4 flex flex-col justify-between h-[460px] shadow-sm hover:shadow-md overflow-hidden ${
           isActive 
             ? "border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-500/20" 
@@ -1490,7 +1523,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
         {/* Footer Controls / Selection / Delete / Copy */}
         <div className="flex items-center gap-1.5 w-full mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 shrink-0">
-          {isOwner && (
+          {canManageOrDelete && (
             <button
               title={language === "en" ? "Delete tournament from Cloud" : "Xóa giải khỏi Cloud"}
               onClick={() => setShowConfirmDeleteId(tour.id)}
@@ -1673,7 +1706,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredTournaments.slice(0, visibleCount).map(tour => renderTournamentCard(tour))}
+              {filteredTournaments.slice(0, visibleCount).map((tour, idx) => renderTournamentCard(tour, `filter-card-${tour.id}-${idx}`))}
             </div>
 
             {/* Sentinel for infinite scroll */}
@@ -1739,9 +1772,9 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   {...featuredDragProps}
                   className="flex overflow-x-auto gap-4 pb-4 pt-1 cursor-grab active:cursor-grabbing select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1"
                 >
-                  {finalFeatured.map(tour => (
-                    <div key={tour.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
-                      {renderTournamentCard(tour)}
+                  {finalFeatured.map((tour, idx) => (
+                    <div key={`featured-wrap-${tour.id}-${idx}`} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
+                      {renderTournamentCard(tour, `featured-card-${tour.id}-${idx}`)}
                     </div>
                   ))}
                 </div>
@@ -1794,9 +1827,9 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   {...mostViewedDragProps}
                   className="flex overflow-x-auto gap-4 pb-4 pt-1 cursor-grab active:cursor-grabbing select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth px-1"
                 >
-                  {mostViewedList.map(tour => (
-                    <div key={tour.id} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
-                      {renderTournamentCard(tour)}
+                  {mostViewedList.map((tour, idx) => (
+                    <div key={`mostviewed-wrap-${tour.id}-${idx}`} className="w-[280px] sm:w-[320px] shrink-0 snap-center">
+                      {renderTournamentCard(tour, `mostviewed-card-${tour.id}-${idx}`)}
                     </div>
                   ))}
                 </div>
@@ -1815,7 +1848,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredTournaments.slice(0, visibleCount).map(tour => renderTournamentCard(tour))}
+              {filteredTournaments.slice(0, visibleCount).map((tour, idx) => renderTournamentCard(tour, `all-card-${tour.id}-${idx}`))}
             </div>
 
             {/* Sentinel for infinite scroll */}
@@ -1959,7 +1992,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 border border-slate-150 dark:border-slate-800 rounded-2xl p-2 bg-slate-50/20 dark:bg-slate-950/10">
-                    {userOwnedTournaments.map((t) => {
+                    {userOwnedTournaments.map((t, idx) => {
                       const status = getTournamentStatus(t.startDate, t.endDate);
                       let sLabel = "ĐANG BẮN";
                       let sColor = "bg-emerald-500";
@@ -1973,7 +2006,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
                       return (
                         <div 
-                          key={t.id}
+                          key={`user-owned-${t.id}-${idx}`}
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-155 dark:border-slate-800 rounded-xl hover:border-indigo-455 dark:hover:border-indigo-400/30 transition-all shadow-xs"
                         >
                           <div className="flex flex-col gap-1 truncate text-left">

@@ -46,6 +46,8 @@ export interface TournamentData {
   inputAthletes: Athlete[];
   teamInputAthletes: Athlete[];
   masterAthletes?: Athlete[];
+  teamMasterAthletes?: Athlete[];
+  masterCount?: number;
   startDate?: string;
   endDate?: string;
   tournamentType?: "individual" | "team" | "combined";
@@ -365,8 +367,14 @@ export function subscribeToTournamentsList(callback: (tournaments: TournamentDat
   
   return onSnapshot(q, (snapshot) => {
     const list: TournamentData[] = [];
+    const seen = new Set<string>();
     snapshot.forEach((docSnap) => {
-      list.push(docSnap.data() as TournamentData);
+      const data = docSnap.data() as TournamentData;
+      const id = data.id || docSnap.id;
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        list.push({ ...data, id });
+      }
     });
     callback(list);
   }, (error) => {

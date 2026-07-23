@@ -41,6 +41,7 @@ import { Athlete, DistanceConfig } from "../types";
 import { getHitCount } from "../utils/qualification";
 
 interface ControlPanelProps {
+  isGlobalAdmin?: boolean;
   onSelectTournament: (id: string, tournament: TournamentData) => void;
   activeHistoryId: string | null;
   onOpenAuthModal: () => void;
@@ -71,6 +72,7 @@ const getTournamentModeLabel = (tour: TournamentData): string => {
 };
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
+  isGlobalAdmin,
   onSelectTournament,
   activeHistoryId,
   onOpenAuthModal,
@@ -250,19 +252,24 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   // Filter tournaments by search
   const filteredTournaments = useMemo(() => {
-    if (!search.trim()) return tournaments;
+    const seen = new Set<string>();
+    const unique = tournaments.filter(t => {
+      if (!t.id || seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+    if (!search.trim()) return unique;
     const query = search.toLowerCase();
-    return tournaments.filter(t => t.matchName.toLowerCase().includes(query));
+    return unique.filter(t => t.matchName.toLowerCase().includes(query));
   }, [tournaments, search]);
 
   // Created & co-administered tournaments
   const myCreatedTournaments = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.email === "nahnatofficial@gmail.com") return filteredTournaments;
     const email = currentUser.email?.toLowerCase().trim() || "";
     return filteredTournaments.filter(
       t => t.creatorId === currentUser.uid || 
-           t.creatorEmail === currentUser.email ||
+           (email && t.creatorEmail && t.creatorEmail.toLowerCase().trim() === email) ||
            (t.subAdmins && t.subAdmins.some(subEmail => subEmail.toLowerCase().trim() === email))
     );
   }, [filteredTournaments, currentUser]);
@@ -826,7 +833,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      {myCreatedTournaments.map((tour) => {
+                      {myCreatedTournaments.map((tour, idx) => {
                         const isTeam = tour.competitionMode === "team";
                         const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
                         const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
@@ -838,9 +845,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                           ? tour.createdAt.toDate().toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit" }) 
                           : "Gần đây";
 
+                        const isCreator = tour.creatorId === currentUser?.uid || (currentUser?.email && tour.creatorEmail && tour.creatorEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim());
+
                         return (
                           <div
-                            key={tour.id}
+                            key={`ctrl-created-${tour.id}-${idx}`}
                             className={`relative bg-white dark:bg-slate-900 rounded-3xl border p-5 flex flex-col gap-4 shadow-xs transition-all ${
                               isActive 
                                 ? "border-indigo-500 ring-2 ring-indigo-500/15" 
@@ -856,8 +865,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                   {tour.matchName}
                                 </h3>
                               </div>
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500 text-white px-2 py-0.5 rounded-md">
-                                QR Trưởng Giải
+                              <span className={`text-[9px] font-black uppercase tracking-wider text-white px-2 py-0.5 rounded-md ${isCreator ? "bg-emerald-500" : "bg-teal-600"}`}>
+                                {isCreator ? "QR Trưởng Giải" : "QR Ban Tổ Chức"}
                               </span>
                             </div>
 
@@ -924,7 +933,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      {myRefereeTournaments.map((tour) => {
+                      {myRefereeTournaments.map((tour, idx) => {
                         const isTeam = tour.competitionMode === "team";
                         const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
                         const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
@@ -937,7 +946,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                         return (
                           <div
-                            key={tour.id}
+                            key={`ctrl-ref-${tour.id}-${idx}`}
                             className={`p-5 rounded-3xl border bg-white dark:bg-slate-900 flex flex-col gap-4 shadow-xs transition-all ${
                               isActive 
                                 ? "border-amber-500 ring-2 ring-amber-500/15" 
