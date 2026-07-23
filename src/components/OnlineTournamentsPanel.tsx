@@ -1146,11 +1146,11 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteOnlineTournament(id);
-      setShowConfirmDeleteId(null);
-      if (activeHistoryId === id) {
+      if (activeHistoryId === id && onSelectTournament) {
         onSelectTournament("", null);
       }
+      await deleteOnlineTournament(id);
+      setShowConfirmDeleteId(null);
     } catch (err) {
       console.error(err);
       alert(language === "en" ? "Unable to delete this tournament or you do not have sufficient permissions." : "Không thể xóa giải đấu này hoặc bạn không có đủ quyền hợp lệ.");

@@ -435,11 +435,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteOnlineTournament(id);
-      setShowConfirmDeleteId(null);
-      if (activeHistoryId === id) {
+      if (activeHistoryId === id && onSelectTournament) {
         onSelectTournament("", null);
       }
+      await deleteOnlineTournament(id);
+      setShowConfirmDeleteId(null);
     } catch (err) {
       console.error(err);
       alert("Không thể xóa giải đấu này. Bạn không phải trưởng giải hoặc không có quyền!");

@@ -2119,6 +2119,12 @@ export default function App() {
     }
 
     const isOnlineTour = !!(activeHistoryId && activeHistoryId.startsWith("tour-"));
+    // DO NOT run local history auto-save if we are currently viewing an online tournament
+    // Online tournaments are persisted directly in Firestore and must never overwrite local offline history archives.
+    if (isOnlineTour) {
+      return;
+    }
+
     const athletesToSave = masterAthletes.length > 0 ? masterAthletes : athletes;
 
     // 1. Update or Insert the tournament snapshot in the history archive
@@ -3338,8 +3344,10 @@ export default function App() {
 
   // Exit current tournament and reset all tournament state variables back to defaults
   const handleExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
+    const isOnlineTourExit = !!(activeHistoryId && activeHistoryId.startsWith("tour-"));
+
     // Immediately write any pending local changes to Firestore before exiting/clearing state
-    if (activeHistoryId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc) {
+    if (isOnlineTourExit && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc && currentTournamentDoc.id === activeHistoryId) {
       const isDifferent = (
         !deepEqual(matchName, currentTournamentDoc?.matchName) ||
         !deepEqual(startDate, currentTournamentDoc?.startDate) ||
@@ -3388,9 +3396,9 @@ export default function App() {
       }
     }
 
-    // Auto-save roster to stored athlete lists on exit for admin/creator/sub-admin
+    // Auto-save roster to stored athlete lists on exit ONLY for local offline draft sessions (not online tournaments)
     const rosterToSave = (masterAthletes && masterAthletes.length > 0) ? masterAthletes : athletes;
-    if (userRole === "admin" && matchName && matchName.trim() && rosterToSave && rosterToSave.length > 0) {
+    if (!isOnlineTourExit && userRole === "admin" && matchName && matchName.trim() && rosterToSave && rosterToSave.length > 0) {
       const nameToUse = matchName.trim();
       setStoredAthleteLists((prev) => {
         const existingItem = prev?.find((item) => item.name.toLowerCase() === nameToUse.toLowerCase());
