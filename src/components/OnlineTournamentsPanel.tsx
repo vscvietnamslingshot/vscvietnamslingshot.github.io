@@ -1244,6 +1244,45 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
     return 0;
   };
 
+  const getTournamentAthleteStats = (tour: TournamentData) => {
+    if (!tour) return { total: 0, active: 0 };
+
+    const isTeam = tour.competitionMode === "team";
+    const activeList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
+    const activeCount = activeList.length;
+
+    const uniqueIds = new Set<string>();
+    const addList = (list?: Athlete[]) => {
+      if (Array.isArray(list)) {
+        list.forEach((a) => {
+          if (a && (a.id || a.name)) {
+            uniqueIds.add((a.id || a.name).toString().trim().toLowerCase());
+          }
+        });
+      }
+    };
+
+    addList(tour.masterAthletes);
+    addList(tour.teamMasterAthletes);
+    addList(tour.athletes);
+    addList(tour.teamAthletes);
+    addList(tour.inputAthletes);
+    addList(tour.teamInputAthletes);
+
+    let totalCount = uniqueIds.size;
+    if (totalCount === 0 && typeof tour.masterCount === "number" && tour.masterCount > 0) {
+      totalCount = tour.masterCount;
+    }
+    if (totalCount < activeCount) {
+      totalCount = activeCount;
+    }
+
+    return {
+      total: totalCount,
+      active: activeCount,
+    };
+  };
+
   // Refactored reusable card rendering
   const renderTournamentCard = (tour: TournamentData) => {
     const isActive = activeHistoryId === tour.id;
@@ -2010,7 +2049,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                 <strong className="text-sm text-slate-900 dark:text-slate-100 font-extrabold">{copyModalTour.matchName}</strong>
                 <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
                   <span>{language === "en" ? "Format:" : "Thể thức:"} <strong>{copyModalTour.competitionMode === "team" ? (language === "en" ? "Team" : "Đồng Đội") : (language === "en" ? "Individual" : "Cá Nhân")}</strong></span>
-                  <span>{language === "en" ? "Athletes:" : "VĐV:"} <strong>{(copyModalTour.athletes?.length || 0) + (copyModalTour.inputAthletes?.length || 0)}</strong></span>
+                  <span>{language === "en" ? "Athletes:" : "VĐV:"} <strong>{getTournamentAthleteStats(copyModalTour).total} VĐV</strong></span>
                 </div>
               </div>
 

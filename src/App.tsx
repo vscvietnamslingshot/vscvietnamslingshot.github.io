@@ -475,20 +475,34 @@ export default function App() {
       }
 
       const localActiveHistoryId = activeHistoryIdVal || (typeof window !== "undefined" ? localStorage.getItem("slingshot_active_history_id") : null);
+      const targetOnlineId = (hasTourParam && urlTourParam) ? urlTourParam : localActiveHistoryId;
+      const isOnlineTourActive = !!(targetOnlineId && targetOnlineId.startsWith("tour-"));
       const isSwitchingTour = !!(hasTourParam && urlTourParam !== localActiveHistoryId);
 
-      if (matchNameVal && !isSwitchingTour) {
-        setMatchName(matchNameVal);
-        setHeaderTempName(matchNameVal);
+      // CRITICAL: Do NOT restore local draft storage data if an online tournament is active.
+      // Online tournaments are loaded directly from Firestore in real-time.
+      if (!isOnlineTourActive && !isSwitchingTour) {
+        if (matchNameVal) {
+          setMatchName(matchNameVal);
+          setHeaderTempName(matchNameVal);
+        }
+        if (startDateVal) setStartDate(startDateVal);
+        if (endDateVal) setEndDate(endDateVal);
+        if (bannerUrlVal) setBannerUrl(bannerUrlVal);
+        if (avatarUrlVal) setAvatarUrl(avatarUrlVal);
+        if (distancesVal) setDistances(distancesVal);
+        if (shotsCountVal) setShotsCount(Number(shotsCountVal));
+        if (athletesVal) setAthletes(restoreBase64Avatars(athletesVal));
+        if (masterAthletesVal) setMasterAthletes(restoreBase64Avatars(masterAthletesVal));
+        if (inputAthletesVal) setInputAthletes(restoreBase64Avatars(inputAthletesVal));
+        if (competitionModeVal) setCompetitionMode(competitionModeVal as "individual" | "team");
+        if (teamDistancesVal) setTeamDistances(teamDistancesVal);
+        if (teamShotsCountVal) setTeamShotsCount(Number(teamShotsCountVal));
+        if (teamAthletesVal) setTeamAthletes(restoreBase64Avatars(teamAthletesVal));
+        if (teamInputAthletesVal) setTeamInputAthletes(restoreBase64Avatars(teamInputAthletesVal));
+        if (laneCapacityVal) setLaneCapacity(Number(laneCapacityVal));
       }
-      if (startDateVal && !isSwitchingTour) setStartDate(startDateVal);
-      if (endDateVal && !isSwitchingTour) setEndDate(endDateVal);
-      if (bannerUrlVal && !isSwitchingTour) setBannerUrl(bannerUrlVal);
-      if (avatarUrlVal && !isSwitchingTour) setAvatarUrl(avatarUrlVal);
-      if (distancesVal && !isSwitchingTour) setDistances(distancesVal);
-      if (shotsCountVal && !isSwitchingTour) setShotsCount(Number(shotsCountVal));
-      if (athletesVal && !isSwitchingTour) setAthletes(restoreBase64Avatars(athletesVal));
-      if (masterAthletesVal && !isSwitchingTour) setMasterAthletes(restoreBase64Avatars(masterAthletesVal));
+
       if (historyVal) {
         const parsedHistory = restoreBase64Avatars(historyVal);
         setHistory((parsedHistory || []).filter((h: any) => h && h.matchName && h.matchName.trim()));
@@ -502,18 +516,10 @@ export default function App() {
         setActiveHistoryId(urlTourParam);
         localStorage.setItem("slingshot_active_history_id", urlTourParam);
       } else {
-        setActiveHistoryId(null);
+        setActiveHistoryId(localActiveHistoryId);
       }
       
-      if (inputAthletesVal && !isSwitchingTour) setInputAthletes(restoreBase64Avatars(inputAthletesVal));
       if (clubsVal) setClubs(clubsVal);
-      
-      if (competitionModeVal && !isSwitchingTour) setCompetitionMode(competitionModeVal as "individual" | "team");
-      if (teamDistancesVal && !isSwitchingTour) setTeamDistances(teamDistancesVal);
-      if (teamShotsCountVal && !isSwitchingTour) setTeamShotsCount(Number(teamShotsCountVal));
-      if (teamAthletesVal && !isSwitchingTour) setTeamAthletes(restoreBase64Avatars(teamAthletesVal));
-      if (teamInputAthletesVal && !isSwitchingTour) setTeamInputAthletes(restoreBase64Avatars(teamInputAthletesVal));
-      if (laneCapacityVal && !isSwitchingTour) setLaneCapacity(Number(laneCapacityVal));
 
     } catch (e) {
       console.error("Critical error during device storage restoration:", e);
@@ -1049,61 +1055,24 @@ export default function App() {
     const targetId = id;
     const resolvedTargetTab = targetTab || "dashboard";
 
+    // SAFETY CHECK: If re-selecting the EXACT SAME tournament that is already active, DO NOT reset state!
+    if (activeHistoryId && activeHistoryId === targetId) {
+      if (targetId) {
+        setActiveTab(resolvedTargetTab);
+      }
+      return;
+    }
+
     if (activeHistoryId && activeHistoryId !== targetId && hasUnsavedChanges) {
       setPendingTabTarget({ type: "select_tour", payload: { id: targetId, tournament, targetTab: resolvedTargetTab } });
       setIsUnsavedModalOpen(true);
       return;
     }
 
-    // Immediately write any pending local changes to Firestore before switching to the new tournament
-    if (activeHistoryId && activeHistoryId !== targetId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc && currentTournamentDoc.id === activeHistoryId) {
-      const isDifferent = (
-        !deepEqual(matchName, currentTournamentDoc?.matchName) ||
-        !deepEqual(startDate, currentTournamentDoc?.startDate) ||
-        !deepEqual(endDate, currentTournamentDoc?.endDate) ||
-        !deepEqual(distances, currentTournamentDoc?.distances) ||
-        !deepEqual(shotsCount, currentTournamentDoc?.shotsCount) ||
-        !deepEqual(athletes, currentTournamentDoc?.athletes) ||
-        !deepEqual(teamDistances, currentTournamentDoc?.teamDistances) ||
-        !deepEqual(teamShotsCount, currentTournamentDoc?.teamShotsCount) ||
-        !deepEqual(teamAthletes, currentTournamentDoc?.teamAthletes) ||
-        !deepEqual(inputAthletes, currentTournamentDoc?.inputAthletes) ||
-        !deepEqual(teamInputAthletes, currentTournamentDoc?.teamInputAthletes) ||
-        !deepEqual(directMaxPoints, currentTournamentDoc?.directMaxPoints) ||
-        !deepEqual(teamDirectMaxPoints, currentTournamentDoc?.teamDirectMaxPoints) ||
-        !deepEqual(directMaxShots, currentTournamentDoc?.directMaxShots) ||
-        !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
-        !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
-        !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
-        !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
-        !deepEqual(clubs, currentTournamentDoc?.clubs) ||
-        laneCapacity !== currentTournamentDoc?.laneCapacity
-      );
-      if (isDifferent) {
-        updateOnlineTournament(activeHistoryId, {
-          matchName,
-          startDate,
-          endDate,
-          distances,
-          shotsCount,
-          athletes,
-          teamDistances,
-          teamShotsCount,
-          teamAthletes,
-          inputAthletes,
-          teamInputAthletes,
-          directMaxPoints,
-          teamDirectMaxPoints,
-          directMaxShots,
-          teamDirectMaxShots,
-          masterAthletes,
-          bannerUrl,
-          avatarUrl,
-          laneCapacity,
-          clubs
-        }).catch(err => console.error("Immediate switch sync failed:", err));
-      }
-    }
+    // DISARM ALL AUTO-SYNC PUBLISHERS IMMEDIATELY BEFORE SWITCHING TOURNAMENTS
+    setIsTournamentConfigLoaded(false);
+    setCurrentTournamentDoc(null);
+    loadedTournamentIdRef.current = null;
 
     setAthletes([]);
     setMasterAthletes([]);
@@ -2012,6 +1981,13 @@ export default function App() {
     if (currentTournamentDoc?.id !== activeHistoryId) return;
     if (userRole !== "admin" && userRole !== "referee") return;
     if (!isTournamentConfigLoaded || !currentTournamentDoc) return;
+    // Guard against blanking data: Never overwrite a populated cloud document if local state is empty or missing data
+    if (!matchName || !matchName.trim()) return;
+    if (currentTournamentDoc.matchName && matchName.trim() !== currentTournamentDoc.matchName.trim() && !matchName.trim()) return;
+    if ((!athletes || athletes.length === 0) && currentTournamentDoc.athletes && currentTournamentDoc.athletes.length > 0) return;
+    if ((!masterAthletes || masterAthletes.length === 0) && currentTournamentDoc.masterAthletes && currentTournamentDoc.masterAthletes.length > 0) return;
+    if ((!teamAthletes || teamAthletes.length === 0) && currentTournamentDoc.teamAthletes && currentTournamentDoc.teamAthletes.length > 0) return;
+    if ((!distances || distances.length === 0) && currentTournamentDoc.distances && currentTournamentDoc.distances.length > 0) return;
 
     // Compare what we locally have with currentTournamentDoc to prevent echo updates
     const isDifferent = (
@@ -2294,12 +2270,11 @@ export default function App() {
 
   // Synchronize basic metadata from master profiles to current active session athletes
   useEffect(() => {
-    setAthletes((prevActive) => {
-      const activeIdsInMaster = new Set(masterAthletes.map(m => m.id));
-      const filtered = prevActive.filter(a => activeIdsInMaster.has(a.id));
-      let changed = filtered.length !== prevActive.length;
+    if (!masterAthletes || masterAthletes.length === 0) return;
 
-      const updated = filtered.map((activeAth) => {
+    setAthletes((prevActive) => {
+      let changed = false;
+      const updated = prevActive.map((activeAth) => {
         const masterAth = masterAthletes.find((m) => m.id === activeAth.id);
         if (masterAth) {
           if (
@@ -2338,11 +2313,8 @@ export default function App() {
     });
 
     setTeamAthletes((prevTeam) => {
-      const activeIdsInMaster = new Set(masterAthletes.map(m => m.id));
-      const filtered = prevTeam.filter(a => activeIdsInMaster.has(a.id));
-      let changed = filtered.length !== prevTeam.length;
-
-      const updated = filtered.map((activeAth) => {
+      let changed = false;
+      const updated = prevTeam.map((activeAth) => {
         const masterAth = masterAthletes.find((m) => m.id === activeAth.id);
         if (masterAth) {
           if (
@@ -3352,55 +3324,10 @@ export default function App() {
   const handleExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
     const isOnlineTourExit = !!(activeHistoryId && activeHistoryId.startsWith("tour-"));
 
-    // Immediately write any pending local changes to Firestore before exiting/clearing state
-    if (isOnlineTourExit && (userRole === "admin" || userRole === "referee") && isTournamentConfigLoaded && currentTournamentDoc && currentTournamentDoc.id === activeHistoryId) {
-      const isDifferent = (
-        !deepEqual(matchName, currentTournamentDoc?.matchName) ||
-        !deepEqual(startDate, currentTournamentDoc?.startDate) ||
-        !deepEqual(endDate, currentTournamentDoc?.endDate) ||
-        !deepEqual(distances, currentTournamentDoc?.distances) ||
-        !deepEqual(shotsCount, currentTournamentDoc?.shotsCount) ||
-        !deepEqual(athletes, currentTournamentDoc?.athletes) ||
-        !deepEqual(teamDistances, currentTournamentDoc?.teamDistances) ||
-        !deepEqual(teamShotsCount, currentTournamentDoc?.teamShotsCount) ||
-        !deepEqual(teamAthletes, currentTournamentDoc?.teamAthletes) ||
-        !deepEqual(inputAthletes, currentTournamentDoc?.inputAthletes) ||
-        !deepEqual(teamInputAthletes, currentTournamentDoc?.teamInputAthletes) ||
-        !deepEqual(directMaxPoints, currentTournamentDoc?.directMaxPoints) ||
-        !deepEqual(teamDirectMaxPoints, currentTournamentDoc?.teamDirectMaxPoints) ||
-        !deepEqual(directMaxShots, currentTournamentDoc?.directMaxShots) ||
-        !deepEqual(teamDirectMaxShots, currentTournamentDoc?.teamDirectMaxShots) ||
-        !deepEqual(masterAthletes, currentTournamentDoc?.masterAthletes) ||
-        !deepEqual(bannerUrl, currentTournamentDoc?.bannerUrl) ||
-        !deepEqual(avatarUrl, currentTournamentDoc?.avatarUrl) ||
-        !deepEqual(clubs, currentTournamentDoc?.clubs) ||
-        laneCapacity !== currentTournamentDoc?.laneCapacity
-      );
-      if (isDifferent) {
-        updateOnlineTournament(activeHistoryId, {
-          matchName,
-          startDate,
-          endDate,
-          distances,
-          shotsCount,
-          athletes,
-          teamDistances,
-          teamShotsCount,
-          teamAthletes,
-          inputAthletes,
-          teamInputAthletes,
-          directMaxPoints,
-          teamDirectMaxPoints,
-          directMaxShots,
-          teamDirectMaxShots,
-          masterAthletes,
-          bannerUrl,
-          avatarUrl,
-          laneCapacity,
-          clubs
-        }).catch(err => console.error("Immediate exit sync failed:", err));
-      }
-    }
+    // DISARM ALL AUTO-SYNC PUBLISHERS IMMEDIATELY BEFORE EXITING
+    setIsTournamentConfigLoaded(false);
+    setCurrentTournamentDoc(null);
+    loadedTournamentIdRef.current = null;
 
     // Auto-save roster to stored athlete lists on exit ONLY for local offline draft sessions (not online tournaments)
     const rosterToSave = (masterAthletes && masterAthletes.length > 0) ? masterAthletes : athletes;
@@ -5839,40 +5766,44 @@ export default function App() {
           {activeTab === "leaderboard" && (
             <div className="flex flex-col gap-5 animate-fadeIn" id="ranking-tab-container">
               {/* Sub-tabs to toggle between Individual and Team/Club rankings */}
-              <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-2 self-start" id="ranking-sub-tabs">
+              <div className="flex w-full bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-2" id="ranking-sub-tabs">
                 <button
                   type="button"
                   onClick={() => setRankingSubTab("individual")}
-                  className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`flex-1 w-1/2 px-3 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 text-center ${
                     rankingSubTab === "individual"
                       ? "bg-blue-600 text-white shadow-md font-extrabold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                   id="ranking-subtab-ind-btn"
                 >
-                  <Trophy className="w-4 h-4" />
-                  {competitionMode === "team" ? (
-                    language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"
-                  ) : (
-                    language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"
-                  )}
+                  <Trophy className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {competitionMode === "team" ? (
+                      language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"
+                    ) : (
+                      language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"
+                    )}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRankingSubTab("team")}
-                  className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`flex-1 w-1/2 px-3 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 text-center ${
                     rankingSubTab === "team"
                       ? "bg-blue-600 text-white shadow-md font-extrabold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                   id="ranking-subtab-team-btn"
                 >
-                  <Users className="w-4 h-4" />
-                  {competitionMode === "team" ? (
-                    language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"
-                  ) : (
-                    language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"
-                  )}
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {competitionMode === "team" ? (
+                      language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"
+                    ) : (
+                      language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"
+                    )}
+                  </span>
                 </button>
               </div>
 

@@ -356,6 +356,46 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     return resultsList;
   }, [tournaments, currentUser]);
 
+  // Helper athlete count stats (total registered vs active shooting)
+  const getTournamentAthleteStats = (tour: TournamentData) => {
+    if (!tour) return { total: 0, active: 0 };
+
+    const isTeam = tour.competitionMode === "team";
+    const activeList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
+    const activeCount = activeList.length;
+
+    const uniqueIds = new Set<string>();
+    const addList = (list?: Athlete[]) => {
+      if (Array.isArray(list)) {
+        list.forEach((a) => {
+          if (a && (a.id || a.name)) {
+            uniqueIds.add((a.id || a.name).toString().trim().toLowerCase());
+          }
+        });
+      }
+    };
+
+    addList(tour.masterAthletes);
+    addList(tour.teamMasterAthletes);
+    addList(tour.athletes);
+    addList(tour.teamAthletes);
+    addList(tour.inputAthletes);
+    addList(tour.teamInputAthletes);
+
+    let totalCount = uniqueIds.size;
+    if (totalCount === 0 && typeof tour.masterCount === "number" && tour.masterCount > 0) {
+      totalCount = tour.masterCount;
+    }
+    if (totalCount < activeCount) {
+      totalCount = activeCount;
+    }
+
+    return {
+      total: totalCount,
+      active: activeCount,
+    };
+  };
+
   // Helper score summaries
   const getTopAthletes = (athletesList: Athlete[], distancesList: DistanceConfig[]): { name: string; score: number }[] => {
     if (!athletesList || athletesList.length === 0) return [];
@@ -791,6 +831,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
                         const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
                         const topAthletes = getTopAthletes(activeAthletesList, activeDistancesList);
+                        const athleteStats = getTournamentAthleteStats(tour);
                         const isActive = activeHistoryId === tour.id;
 
                         const dateStr = tour.createdAt && typeof tour.createdAt.toDate === "function" 
@@ -824,7 +865,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-1.5">
                               <div className="flex justify-between items-center text-slate-500">
                                 <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
-                                <span>VĐV: <strong className="text-slate-700 dark:text-slate-300">{activeAthletesList.length}</strong></span>
+                                <span>VĐV tham gia: <strong className="text-slate-700 dark:text-slate-300">{athleteStats.total} VĐV {athleteStats.active > 0 && athleteStats.active !== athleteStats.total ? `(${athleteStats.active} đã thi đấu)` : ""}</strong></span>
                               </div>
                               <div className="flex justify-between items-center text-slate-500 border-t border-slate-200/40 dark:border-slate-800/40 pt-1.5">
                                 <span>Trọng tài phụ trợ:</span>
@@ -887,6 +928,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         const isTeam = tour.competitionMode === "team";
                         const activeAthletesList = isTeam ? (tour.teamAthletes || []) : (tour.athletes || []);
                         const activeDistancesList = isTeam ? (tour.teamDistances || []) : (tour.distances || []);
+                        const refAthleteStats = getTournamentAthleteStats(tour);
                         const isActive = activeHistoryId === tour.id;
 
                         const dateStr = tour.createdAt && typeof tour.createdAt.toDate === "function" 
@@ -920,7 +962,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-2">
                               <div className="flex justify-between items-center text-slate-500">
                                 <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
-                                <span>Số cự ly: <strong className="text-slate-700 dark:text-slate-300">{activeDistancesList.length}</strong></span>
+                                <span>VĐV tham gia: <strong className="text-slate-700 dark:text-slate-300">{refAthleteStats.total} VĐV {refAthleteStats.active > 0 && refAthleteStats.active !== refAthleteStats.total ? `(${refAthleteStats.active} đã thi đấu)` : ""}</strong></span>
                               </div>
                               <div className="flex justify-wrap gap-1 items-center text-[10px] text-slate-400 border-t border-slate-200/40 dark:border-slate-800/40 pt-2 leading-relaxed">
                                 <User className="w-3 h-3 text-indigo-505" />
@@ -1009,7 +1051,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <strong className="text-sm text-slate-900 dark:text-slate-100 font-extrabold">{copyModalTour.matchName}</strong>
                 <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
                   <span>Thể thức: <strong>{getTournamentModeLabel(copyModalTour)}</strong></span>
-                  <span>VĐV: <strong>{(copyModalTour.athletes?.length || 0) + (copyModalTour.inputAthletes?.length || 0)}</strong></span>
+                  <span>VĐV: <strong>{getTournamentAthleteStats(copyModalTour).total} VĐV</strong></span>
                 </div>
               </div>
 
