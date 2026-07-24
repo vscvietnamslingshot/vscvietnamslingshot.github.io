@@ -2520,7 +2520,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                 
                 return (
                   <div 
-                    key={athlete.id}
+                    key={`dash-ath-${athlete.id || "ath"}-${index}`}
                     className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-slate-800 bg-white hover:bg-slate-50/50 transition-colors shadow-sm gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0">

@@ -2075,7 +2075,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     {leaderboardDataIndividual.slice(0, 10).map((ath, idx) => {
                       const darkRow = idx % 2 === 1 ? "bg-slate-50/40" : "";
                       return (
-                        <tr key={ath.id} className={`hover:bg-slate-50/80 ${darkRow}`}>
+                        <tr key={`exp-top10-${ath.id || "ath"}-${idx}`} className={`hover:bg-slate-50/80 ${darkRow}`}>
                           <td className="py-2 px-4 text-center font-bold">
                             <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9.5px] font-mono leading-none ${
                               idx === 0 ? "bg-amber-400 text-slate-900 font-black px-1" :
@@ -2309,7 +2309,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-sans">
-                      {chunk.map((ath) => {
+                      {chunk.map((ath, idx) => {
                         const globalRank = leaderboardDataIndividual.findIndex(x => x.id === ath.id) + 1;
                         let rankBgClass = "bg-slate-100 text-slate-550 border-slate-200";
                         if (globalRank === 1) rankBgClass = "bg-amber-400 text-slate-950 border-amber-400 font-black shadow-sm";
@@ -2317,7 +2317,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         else if (globalRank === 3) rankBgClass = "bg-orange-200 text-orange-950 border-orange-355 font-black shadow-sm";
 
                         return (
-                          <tr key={ath.id} className="hover:bg-slate-50">
+                          <tr key={`exp-chunk-ind-${ath.id || "ath"}-${idx}`} className="hover:bg-slate-50">
                             <td className={`${aspectRatio === "16:9" ? "py-2.5" : "py-4"} px-4 text-center shrink-0`}>
                               <span className={`w-7 h-7 rounded-xl border flex items-center justify-center mx-auto text-xs font-mono font-black ${rankBgClass}`}>
                                 {globalRank}
@@ -2438,7 +2438,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-sans">
-                      {chunk.map((ath) => {
+                      {chunk.map((ath, idx) => {
                         const globalRank = leaderboardDataTeam.findIndex(x => x.id === ath.id) + 1;
                         let rankBgClass = "bg-slate-100 text-slate-550 border-slate-200";
                         if (globalRank === 1) rankBgClass = "bg-amber-400 text-slate-950 border-amber-400 font-black shadow-sm";
@@ -2446,7 +2446,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         else if (globalRank === 3) rankBgClass = "bg-orange-200 text-orange-950 border-orange-355 font-black shadow-sm";
 
                         return (
-                          <tr key={ath.id} className="hover:bg-slate-50">
+                          <tr key={`exp-chunk-team-${ath.id || "ath"}-${idx}`} className="hover:bg-slate-50">
                             <td className={`${aspectRatio === "16:9" ? "py-2.5" : "py-4"} px-4 text-center shrink-0`}>
                               <span className={`w-7 h-7 rounded-xl border flex items-center justify-center mx-auto text-xs font-mono font-black ${rankBgClass}`}>
                                 {globalRank}
@@ -2708,7 +2708,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                 {/* Athlete Detail Cards list (Dynamic card sizes. Vòng nào vđv không ghi nhận điểm thì không đưa vào) */}
                 <div className={`flex-1 overflow-hidden py-1 ${aspectRatio === "16:9" ? "grid grid-cols-2 gap-4 auto-rows-max justify-start items-start" : "flex flex-col gap-3.5 justify-start"}`}>
-                  {chunk.map((ath) => {
+                  {chunk.map((ath, idx) => {
                     // Pre-calc total score & hits
                     let totalScore = 0;
                     let totalHits = 0;
@@ -2738,7 +2738,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                     return (
                       <div 
-                        key={ath.id}
+                        key={`exp-sc-ind-${ath.id || "ath"}-${idx}`}
                         className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-col gap-3 shrink-0 w-full justify-between relative overflow-hidden shadow-sm transition-all"
                       >
                         {/* Athlete header card */}
@@ -2902,7 +2902,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                 {/* Athlete Detail Cards list */}
                 <div className={`flex-1 overflow-hidden py-1 ${aspectRatio === "16:9" ? "grid grid-cols-2 gap-4 auto-rows-max justify-start items-start" : "flex flex-col gap-3.5 justify-start"}`}>
-                  {chunk.map((ath) => {
+                  {chunk.map((ath, idx) => {
                     // Pre-calc total score & hits using team settings
                     let totalScore = 0;
                     let totalHits = 0;
@@ -2932,7 +2932,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                     return (
                       <div 
-                        key={ath.id}
+                        key={`exp-sc-team-${ath.id || "ath"}-${idx}`}
                         className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-col gap-3 shrink-0 w-full justify-between relative overflow-hidden shadow-sm transition-all"
                       >
                         {/* Athlete header card */}

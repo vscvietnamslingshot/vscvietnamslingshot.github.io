@@ -76,35 +76,21 @@ service cloud.firestore {
     match /tournaments/{tournamentId} {
       allow read: if true; // Public spectators need to access scores & brackets
       
-      allow create: if isEmailVerified() && 
-                    isValidId(tournamentId) &&
-                    isValidTournament(incoming()) && 
-                    (!('creatorId' in incoming()) || incoming().creatorId == request.auth.uid);
+      allow create: if isValidId(tournamentId) &&
+                    isValidTournament(incoming());
                     
-      allow update: if isValidId(tournamentId) && (
+      allow update: if isValidId(tournamentId) && 
+                    isValidTournament(incoming());
+                    
+      allow delete: if isValidId(tournamentId) && (
+                      !('creatorId' in existing()) ||
                       (
-                        isEmailVerified() && 
-                        isValidTournament(incoming()) && (
+                        isEmailVerified() && (
                           isAdmin() ||
-                          !('creatorId' in existing()) ||
                           ('creatorId' in existing() && existing().creatorId == request.auth.uid) ||
-                          ('subAdmins' in existing() && existing().subAdmins is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().subAdmins) ||
-                          ('referees' in existing() && existing().referees is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().referees)
-                        ) &&
-                        // Immutable fields check
-                        (!('id' in incoming()) || !('id' in existing()) || incoming().id == existing().id) &&
-                        (!('creatorId' in existing()) || !('creatorId' in incoming()) || incoming().creatorId == existing().creatorId)
-                      ) || (
-                        // Allow anyone to increment viewCount (even if not logged in)
-                        incoming().diff(existing()).affectedKeys().hasOnly(['viewCount', 'updatedAt'])
+                          ('subAdmins' in existing() && existing().subAdmins is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().subAdmins)
+                        )
                       )
-                    );
-                    
-      allow delete: if isEmailVerified() && 
-                    isValidId(tournamentId) && (
-                      isAdmin() ||
-                      ('creatorId' in existing() && existing().creatorId == request.auth.uid) ||
-                      ('subAdmins' in existing() && existing().subAdmins is list && request.auth.token != null && 'email' in request.auth.token && request.auth.token.email in existing().subAdmins)
                     );
     }
 

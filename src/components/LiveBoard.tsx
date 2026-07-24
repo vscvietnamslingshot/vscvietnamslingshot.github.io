@@ -1336,7 +1336,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
 
                     return (
                       <div 
-                        key={ath.id} 
+                        key={`live-rank-${ath.id || "ath"}-${idx}`} 
                         className="group flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-300 hover:translate-x-1.5 hover:shadow-lg hover:shadow-emerald-500/5 cursor-pointer animate-fadeIn"
                         style={{ 
                           animationDelay: `${idx * 45}ms`,
@@ -1555,7 +1555,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                     const isBỏThi = ath.status === "Bỏ thi";
 
                     return (
-                      <div key={ath.id} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
+                      <div key={`live-g1-${ath.id || "ath"}-${slotIdx}`} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
                         isBỏThi 
                           ? "bg-rose-950/15 border-rose-950/40 opacity-45"
                           : "bg-emerald-950/10 border-[#1c3943] hover:border-emerald-550 shadow-md animate-fadeIn"
@@ -1656,7 +1656,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                     const isBỏThi = ath.status === "Bỏ thi";
 
                     return (
-                      <div key={ath.id} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
+                      <div key={`live-g2-${ath.id || "ath"}-${slotIdx}`} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
                         isBỏThi
                           ? "bg-rose-950/15 border-rose-950/40 opacity-45"
                           : "bg-blue-950/10 border-[#1f2f55] hover:border-blue-555 shadow-md animate-fadeIn"
@@ -1726,7 +1726,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
                     const isBỏThi = ath.status === "Bỏ thi";
 
                     return (
-                      <div key={ath.id} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
+                      <div key={`live-g3-${ath.id || "ath"}-${slotIdx}`} className={`p-2 rounded-xl border transition-all flex flex-col justify-center shrink-0 md:flex-1 md:shrink md:min-h-0 ${
                         isBỏThi
                           ? "bg-rose-950/15 border-rose-950/40 opacity-45"
                           : "bg-violet-950/10 border-[#2f1c50] hover:border-violet-550 shadow-md animate-fadeIn"

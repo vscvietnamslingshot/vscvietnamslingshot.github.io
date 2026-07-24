@@ -535,7 +535,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {history.map((item) => {
+          {history.map((item, idx) => {
             // Calculate champion
             let championName = language === "en" ? "None yet" : "Chưa có";
             let championTeam = "";
@@ -557,7 +557,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
             return (
               <div 
-                key={item.id} 
+                key={`history-item-${item.id || "item"}-${idx}`} 
                 className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3 relative animate-fadeIn"
               >
                 {/* Header info */}
@@ -775,11 +775,11 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   {language === "en" ? "No historical tournaments found." : "Không có giải đấu nào trong lịch sử."}
                 </div>
               ) : (
-                history.map((h) => {
+                history.map((h, idx) => {
                   const isChecked = selectedExportIds.includes(h.id);
                   return (
                     <label 
-                      key={h.id}
+                      key={`export-history-${h.id || "item"}-${idx}`}
                       className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                         isChecked 
                           ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/40" 

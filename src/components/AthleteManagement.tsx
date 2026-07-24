@@ -1215,11 +1215,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               Không tìm thấy hồ sơ nào trùng khớp.
             </div>
           ) : (
-            filteredAthletes.map((ath) => {
+            filteredAthletes.map((ath, idx) => {
               const isActive = selectedAthlete && selectedAthlete.id === ath.id;
               return (
                 <div
-                  key={ath.id}
+                  key={`ath-${ath.id || "idx"}-${idx}`}
                   onClick={() => handleSelectAthlete(ath)}
                   draggable={true}
                   onDragStart={(e) => handleDragStart(e, ath.id)}
@@ -1382,13 +1382,13 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
-                  {clubs.map((club) => {
+                  {clubs.map((club, idx) => {
                     const isEditingClub = editingClubId === club.id;
                     const athleteCount = athletes.filter(a => a.team?.trim().toLowerCase() === club.name.trim().toLowerCase()).length;
                     
                     return (
                       <div
-                        key={club.id}
+                        key={`club-d-${club.id || "idx"}-${idx}`}
                         className="border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 bg-white dark:bg-slate-950/25 flex items-center justify-between gap-3 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-3xs"
                       >
                         {/* Avatar & Info */}
@@ -1581,13 +1581,13 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[450px] overflow-y-auto pr-1">
-                {clubs.map((club) => {
+                {clubs.map((club, idx) => {
                   const isEditingClub = editingClubId === club.id;
                   const athleteCount = athletes.filter(a => a.team?.trim().toLowerCase() === club.name.trim().toLowerCase()).length;
 
                   return (
                     <div
-                      key={club.id}
+                      key={`club-full-${club.id || "idx"}-${idx}`}
                       className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-white dark:bg-slate-950/50 flex items-center justify-between gap-4 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-sm"
                     >
                       {/* Avatar & Info */}
@@ -1788,14 +1788,14 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
-                {storedAthleteLists.map((item) => {
+                {storedAthleteLists.map((item, idx) => {
                   const isExpanded = expandedListId === item.id;
                   const isConfirmingD = listIdToConfirmDelete === item.id;
                   const isConfirmingA = listIdToConfirmApply === item.id;
 
                   return (
                     <div 
-                      key={item.id}
+                      key={`stored-list-a-${item.id || "idx"}-${idx}`}
                       className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-white dark:bg-slate-950/50 flex flex-col gap-3 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-sm"
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -2875,14 +2875,14 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
-                  {storedAthleteLists.map((item) => {
+                  {storedAthleteLists.map((item, idx) => {
                     const isExpanded = expandedListId === item.id;
                     const isConfirmingD = listIdToConfirmDelete === item.id;
                     const isConfirmingA = listIdToConfirmApply === item.id;
 
                     return (
                       <div 
-                        key={item.id}
+                        key={`stored-list-b-${item.id || "idx"}-${idx}`}
                         className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-white dark:bg-slate-105 flex flex-col gap-3 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-sm"
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

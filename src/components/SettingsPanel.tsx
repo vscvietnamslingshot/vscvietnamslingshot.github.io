@@ -1362,7 +1362,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="flex-1 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
           {distances.map((dist, distIdx) => (
             <div 
-              key={dist.id} 
+              key={`dist-ind-${dist.id || "d"}-${distIdx}`} 
               className="flex flex-col gap-2 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-850 rounded p-3 text-sm transition-all"
             >
               {editingDistanceId === dist.id && editingDistanceType === "individual" ? (
@@ -1719,7 +1719,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="flex-1 flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
           {teamDistances.map((dist, distIdx) => (
             <div 
-              key={dist.id} 
+              key={`dist-team-${dist.id || "d"}-${distIdx}`} 
               className="flex flex-col gap-2 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-850 rounded p-3 text-sm transition-all"
             >
               {editingDistanceId === dist.id && editingDistanceType === "team" ? (

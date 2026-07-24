@@ -1610,7 +1610,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
                 return (
                   <tr 
-                    key={athlete.id} 
+                    key={`lb-ath-${athlete.id || "ath"}-${index}`} 
                     className={rowBgClass}
                   >
                     {/* Position medal / rank */}

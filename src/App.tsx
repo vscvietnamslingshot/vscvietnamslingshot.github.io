@@ -34,7 +34,8 @@ import {
   Unlock,
   Eye,
   Tv,
-  CloudUpload
+  CloudUpload,
+  LayoutDashboard
 } from "lucide-react";
 import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList, Club, VSC_DEFAULT_LOGO } from "./types";
 import { useLanguage } from "./context/LanguageContext";
@@ -6698,6 +6699,137 @@ export default function App() {
       {/* Floating Mobile Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-gradient-to-b from-[#b80e16] to-[#8c0a10] border-t border-red-500/25 shadow-2xl h-16 pb-safe flex items-stretch">
         {(() => {
+          const isTournamentActive = !!activeHistoryId;
+
+          if (isTournamentActive) {
+            const isInputScoresActive = activeTab === "input_scores" || activeTab === "scoring";
+            const isDashboardActive = activeTab === "dashboard";
+            const isHomeActive = activeTab === "home";
+            const isLeaderboardActive = activeTab === "leaderboard";
+            const isSettingsActive = activeTab === "settings";
+
+            return (
+              <div className="grid grid-cols-5 w-full h-full items-center text-center relative px-1">
+                {/* Tab 1: Nhập điểm / Nhập điểm team */}
+                <button
+                  onClick={() => changeTab("input_scores")}
+                  className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+                >
+                  <div className={`transition-all duration-300 flex flex-col items-center ${isInputScoresActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                    <div className={`transition-all duration-300 flex items-center justify-center ${
+                      isInputScoresActive 
+                        ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                        : "w-9 h-9 bg-transparent"
+                    }`}>
+                      <ClipboardCheck className={`w-5 h-5 transition-all duration-300 ${isInputScoresActive ? "text-white scale-110" : "text-white/70"}`} />
+                    </div>
+                    <span className={`text-[8px] transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[62px] ${
+                      isInputScoresActive 
+                        ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                        : "font-bold text-white/70 mt-1"
+                    }`}>
+                      {competitionMode === "team" 
+                        ? (language === "en" ? "Team Scores" : "Nhập điểm team") 
+                        : (language === "en" ? "Enter Scores" : "Nhập Điểm")}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Tab 2: Overview (Dashboard) */}
+                <button
+                  onClick={() => changeTab("dashboard")}
+                  className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+                >
+                  <div className={`transition-all duration-300 flex flex-col items-center ${isDashboardActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                    <div className={`transition-all duration-300 flex items-center justify-center ${
+                      isDashboardActive 
+                        ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                        : "w-9 h-9 bg-transparent"
+                    }`}>
+                      <LayoutDashboard className={`w-5 h-5 transition-all duration-300 ${isDashboardActive ? "text-white scale-110" : "text-white/70"}`} />
+                    </div>
+                    <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                      isDashboardActive 
+                        ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                        : "font-bold text-white/70 mt-1"
+                    }`}>
+                      {language === "en" ? "Overview" : "Tổng quan"}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Tab 3: Trang chủ */}
+                <button
+                  onClick={() => changeExitTournament("all")}
+                  className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+                >
+                  <div className={`transition-all duration-300 flex flex-col items-center ${isHomeActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                    <div className={`transition-all duration-300 flex items-center justify-center ${
+                      isHomeActive 
+                        ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                        : "w-9 h-9 bg-transparent"
+                    }`}>
+                      <Home className={`w-5 h-5 transition-all duration-300 ${isHomeActive ? "text-white scale-110" : "text-white/70"}`} />
+                    </div>
+                    <span className={`text-[8px] transition-all duration-300 tracking-tight ${
+                      isHomeActive 
+                        ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                        : "font-bold text-white/70 mt-1"
+                    }`}>
+                      {language === "en" ? "Home" : "Trang chủ"}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Tab 4: Bảng xếp hạng VSC */}
+                <button
+                  onClick={() => changeTab("leaderboard")}
+                  className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+                >
+                  <div className={`transition-all duration-300 flex flex-col items-center ${isLeaderboardActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                    <div className={`transition-all duration-300 flex items-center justify-center ${
+                      isLeaderboardActive 
+                        ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                        : "w-9 h-9 bg-transparent"
+                    }`}>
+                      <Trophy className={`w-5 h-5 transition-all duration-300 ${isLeaderboardActive ? "text-white scale-110" : "text-white/70"}`} />
+                    </div>
+                    <span className={`text-[8px] transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[62px] ${
+                      isLeaderboardActive 
+                        ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                        : "font-bold text-white/70 mt-1"
+                    }`}>
+                      {language === "en" ? "Leaderboard" : "BXH VSC"}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Tab 5: Setting (Cấu hình & Tham Số) */}
+                <button
+                  onClick={() => changeTab("settings")}
+                  className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
+                >
+                  <div className={`transition-all duration-300 flex flex-col items-center ${isSettingsActive ? "-translate-y-3.5" : "translate-y-0"}`}>
+                    <div className={`transition-all duration-300 flex items-center justify-center ${
+                      isSettingsActive 
+                        ? "w-12 h-12 bg-gradient-to-b from-[#d8141c] to-[#9c0c13] rounded-full border-4 border-white dark:border-slate-950 shadow-lg" 
+                        : "w-9 h-9 bg-transparent"
+                    }`}>
+                      <Settings className={`w-5 h-5 transition-all duration-300 ${isSettingsActive ? "text-white scale-110" : "text-white/70"}`} />
+                    </div>
+                    <span className={`text-[8px] transition-all duration-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[62px] ${
+                      isSettingsActive 
+                        ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
+                        : "font-bold text-white/70 mt-1"
+                    }`}>
+                      {language === "en" ? "Settings" : "Setting"}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            );
+          }
+
           const isSettingsActive = activeTab === "settings";
           const isActiveActive = activeTab === "dashboard" || (activeTab === "home" && homeFilter === "active");
           const isHomeActive = activeTab === "home" && (homeFilter === "all" || homeFilter === "all_list");
