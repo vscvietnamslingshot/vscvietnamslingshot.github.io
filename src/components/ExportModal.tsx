@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
 import { toPng, toJpeg } from "html-to-image";
-import JSZip from "jszip";
 import { 
   X, 
   Download, 
@@ -1448,48 +1447,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       setExportProgress(90);
       setProgressText("Đang tối ưu hóa file tải xuống...");
 
-      // Determine environment: mobile vs desktop
-      const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-        navigator.userAgent
-      );
-
-      if (isMobile) {
-        // Mobile direct sequential save triggers
-        setProgressText("Đơn vị phát hiện: Điện thoại. Đang tải ảnh trực tiếp...");
-        for (let idx = 0; idx < images.length; idx++) {
-          const file = images[idx];
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(file.blob);
-          link.download = file.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          // Wait briefly between triggers so the browser handles them securely
-          await new Promise((resolve) => setTimeout(resolve, 400));
-        }
-      } else {
-        // Desktop zip packaging
-        setProgressText("Đơn vị phát hiện: Máy tính. Đang thu nén thư mục ZIP...");
-        const zip = new JSZip();
-        
-        images.forEach((img) => {
-          zip.file(img.name, img.blob);
-        });
-
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const zipLink = document.createElement("a");
-        zipLink.href = URL.createObjectURL(zipBlob);
-        
-        // Clean tournament filename format
-        const cleanMatchName = matchName
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, "")
-          .replace(/[\s_]+/g, "-");
-        zipLink.download = `VSC-${cleanMatchName || "ket-qua"}-anh-chia-se.zip`;
-        
-        document.body.appendChild(zipLink);
-        zipLink.click();
-        document.body.removeChild(zipLink);
+      // Direct sequential save triggers for all environments (mobile & desktop)
+      setProgressText("Đang tải các hình ảnh trực tiếp về thiết bị...");
+      for (let idx = 0; idx < images.length; idx++) {
+        const file = images[idx];
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(file.blob);
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // Wait briefly between triggers so the browser handles them securely
+        await new Promise((resolve) => setTimeout(resolve, 400));
       }
 
       setExportProgress(100);
@@ -1775,23 +1744,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Autodetect Indicator block for Platform */}
+                  {/* Indicator block for Platform */}
                   <div className="bg-blue-50/40 dark:bg-slate-950/20 p-3 rounded-2xl border border-blue-100/50 dark:border-slate-800 flex items-center gap-2.5">
-                    {/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) ? (
-                      <>
-                        <Smartphone className="w-5 h-5 text-indigo-500 shrink-0" />
-                        <div className="text-[10.5px] leading-tight text-indigo-800 dark:text-indigo-400 font-semibold">
-                          Chúng tôi phát hiện điện thoại. Điểm xuất sẽ được tải từng ảnh trực tiếp về thư viện ảnh của bạn!
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Laptop className="w-5 h-5 text-indigo-500 shrink-0" />
-                        <div className="text-[10.5px] leading-tight text-indigo-800 dark:text-indigo-400 font-semibold">
-                          Chúng tôi phát hiện máy tính. Các ảnh sẽ được nén gọn trong 1 thư mục dạng *.ZIP đẹp mắt để lưu giữ!
-                        </div>
-                      </>
-                    )}
+                    <Smartphone className="w-5 h-5 text-indigo-500 shrink-0" />
+                    <div className="text-[10.5px] leading-tight text-indigo-800 dark:text-indigo-400 font-semibold">
+                      Các hình ảnh xuất sẽ được tải trực tiếp về thiết bị của bạn.
+                    </div>
                   </div>
                 </div>
               </div>

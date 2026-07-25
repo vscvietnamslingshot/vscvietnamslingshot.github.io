@@ -6842,6 +6842,10 @@ export default function App() {
               {/* Button 1: TẠO GIẢI ĐẤU MỚI */}
               <button
                 onClick={() => {
+                  if (!currentUser) {
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
                   if (activeHistoryId) {
                     if (hasUnsavedChanges) {
                       setPendingTabTarget({ type: "exit", value: "all" });
