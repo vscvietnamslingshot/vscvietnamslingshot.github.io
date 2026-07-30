@@ -1087,7 +1087,7 @@ export const LiveBoard: React.FC<LiveBoardProps> = ({
           }`}>
             <Trophy className="w-5 h-5 text-amber-400" />
             <h2 className="text-sm font-black text-amber-400 uppercase tracking-widest flex-1">
-              Bảng Vàng Danh Dự (Trụ Lại Cuối Cùng)
+              Bảng Vàng Danh Dự (BXH)
             </h2>
             <span className="text-[10px] bg-[#1d312c] border border-emerald-900 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
               SURVIVAL MODE

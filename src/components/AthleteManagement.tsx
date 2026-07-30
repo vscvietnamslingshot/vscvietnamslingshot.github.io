@@ -1739,7 +1739,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                     Giải hiện hành đang có {athletes.length} VĐV trong danh sách
                   </span>
                   <p className="text-[11px] text-slate-505 dark:text-slate-400 mt-1 leading-relaxed">
-                    Hệ thống sẽ <strong>tự động đồng bộ và lưu đè</strong> danh sách này trùng với tên giải đấu <strong className="text-indigo-605">"{matchName || "Giải đấu hiện tại"}"</strong> bất cứ khi nào có thay đổi, hoặc thầy cô có thể lưu với tên tùy chỉnh khác dưới đây.
+                    Hệ thống sẽ <strong>tự động đồng bộ và lưu đè</strong> danh sách này trùng với tên giải đấu <strong className="text-indigo-605">"{matchName || "Giải đấu hiện tại"}"</strong> bất cứ khi nào có thay đổi, hoặc bạn có thể lưu với tên tùy chỉnh khác dưới đây.
                   </p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">

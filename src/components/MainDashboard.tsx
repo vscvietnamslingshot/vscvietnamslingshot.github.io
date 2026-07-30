@@ -2140,11 +2140,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <button
               type="button"
               onClick={onOpenExportModal}
-              className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-black uppercase rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2 tracking-wider"
+              className="px-3 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center"
               id="btn-export-share-dashboard"
+              title={language === "en" ? "Share Image" : "Chia sẻ ảnh"}
             >
               <Share2 className="w-4 h-4" />
-              {language === "en" ? "SHARE IMAGE" : "CHIA SẺ ẢNH"}
             </button>
           )}
           {onOpenLiveBoard && (
@@ -2168,7 +2168,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             }`}
           >
             <Shield className="w-4 h-4" />
-            {language === "en" ? "Survival" : "Trụ Lại Cuối Cùng"}
+            {language === "en" ? "Survival" : "BXH Hiện Tại"}
           </button>
           <button
             type="button"
@@ -2180,7 +2180,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             }`}
           >
             <Trophy className="w-4 h-4" />
-            {language === "en" ? "All-Round (Cumulative)" : "Toàn Giải (Cộng dồn)"}
+            {language === "en" ? "All-Round (Cumulative)" : "Toàn Giải"}
           </button>
         </div>
       </div>
@@ -2195,15 +2195,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               <Trophy className="w-5 h-5 text-amber-500 fill-amber-100 animate-pulse" />
               {tournamentType === "individual" ? (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Individual Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng (môi trường Cá Nhân)") 
-                  : (language === "en" ? "Individual Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Cá Nhân - Toàn Giải (môi trường Cá Nhân)")
+                  ? (language === "en" ? "Individual Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Cá Nhân - BXH (Cá Nhân)") 
+                  : (language === "en" ? "Individual Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Cá Nhân - Toàn Giải (Cá Nhân)")
               ) : tournamentType === "team" ? (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Team Athletes Leaderboard - Survival (Team Mode)" : "Bảng Vàng Cá Nhân Team - Trụ Lại Cuối Cùng (môi trường Đồng Đội)") 
-                  : (language === "en" ? "Team Athletes Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Cá Nhân Team - Toàn Giải (môi trường Đồng Đội)")
+                  ? (language === "en" ? "Team Athletes Leaderboard - Survival (Team Mode)" : "Bảng Vàng Cá Nhân Team - BXH (Đồng Đội)") 
+                  : (language === "en" ? "Team Athletes Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Cá Nhân Team - Toàn Giải (Đồng Đội)")
               ) : (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Individual Leaderboard - Survival" : "Bảng Vàng Cá Nhân - Trụ Lại Cuối Cùng") 
+                  ? (language === "en" ? "Individual Leaderboard - Survival" : "Bảng Vàng Cá Nhân - BXH") 
                   : (language === "en" ? "Individual Leaderboard - All-Round" : "Bảng Vàng Cá Nhân - Toàn Giải")
               )}
             </h2>
@@ -2342,15 +2342,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               <Shield className="w-5 h-5 text-indigo-600" />
               {tournamentType === "individual" ? (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Team Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Cá Nhân)") 
-                  : (language === "en" ? "Team Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Cá Nhân)")
+                  ? (language === "en" ? "Team Leaderboard - Survival (Individual Mode)" : "Bảng Vàng Đồng Đội - BXH (Cá Nhân)") 
+                  : (language === "en" ? "Team Leaderboard - All-Round (Individual Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (Cá Nhân)")
               ) : tournamentType === "team" ? (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Team Leaderboard - Survival (Team Mode)" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng (môi trường Đồng Đội)") 
-                  : (language === "en" ? "Team Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (môi trường Đồng Đội)")
+                  ? (language === "en" ? "Team Leaderboard - Survival (Team Mode)" : "Bảng Vàng Đồng Đội - BXH (Đồng Đội)") 
+                  : (language === "en" ? "Team Leaderboard - All-Round (Team Mode)" : "Bảng Vàng Đồng Đội - Toàn Giải (Đồng Đội)")
               ) : (
                 dashboardTab === "survival" 
-                  ? (language === "en" ? "Team Leaderboard - Survival" : "Bảng Vàng Đồng Đội - Trụ Lại Cuối Cùng") 
+                  ? (language === "en" ? "Team Leaderboard - Survival" : "Bảng Vàng Đồng Đội - BXH") 
                   : (language === "en" ? "Team Leaderboard - All-Round" : "Bảng Vàng Đồng Đội - Toàn Giải")
               )}
             </h2>
@@ -2454,7 +2454,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               <Star className="w-5 h-5 text-amber-500 fill-amber-100" />
               {language === "en" 
                 ? `TOP ${topXCount} List - ${dashboardTab === "survival" ? "Survival" : "All-Round"}` 
-                : `Danh Sách TOP ${topXCount} - ${dashboardTab === "survival" ? "Trụ Lại Cuối Cùng" : "Toàn Giải"}`}
+                : `Danh Sách TOP ${topXCount} - ${dashboardTab === "survival" ? "BXH Hiện Tại" : "Toàn Giải"}`}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {dashboardTab === "survival" 

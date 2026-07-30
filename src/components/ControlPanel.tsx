@@ -454,7 +454,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       if (isNameChanged) {
         if (!nameCooldownInfo.canChange) {
-          alert(`Thầy cô/VĐV đổi tên gần đây vào ngày ${nameCooldownInfo.lastDateStr}. Hãy đợi thêm ${nameCooldownInfo.daysRemaining} ngày để đổi tên tiếp theo nhé!`);
+          alert(`Bạn/VĐV đổi tên gần đây vào ngày ${nameCooldownInfo.lastDateStr}. Hãy đợi thêm ${nameCooldownInfo.daysRemaining} ngày để đổi tên tiếp theo nhé!`);
           setSavingProfile(false);
           return;
         }
@@ -503,7 +503,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <SlidersHorizontal className="w-6 h-6 text-indigo-650 dark:text-indigo-400" /> BẢNG ĐIỀU KHIỂN CÁ NHÂN (CONTROL PANEL)
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
-            Nơi tập trung theo dõi các giải đấu trực tuyến do chính thầy cô kiến tạo, hoặc các giải đấu mà thầy cô làm Trọng tài phân công.
+            Nơi tập trung theo dõi các giải đấu trực tuyến do chính bạn kiến tạo, hoặc các giải đấu mà bạn làm Trọng tài phân công.
           </p>
         </div>
 

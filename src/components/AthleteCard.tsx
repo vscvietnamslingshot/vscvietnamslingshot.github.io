@@ -669,22 +669,36 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               </div>
 
               {onSaveSingleAthlete && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isLockedByOtherReferee) {
-                      alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không thể thực hiện thao tác!`);
-                      return;
-                    }
-                    onSaveSingleAthlete(athlete);
-                  }}
-                  disabled={isLockedByOtherReferee}
-                  className="p-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg shadow-xs hover:shadow transition-all duration-150 cursor-pointer border border-emerald-500/80 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
-                  title={language === "en" ? "Save scores for this athlete" : "Lưu điểm cho riêng VĐV này"}
-                >
-                  <Save className="w-3.5 h-3.5 stroke-[2.5]" />
-                </button>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteModal(true);
+                    }}
+                    className="p-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:text-rose-400 rounded-lg shadow-xs transition-all duration-150 cursor-pointer border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0"
+                    title={language === "en" ? "Remove/Cancel this athlete" : "Hủy/Xóa vận động viên này (gọi nhầm)"}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isLockedByOtherReferee) {
+                        alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không thể thực hiện thao tác!`);
+                        return;
+                      }
+                      onSaveSingleAthlete(athlete);
+                    }}
+                    disabled={isLockedByOtherReferee}
+                    className="p-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg shadow-xs hover:shadow transition-all duration-150 cursor-pointer border border-emerald-500/80 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={language === "en" ? "Save scores for this athlete" : "Lưu điểm cho riêng VĐV này"}
+                  >
+                    <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                </div>
               )}
             </div>
           </div>

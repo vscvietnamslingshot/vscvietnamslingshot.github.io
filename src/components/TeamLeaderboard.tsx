@@ -1085,7 +1085,7 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
             }`}
           >
             <Shield className="w-4 h-4" />
-            {competitionMode === "individual" ? "Team Bắn Chính" : "Trụ Lại Cuối Cùng"}
+            {competitionMode === "individual" ? "Team Bắn Chính" : "BXH Hiện Tại"}
           </button>
           <button
             type="button"

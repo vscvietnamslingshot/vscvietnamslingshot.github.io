@@ -1988,7 +1988,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
                   <div className="py-6 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                     <Trophy className="w-6 h-6 mb-1 text-slate-300 dark:text-slate-700" />
                     <span className="text-xs font-bold uppercase tracking-wider">Không tìm thấy giải đấu của bạn trên Cloud</span>
-                    <p className="text-[10px] mt-0.5">Thầy cô hãy lựa chọn tạo giải đấu MỚI ở phía trên.</p>
+                    <p className="text-[10px] mt-0.5">Bạn hãy lựa chọn tạo giải đấu MỚI ở phía trên.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 border border-slate-150 dark:border-slate-800 rounded-2xl p-2 bg-slate-50/20 dark:bg-slate-950/10">

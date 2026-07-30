@@ -3034,93 +3034,52 @@ export default function App() {
       setPendingScrollAthleteId(firstImported.id);
     }
 
-    // If online tournament, try writing to Firestore synchronously and verify success
-    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
-      try {
-        await updateOnlineTournament(activeHistoryId, {
-          athletes: nextAthletes,
-          teamAthletes: nextTeamAthletes,
-          inputAthletes: nextInputAthletes,
-          teamInputAthletes: nextTeamInputAthletes,
-        });
+    // Instantly update states to provide lightning fast feedback
+    setAthletes(nextAthletes);
+    setTeamAthletes(nextTeamAthletes);
+    setInputAthletes(nextInputAthletes);
+    setTeamInputAthletes(nextTeamInputAthletes);
+    setHasUnsavedChanges(false);
 
-        // Successful write to Cloud DB
-        setAthletes(nextAthletes);
-        setTeamAthletes(nextTeamAthletes);
-        setInputAthletes(nextInputAthletes);
-        setTeamInputAthletes(nextTeamInputAthletes);
-        setHasUnsavedChanges(false);
+    // Local storage writes (sync)
+    saveAvatarsFromAthletes(nextAthletes);
+    saveAvatarsFromAthletes(nextTeamAthletes);
+    deviceStorage.set("slingshot_athletes", stripBase64Avatars(nextAthletes));
+    deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(nextTeamAthletes));
+    deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(nextInputAthletes));
+    deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(nextTeamInputAthletes));
 
-        setSaveStatus({
-          success: true,
-          message: `LƯU ĐIỂM THÀNH CÔNG! Kết quả đã được đồng bộ an toàn lên Đám mây đám mây và cập nhật ${activeInputList.length} VĐV sang danh sách Ghi Điểm.`,
-        });
-
-        setTimeout(() => {
-          setIsSaveConfirmModalOpen(false);
-          setSaveStatus(null);
-
-          // Handle any pending tab changes
-          if (pendingTabTarget) {
-            if (pendingTabTarget.type === "tab") {
-              setActiveTab(pendingTabTarget.value || "dashboard");
-            } else if (pendingTabTarget.type === "exit") {
-              handleExitTournament((pendingTabTarget.value as any) || "all");
-            } else if (pendingTabTarget.type === "select_tour") {
-              const { id, tournament, targetTab } = pendingTabTarget.payload || {};
-              handleSelectTournament(id, tournament, targetTab);
-            }
-            setPendingTabTarget(null);
-          } else {
-            // Stay at input_scores
-            setActiveTab("input_scores");
-          }
-        }, 2000);
-
-      } catch (err: any) {
-        console.error("Manual cloud save failed:", err);
-        setSaveStatus({
-          success: false,
-          message: `LỖI GHI ĐIỂM ĐÁM MÂY (MẠNG KHÔNG ỔN ĐỊNH): ${err.message || "Không phản hồi từ máy chủ"}. Thầy cô vui lòng kiểm tra lại kết nối Wifi/4G hoặc thiết bị mạng trước khi thử lại!`,
-        });
-      } finally {
-        setIsSavingScores(false);
+    // Handle any pending tab changes instantly
+    if (pendingTabTarget) {
+      if (pendingTabTarget.type === "tab") {
+        setActiveTab(pendingTabTarget.value || "dashboard");
+      } else if (pendingTabTarget.type === "exit") {
+        handleExitTournament((pendingTabTarget.value as any) || "all");
+      } else if (pendingTabTarget.type === "select_tour") {
+        const { id, tournament, targetTab } = pendingTabTarget.payload || {};
+        handleSelectTournament(id, tournament, targetTab);
       }
+      setPendingTabTarget(null);
     } else {
-      // Offline/Draft mode: save to local memory
-      setAthletes(nextAthletes);
-      setTeamAthletes(nextTeamAthletes);
-      setInputAthletes(nextInputAthletes);
-      setTeamInputAthletes(nextTeamInputAthletes);
-      setHasUnsavedChanges(false);
+      // Stay at input_scores
+      setActiveTab("input_scores");
+    }
 
-      setSaveStatus({
-        success: true,
-        message: `Lưu điểm thành công! Kết quả đã lưu cục bộ trên máy và cập nhật ${activeInputList.length} VĐV sang danh sách Ghi Điểm.`,
+    // Close modal and loading states instantly
+    setIsSaveConfirmModalOpen(false);
+    setIsSavingScores(false);
+    setSaveStatus(null);
+
+    // Asynchronously perform background Firestore update
+    if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+      updateOnlineTournament(activeHistoryId, {
+        athletes: nextAthletes,
+        teamAthletes: nextTeamAthletes,
+        inputAthletes: nextInputAthletes,
+        teamInputAthletes: nextTeamInputAthletes,
+      }).catch((err) => {
+        console.error("Background full cloud save failed:", err);
       });
-
-      setTimeout(() => {
-        setIsSaveConfirmModalOpen(false);
-        setSaveStatus(null);
-
-        // Handle any pending tab changes
-        if (pendingTabTarget) {
-          if (pendingTabTarget.type === "tab") {
-            setActiveTab(pendingTabTarget.value || "dashboard");
-          } else if (pendingTabTarget.type === "exit") {
-            handleExitTournament((pendingTabTarget.value as any) || "all");
-          } else if (pendingTabTarget.type === "select_tour") {
-            const { id, tournament, targetTab } = pendingTabTarget.payload || {};
-            handleSelectTournament(id, tournament, targetTab);
-          }
-          setPendingTabTarget(null);
-        } else {
-          // Stay at input_scores
-          setActiveTab("input_scores");
-        }
-      }, 2000);
-
-      setIsSavingScores(false);
     }
   };
 
@@ -3187,72 +3146,40 @@ export default function App() {
 
     setPendingScrollAthleteId(target.id);
 
+    // Instantly update states to provide lightning fast feedback
+    setAthletes(nextAthletes);
+    setTeamAthletes(nextTeamAthletes);
+    setInputAthletes(nextInputAthletes);
+    setTeamInputAthletes(nextTeamInputAthletes);
+
+    const currentActiveList = competitionMode === "individual" ? nextInputAthletes : nextTeamInputAthletes;
+    if (currentActiveList.length === 0) {
+      setHasUnsavedChanges(false);
+    }
+
+    // Local storage writes (sync)
+    saveAvatarsFromAthletes(nextAthletes);
+    saveAvatarsFromAthletes(nextTeamAthletes);
+    deviceStorage.set("slingshot_athletes", stripBase64Avatars(nextAthletes));
+    deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(nextTeamAthletes));
+    deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(nextInputAthletes));
+    deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(nextTeamInputAthletes));
+
+    // Close modal instantly
+    setSingleAthleteToSave(null);
+    setIsSavingScores(false);
+    setSaveStatus(null);
+
+    // Asynchronously perform background Firestore update
     if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
-      try {
-        await updateOnlineTournament(activeHistoryId, {
-          athletes: nextAthletes,
-          teamAthletes: nextTeamAthletes,
-          inputAthletes: nextInputAthletes,
-          teamInputAthletes: nextTeamInputAthletes,
-        });
-
-        setAthletes(nextAthletes);
-        setTeamAthletes(nextTeamAthletes);
-        setInputAthletes(nextInputAthletes);
-        setTeamInputAthletes(nextTeamInputAthletes);
-
-        const currentActiveList = competitionMode === "individual" ? nextInputAthletes : nextTeamInputAthletes;
-        if (currentActiveList.length === 0) {
-          setHasUnsavedChanges(false);
-        }
-
-        setSaveStatus({
-          success: true,
-          message: `ĐÃ LƯU ĐIỂM VĐV ${target.name} (${target.id})! Kết quả đã đồng bộ lên mây.`,
-        });
-
-        setTimeout(() => {
-          setSingleAthleteToSave(null);
-          setSaveStatus(null);
-          setIsSavingScores(false);
-        }, 1200);
-      } catch (err: any) {
-        console.error("Single cloud save failed:", err);
-        setSaveStatus({
-          success: false,
-          message: `Lỗi lưu mây: ${err?.message || "Không phản hồi"}. Thử lại!`,
-        });
-        setIsSavingScores(false);
-      }
-    } else {
-      setAthletes(nextAthletes);
-      setTeamAthletes(nextTeamAthletes);
-      setInputAthletes(nextInputAthletes);
-      setTeamInputAthletes(nextTeamInputAthletes);
-
-      saveAvatarsFromAthletes(nextAthletes);
-      saveAvatarsFromAthletes(nextTeamAthletes);
-
-      deviceStorage.set("slingshot_athletes", stripBase64Avatars(nextAthletes));
-      deviceStorage.set("slingshot_team_athletes", stripBase64Avatars(nextTeamAthletes));
-      deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(nextInputAthletes));
-      deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(nextTeamInputAthletes));
-
-      const currentActiveList = competitionMode === "individual" ? nextInputAthletes : nextTeamInputAthletes;
-      if (currentActiveList.length === 0) {
-        setHasUnsavedChanges(false);
-      }
-
-      setSaveStatus({
-        success: true,
-        message: `Đã lưu điểm thành công cho VĐV ${target.name}!`,
+      updateOnlineTournament(activeHistoryId, {
+        athletes: nextAthletes,
+        teamAthletes: nextTeamAthletes,
+        inputAthletes: nextInputAthletes,
+        teamInputAthletes: nextTeamInputAthletes,
+      }).catch((err) => {
+        console.error("Single background cloud save failed:", err);
       });
-
-      setTimeout(() => {
-        setSingleAthleteToSave(null);
-        setSaveStatus(null);
-        setIsSavingScores(false);
-      }, 1000);
     }
   };
 
@@ -4106,6 +4033,18 @@ export default function App() {
                 </>
               )}
 
+              {activeHistoryId && (
+                <button
+                  onClick={() => changeTab("dashboard")}
+                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                    activeTab === "dashboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  {language === "en" ? "Overview" : "Tổng Hợp"}
+                </button>
+              )}
+
               {/* NHẬP/GHI ĐIỂM DROPDOWN TAB */}
               {activeHistoryId && (userRole === "admin" || userRole === "referee") && (
                 <div className="relative h-full flex items-center">
@@ -4163,18 +4102,6 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {activeHistoryId && (
-                <button
-                  onClick={() => changeTab("dashboard")}
-                  className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                    activeTab === "dashboard" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                  }`}
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  {language === "en" ? "Overview" : "Tổng Hợp"}
-                </button>
               )}
 
               {/* RANKING DROPDOWN TAB */}
