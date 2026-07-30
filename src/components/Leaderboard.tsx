@@ -13,6 +13,7 @@ interface LeaderboardProps {
   teamDirectMaxShots?: number;
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
+  language?: "vi" | "en";
 }
 
 type SortField = "rank" | "name" | "team" | "accuracy" | "teamScore";
@@ -26,6 +27,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   teamDirectMaxShots,
   directMaxPoints,
   teamDirectMaxPoints,
+  language = "vi",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("all");
@@ -1176,19 +1178,19 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       case 1:
         return (
           <div className="flex items-center justify-center gap-1 bg-amber-500 text-white font-mono font-bold text-xs px-2.5 py-1 rounded-full shadow-sm shadow-amber-300">
-            <Trophy className="w-3.5 h-3.5 shrink-0" /> Vàng
+            <Trophy className="w-3.5 h-3.5 shrink-0" /> {language === "en" ? "Gold" : "Vàng"}
           </div>
         );
       case 2:
         return (
           <div className="flex items-center justify-center gap-1 bg-slate-300 text-slate-800 font-mono font-bold text-xs px-2.5 py-1 rounded-full shadow-sm">
-            <Medal className="w-3.5 h-3.5 text-slate-700 shrink-0" /> Bạc
+            <Medal className="w-3.5 h-3.5 text-slate-700 shrink-0" /> {language === "en" ? "Silver" : "Bạc"}
           </div>
         );
       case 3:
         return (
           <div className="flex items-center justify-center gap-1 bg-amber-100 text-amber-900 font-mono font-bold text-xs px-2.5 py-1 rounded-full shadow-sm border border-amber-200">
-            <Award className="w-3.5 h-3.5 text-amber-800 shrink-0" /> Đồng
+            <Award className="w-3.5 h-3.5 text-amber-800 shrink-0" /> {language === "en" ? "Bronze" : "Đồng"}
           </div>
         );
       default:
@@ -1203,8 +1205,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   const getStatusBadge = (athlete: any) => {
     if (athlete.status === "Bỏ thi") {
       return (
-        <span className="font-mono text-[10px] font-extrabold text-rose-605 bg-rose-50 dark:bg-rose-950/30 px-2 py-1 rounded border border-rose-200 uppercase whitespace-nowrap">
-          Bỏ thi
+        <span className="font-mono text-[10px] font-extrabold text-rose-650 bg-rose-50 dark:bg-rose-950/30 px-2 py-1 rounded border border-rose-200 uppercase whitespace-nowrap">
+          {language === "en" ? "DNS" : "Bỏ thi"}
         </span>
       );
     }
@@ -1218,22 +1220,22 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     if (athlete.isResoloPending) {
       return (
         <span className="font-mono text-[9px] font-extrabold text-amber-600 bg-amber-50 dark:bg-amber-955/25 px-1.5 py-0.5 rounded border border-amber-200 uppercase whitespace-nowrap animate-pulse">
-          SOLO LẠI
+          {language === "en" ? "RE-SOLO" : "SOLO LẠI"}
         </span>
       );
     }
     if (selectedRoundTab === "all") {
       if (athlete.eliminatedInRoundIdx !== null && athlete.eliminatedInRoundIdx !== undefined) {
         return (
-          <span className="font-mono text-[9px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 px-1.5 py-0.5 rounded whitespace-nowrap uppercase" title={`Bị loại lúc kết thúc Vòng ${athlete.eliminatedInRoundIdx + 1}`}>
-            Loại V.{athlete.eliminatedInRoundIdx + 1}
+          <span className="font-mono text-[9px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 px-1.5 py-0.5 rounded whitespace-nowrap uppercase" title={language === "en" ? `Eliminated at end of Round ${athlete.eliminatedInRoundIdx + 1}` : `Bị loại lúc kết thúc Vòng ${athlete.eliminatedInRoundIdx + 1}`}>
+            {language === "en" ? `Cut R.${athlete.eliminatedInRoundIdx + 1}` : `Loại V.${athlete.eliminatedInRoundIdx + 1}`}
           </span>
         );
       }
       if (athlete.isUnshot) {
         return (
           <span className="font-mono text-[9px] font-extrabold text-slate-500 bg-slate-50 dark:bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 uppercase whitespace-nowrap">
-            Chưa bắn
+            {language === "en" ? "Not Shot" : "Chưa bắn"}
           </span>
         );
       }
@@ -1241,21 +1243,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       if (athlete.wasEliminatedEarlier) {
         return (
           <span className="font-mono text-[9px] font-extrabold text-red-500 bg-red-50 dark:bg-red-950/25 px-1.5 py-0.5 rounded border border-red-200 uppercase whitespace-nowrap">
-            Đã bị loại
+            {language === "en" ? "Cut" : "Đã bị loại"}
           </span>
         );
       }
       if (athlete.isUnshot) {
         return (
           <span className="font-mono text-[9px] font-extrabold text-slate-500 bg-slate-50 dark:bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800 uppercase whitespace-nowrap">
-            Chưa bắn
+            {language === "en" ? "Not Shot" : "Chưa bắn"}
           </span>
         );
       }
       if (athlete.isEliminatedThisRound) {
         return (
           <span className="font-mono text-[9px] font-extrabold text-amber-600 bg-amber-50 dark:bg-amber-955/25 px-1.5 py-0.5 rounded border border-amber-200 uppercase whitespace-nowrap">
-            Bị loại V. này
+            {language === "en" ? "Cut This Rd" : "Bị loại V. này"}
           </span>
         );
       }
@@ -1286,14 +1288,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     if (isCompletedInRound) {
       return (
         <span className="font-mono text-[9px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-200 uppercase whitespace-nowrap">
-          Đã bắn
+          {language === "en" ? "Finished" : "Đã bắn"}
         </span>
       );
     }
 
     return (
       <span className="font-mono text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-200 uppercase whitespace-nowrap">
-        Đang đấu
+        {language === "en" ? "Playing" : "Đang đấu"}
       </span>
     );
   };
@@ -1302,12 +1304,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Trophy className="w-5.5 h-5.5 text-amber-500" />
-            Bảng Xếp Hạng Thực Tế (Live Leaderboard)
+            {language === "en" ? "Live Leaderboard" : "Bảng Xếp Hạng Thực Tế (Live Leaderboard)"}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Xếp hạng dựa trên {selectedRoundTab === "all" ? "Tổng Điểm giải đấu" : "Điểm Vòng đấu"}, ưu tiên tỉ lệ trúng mục tiêu làm chỉ số phụ.
+            {language === "en"
+              ? `Rankings are based on ${selectedRoundTab === "all" ? "Tournament Total Points" : "Round Points"}, with accuracy (%) as a secondary metric.`
+              : `Xếp hạng dựa trên ${selectedRoundTab === "all" ? "Tổng Điểm giải đấu" : "Điểm Vòng đấu"}, ưu tiên tỉ lệ trúng mục tiêu làm chỉ số phụ.`}
           </p>
         </div>
 
@@ -1322,7 +1326,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 onChange={(e) => setShowTopXOnly(e.target.checked)}
                 className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
               />
-              <span>Chỉ hiện TOP</span>
+              <span>{language === "en" ? "Show TOP Only" : "Chỉ hiện TOP"}</span>
             </label>
             <input
               type="number"
@@ -1342,7 +1346,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm kiếm VĐV, Câu lạc bộ..."
+              placeholder={language === "en" ? "Search Athlete, Club..." : "Tìm kiếm VĐV, Câu lạc bộ..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-3 py-1.5 w-full sm:w-[220px] text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
@@ -1357,7 +1361,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               onChange={(e) => setSelectedTeam(e.target.value)}
               className="bg-transparent text-sm focus:outline-none text-gray-700 min-w-[120px]"
             >
-              <option value="all">Tất cả Câu Lạc Bộ</option>
+              <option value="all">{language === "en" ? "All Clubs" : "Tất cả Câu Lạc Bộ"}</option>
               {uniqueTeams.map((team, index) => (
                 <option key={index} value={team}>
                   {team}
@@ -1378,7 +1382,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
           }`}
         >
-          🏆 Tổng hợp giải đấu
+          {language === "en" ? "🏆 Tournament Overview" : "🏆 Tổng hợp giải đấu"}
         </button>
         {distances.map((dist, idx) => (
           <button
@@ -1390,7 +1394,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
-            🎯 Vòng {idx + 1} ({dist.distance})
+            {language === "en" ? `🎯 Round ${idx + 1} (${dist.distance})` : `🎯 Vòng ${idx + 1} (${dist.distance})`}
             {dist.isElimination && (
               <span className="bg-amber-400 text-amber-950 font-black text-[8px] px-1 rounded-sm shrink-0">Cut</span>
             )}
@@ -1403,56 +1407,79 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         <div className="bg-blue-50/40 dark:bg-slate-900/30 border border-blue-150 rounded-xl p-3 mb-5 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2.5">
           <Info className="w-4.5 h-4.5 text-blue-500 shrink-0 mt-0.5" />
           <div>
-            <div className="font-bold mb-0.5">Thông tin cấu hình: Tổng hợp giải đấu</div>
+            <div className="font-bold mb-0.5">
+              {language === "en" ? "Configuration Info: Tournament Overview" : "Thông tin cấu hình: Tổng hợp giải đấu"}
+            </div>
             <div className="text-gray-500 dark:text-gray-400 leading-relaxed font-semibold">
-              Xếp hạng dựa trên toàn bộ quá trình thi đấu của giải. Tổng điểm tích lũy của vận động viên qua tất cả các vòng đấu, ưu tiên tỉ lệ bắn trúng mục tiêu (%). Trong trường hợp bằng điểm và bằng tỉ lệ trúng, hệ thống sẽ tự động đối chiếu các chỉ số phụ của vòng đấu cuối cùng.
+              {language === "en"
+                ? "Rankings are calculated based on the entire tournament's cumulative performance. The total scores accumulated across all rounds are used, with target hit percentage (%) as the primary tie-breaker. If both are equal, the system automatically resolves using secondary metrics of the final round."
+                : "Xếp hạng dựa trên toàn bộ quá trình thi đấu của giải. Tổng điểm tích lũy của vận động viên qua tất cả các vòng đấu, ưu tiên tỉ lệ bắn trúng mục tiêu (%). Trong trường hợp bằng điểm và bằng tỉ lệ trúng, hệ thống sẽ tự động đối chiếu các chỉ số phụ của vòng đấu cuối cùng."}
             </div>
           </div>
         </div>
       ) : (
         (() => {
-          const dist = distances[selectedRoundTab];
+          const dist = distances[selectedRoundTab as number];
           if (!dist) return null;
           return (
-            <div className="bg-indigo-50/40 dark:bg-slate-900/30 border border-indigo-150 rounded-xl p-3 mb-5 text-xs text-indigo-900 dark:text-indigo-200 flex flex-col gap-2">
-              <div className="flex items-start gap-2.5">
-                <Info className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
-                <div className="w-full">
-                  <div className="font-bold mb-1">Cấu hình luật thi đấu: Vòng {selectedRoundTab + 1} ({dist.distance})</div>
+            <div className="bg-indigo-50/40 dark:bg-slate-900/30 border border-indigo-150 rounded-xl p-3 mb-5 text-xs text-indigo-900 dark:text-indigo-200 flex items-start gap-2.5">
+              <Award className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-bold mb-1">
+                  {language === "en" ? `Competition Rules: Round ${selectedRoundTab + 1} (${dist.distance})` : `Cấu hình luật thi đấu: Vòng ${selectedRoundTab + 1} (${dist.distance})`}
+                </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-slate-650 dark:text-slate-300 mt-1.5">
                     <div className="bg-white/60 dark:bg-slate-900/40 px-2.5 py-1.5 rounded border border-indigo-100/60 flex flex-col">
-                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">Cự ly bắn</span>
+                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">
+                        {language === "en" ? "Distance" : "Cự ly bắn"}
+                      </span>
                       <span className="font-extrabold text-sm text-slate-850 dark:text-white">{dist.distance}</span>
                     </div>
                     <div className="bg-white/60 dark:bg-slate-900/40 px-2.5 py-1.5 rounded border border-indigo-100/60 flex flex-col">
-                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">Điểm số mỗi lượt trúng</span>
-                      <span className="font-extrabold text-sm text-slate-850 dark:text-white">x{dist.multiplier} điểm</span>
-                    </div>
-                    <div className="bg-white/60 dark:bg-slate-900/40 px-2.5 py-1.5 rounded border border-indigo-100/60 flex flex-col">
-                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">Cách thức tính điểm</span>
-                      <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200">
-                        {dist.isCumulative ? "Cộng dồn với các vòng trước" : "Tính độc lập theo vòng này"}
+                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">
+                        {language === "en" ? "Points per hit" : "Điểm số mỗi lượt trúng"}
+                      </span>
+                      <span className="font-extrabold text-sm text-slate-850 dark:text-white">
+                        {language === "en" ? `x${dist.multiplier} pts` : `x${dist.multiplier} điểm`}
                       </span>
                     </div>
                     <div className="bg-white/60 dark:bg-slate-900/40 px-2.5 py-1.5 rounded border border-indigo-100/60 flex flex-col">
-                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">Quy tắc loại trực tiếp</span>
+                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">
+                        {language === "en" ? "Scoring Method" : "Cách thức tính điểm"}
+                      </span>
+                      <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200">
+                        {dist.isCumulative 
+                          ? (language === "en" ? "Cumulative from previous rounds" : "Cộng dồn với các vòng trước") 
+                          : (language === "en" ? "Independent for this round" : "Tính độc lập theo vòng này")}
+                      </span>
+                    </div>
+                    <div className="bg-white/60 dark:bg-slate-900/40 px-2.5 py-1.5 rounded border border-indigo-100/60 flex flex-col">
+                      <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold">
+                        {language === "en" ? "Direct Elimination Rule" : "Quy tắc loại trực tiếp"}
+                      </span>
                       <span className="font-bold text-[11px] text-slate-800 dark:text-slate-200">
                         {dist.isElimination ? (
                           <span className="text-amber-600 dark:text-amber-400 font-extrabold">
-                            Giữ lại Top {dist.eliminationType === "percent" ? `${dist.eliminationValue}%` : `${dist.eliminationValue} VĐV`}
+                            {language === "en" 
+                              ? `Retain Top ${dist.eliminationType === "percent" ? `${dist.eliminationValue}%` : `${dist.eliminationValue} athletes`}`
+                              : `Giữ lại Top ${dist.eliminationType === "percent" ? `${dist.eliminationValue}%` : `${dist.eliminationValue} VĐV`}`}
                           </span>
                         ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400">Không loại (Tất cả đi tiếp)</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            {language === "en" ? "No elimination (All advance)" : "Không loại (Tất cả đi tiếp)"}
+                          </span>
                         )}
                       </span>
                     </div>
                   </div>
                   {dist.isElimination && (
-                    <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-450 font-medium flex items-center gap-1 bg-amber-50/60 dark:bg-amber-950/20 px-2.5 py-1 rounded border border-amber-100/40">
-                      ⚠️ <strong>Lưu ý loại trực tiếp:</strong> Vận động viên có thứ hạng thấp hơn ngưỡng loại sau vòng này sẽ dừng bước tại các vòng tiếp theo. {dist.isSolo && "Trong trường hợp bằng điểm tại ranh giới loại, VĐV sẽ phân định bằng Đấu súng Solo."}
+                    <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-450 font-medium flex items-center gap-1 bg-amber-50/60 dark:bg-amber-955/20 px-2.5 py-1 rounded border border-amber-100/40">
+                      ⚠️ <strong>{language === "en" ? "Elimination Note:" : "Lưu ý loại trực tiếp:"}</strong>{" "}
+                      {language === "en"
+                        ? `Athletes below the elimination threshold after this round will stop participating in subsequent rounds. ${dist.isSolo ? "In case of a tie at the cutoff line, athletes will settle it via a Solo Shootout." : ""}`
+                        : `Vận động viên có thứ hạng thấp hơn ngưỡng loại sau vòng này sẽ dừng bước tại các vòng tiếp theo. ${dist.isSolo ? "Trong trường hợp bằng điểm tại ranh giới loại, VĐV sẽ phân định bằng Đấu súng Solo." : ""}`}
                     </div>
                   )}
-                </div>
               </div>
             </div>
           );
@@ -1460,42 +1487,53 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       )}
 
       {sortedAthletes.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
-          Chưa tìm thấy vận động viên nào thỏa mãn bộ lọc.
+        <div className="text-center py-10 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl text-gray-400">
+          {language === "en" ? "No athletes found matching the filters." : "Chưa tìm thấy vận động viên nào thỏa mãn bộ lọc."}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 animate-fadeIn">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800 animate-fadeIn">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-gray-100/80 border-b border-gray-200 text-gray-700 font-semibold select-none">
-                <th className="p-3 w-[100px] text-center cursor-pointer hover:bg-gray-200/50" onClick={() => handleSort("rank")}>
+              <tr className="bg-gray-100/80 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 font-semibold select-none">
+                <th className="p-3 w-[100px] text-center cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50" onClick={() => handleSort("rank")}>
                   <div className="flex items-center justify-center gap-1">
-                    Thứ hạng <ArrowUpDown className="w-3.5 h-3.5" />
+                    {language === "en" ? "Rank" : "Thứ hạng"} <ArrowUpDown className="w-3.5 h-3.5" />
                   </div>
                 </th>
-                <th className="p-3 cursor-pointer hover:bg-gray-200/50" onClick={() => handleSort("name")}>
+                <th className="p-3 cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50" onClick={() => handleSort("name")}>
                   <div className="flex items-center gap-1">
-                    Vận động viên <ArrowUpDown className="w-3.5 h-3.5" />
+                    {language === "en" ? "Athlete" : "Vận động viên"} <ArrowUpDown className="w-3.5 h-3.5" />
                   </div>
                 </th>
-                <th className="p-3 cursor-pointer hover:bg-gray-200/50" onClick={() => handleSort("team")}>
+                <th className="p-3 cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50" onClick={() => handleSort("team")}>
                   <div className="flex items-center gap-1">
-                    Đội / Đơn vị <ArrowUpDown className="w-3.5 h-3.5" />
+                    {language === "en" ? "Team / Club" : "Đội / Đơn vị"} <ArrowUpDown className="w-3.5 h-3.5" />
                   </div>
                 </th>
                 {competitionMode === "team" && (
-                  <th className="p-3 text-center cursor-pointer hover:bg-gray-200/50 bg-indigo-50/50 text-indigo-900 font-bold" onClick={() => handleSort("teamScore")}>
+                  <th className="p-3 text-center cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50 bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-900 dark:text-indigo-200 font-bold" onClick={() => handleSort("teamScore")}>
                     <div className="flex items-center justify-center gap-1">
-                      Tổng điểm đội <ArrowUpDown className="w-3.5 h-3.5" />
+                      {language === "en" ? "Team Total" : "Tổng điểm đội"} <ArrowUpDown className="w-3.5 h-3.5" />
                     </div>
                   </th>
                 )}
-                <th className="p-3 text-center font-bold text-blue-800 bg-blue-50/50 w-[120px]">Điểm số</th>
-                <th className="p-3 text-center w-[130px]">Trạng thái</th>
-                <th className="p-3 text-center">{isPointModeActive ? "Chi tiết cự ly (Điểm / Tối đa)" : "Chi tiết cự ly (Trúng / Lượt)"}</th>
-                <th className="p-3 text-center cursor-pointer hover:bg-gray-200/50" onClick={() => handleSort("accuracy")}>
+                <th className="p-3 text-center font-bold text-blue-800 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-950/20 w-[120px]">
+                  {language === "en" ? "Score" : "Điểm số"}
+                </th>
+                <th className="p-3 text-center w-[130px]">
+                  {language === "en" ? "Status" : "Trạng thái"}
+                </th>
+                <th className="p-3 text-center">
+                  {isPointModeActive 
+                    ? (language === "en" ? "Round Details (Points / Max)" : "Chi tiết cự ly (Điểm / Tối đa)") 
+                    : (language === "en" ? "Round Details (Hits / Shots)" : "Chi tiết cự ly (Trúng / Lượt)")}
+                </th>
+                <th className="p-3 text-center cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50" onClick={() => handleSort("accuracy")}>
                   <div className="flex items-center justify-center gap-1">
-                    {isPointModeActive ? "Hiệu suất điểm" : "Tỉ lệ trúng"} <ArrowUpDown className="w-3.5 h-3.5" />
+                    {isPointModeActive 
+                      ? (language === "en" ? "Score Efficiency" : "Hiệu suất điểm") 
+                      : (language === "en" ? "Accuracy" : "Tỉ lệ trúng")}{" "}
+                    <ArrowUpDown className="w-3.5 h-3.5" />
                   </div>
                 </th>
               </tr>
@@ -1670,7 +1708,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                           {athlete.team}
                         </span>
                       ) : (
-                        <span className="text-gray-400 italic text-xs">Không có</span>
+                        <span className="text-gray-400 italic text-xs">{language === "en" ? "None" : "Không có"}</span>
                       )}
                       </td>
                     )}
@@ -1686,7 +1724,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                           return (
                             <span className="flex items-center justify-center gap-1">
                               <span>{Math.floor(val)}</span>
-                              <span className="text-xs font-semibold opacity-70">đ</span>
+                              <span className="text-xs font-semibold opacity-70">{language === "en" ? "pts" : "đ"}</span>
                             </span>
                           );
                         })()}
@@ -1731,7 +1769,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                           if (shownBreakdown.length === 0) {
                             return (
                               <span className="text-gray-400 dark:text-slate-500 italic text-xs py-0.5 select-none font-medium">
-                                chưa có dữ liệu
+                                {language === "en" ? "no data" : "chưa có dữ liệu"}
                               </span>
                             );
                           }
@@ -1751,7 +1789,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                                       ? "bg-amber-500/[0.02] text-amber-900 border-amber-300/30"
                                       : "bg-slate-100 text-slate-850 border-transparent text-gray-700 bg-gray-100"
                                 }`}
-                                title={!row.isQualified ? "Bị loại, không có quyền tham gia cự ly này" : `Hệ số: x${row.multiplier}`}
+                                title={!row.isQualified 
+                                  ? (language === "en" ? "Eliminated, not allowed in this distance" : "Bị loại, không có quyền tham gia cự ly này") 
+                                  : (language === "en" ? `Multiplier: x${row.multiplier}` : `Hệ số: x${row.multiplier}`)}
                               >
                                 <span className="font-semibold text-gray-650 font-sans">{vPrefix}{row.distanceName}:</span>
                                 {!row.isQualified ? (
@@ -1760,9 +1800,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                                   <>
                                     <span className="font-bold text-indigo-700">{row.hitCount}</span>
                                     <span className="text-gray-400">/</span>
-                                    <span className="text-gray-500">{row.maxHits}{isPointModeActive ? "đ" : "v"}</span>
+                                    <span className="text-gray-500">{row.maxHits}{isPointModeActive ? (language === "en" ? "pts" : "đ") : (language === "en" ? "sh" : "v")}</span>
                                     <span className="bg-indigo-50 px-1 rounded text-[10px] font-bold text-indigo-600">
-                                      +{row.score}đ
+                                      +{row.score}{language === "en" ? "pts" : "đ"}
                                     </span>
                                     {(() => {
                                       if (!distConfig || !distConfig.isSolo) {
@@ -1780,7 +1820,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                                             <span 
                                               key={idx} 
                                               className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-[9px] font-black border border-purple-200 whitespace-nowrap" 
-                                              title={`Điểm Solo Lần ${idx + 1}`}
+                                              title={language === "en" ? `Solo Round ${idx + 1} Score` : `Điểm Solo Lần ${idx + 1}`}
                                             >
                                               🎯S{idx + 1}:{displayVal}
                                             </span>
@@ -1790,7 +1830,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                                         return (
                                           <span 
                                             className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-[9px] font-black border border-purple-200 whitespace-nowrap" 
-                                            title="Điểm Solo Shootout"
+                                            title={language === "en" ? "Solo Shootout Score" : "Điểm Solo Shootout"}
                                           >
                                             🎯S:{soloVal}
                                           </span>
@@ -1814,7 +1854,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                       ) : (
                         <>
                           <div className="font-bold text-gray-800 text-xs sm:text-sm">
-                            {athlete.totalHits}/{athlete.totalPossibleShots} {isPointModeActive ? "điểm" : "viên"}
+                            {athlete.totalHits}/{athlete.totalPossibleShots} {isPointModeActive ? (language === "en" ? "pts" : "điểm") : (language === "en" ? "shots" : "viên")}
                           </div>
                           <div className="text-xs text-emerald-600 font-bold">
                             {athlete.accuracy.toFixed(1)}%

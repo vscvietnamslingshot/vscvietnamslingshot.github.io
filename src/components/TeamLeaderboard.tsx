@@ -12,6 +12,7 @@ interface TeamLeaderboardProps {
   teamDirectMaxShots?: number;
   directMaxPoints?: number;
   teamDirectMaxPoints?: number;
+  language?: "vi" | "en";
 }
 
 interface TeamMemberData {
@@ -43,6 +44,7 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
   teamDirectMaxShots,
   directMaxPoints,
   teamDirectMaxPoints,
+  language = "vi",
 }) => {
   const [activeTab, setActiveTab] = useState<"survival" | "allRound">("survival");
 
@@ -1025,25 +1027,25 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
       case 1:
         return (
           <div className="flex items-center gap-1 bg-amber-500 text-white font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow-sm shadow-amber-300">
-            <Trophy className="w-3.5 h-3.5" /> Hạng 1
+            <Trophy className="w-3.5 h-3.5" /> {language === "en" ? "Rank 1" : "Hạng 1"}
           </div>
         );
       case 2:
         return (
           <div className="flex items-center gap-1 bg-slate-300 text-slate-800 font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow-sm">
-            <Medal className="w-3.5 h-3.5 text-slate-700" /> Hạng 2
+            <Medal className="w-3.5 h-3.5 text-slate-700" /> {language === "en" ? "Rank 2" : "Hạng 2"}
           </div>
         );
       case 3:
         return (
           <div className="flex items-center gap-1 bg-amber-700 text-white font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow-sm">
-            <Award className="w-3.5 h-3.5" /> Hạng 3
+            <Award className="w-3.5 h-3.5" /> {language === "en" ? "Rank 3" : "Hạng 3"}
           </div>
         );
       default:
         return (
-          <span className="font-mono text-xs font-bold text-gray-500 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
-            Hạng #{rank}
+          <span className="font-mono text-xs font-bold text-gray-550 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+            {language === "en" ? `Rank #${rank}` : `Hạng #${rank}`}
           </span>
         );
     }
@@ -1055,16 +1057,16 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Shield className="w-5.5 h-5.5 text-indigo-600 dark:text-indigo-400" />
-            Bảng Xếp Hạng Đồng Đội (Team Standings)
+            {language === "en" ? "Team Standings" : "Bảng Xếp Hạng Đồng Đội (Team Standings)"}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {competitionMode === "team"
               ? activeTab === "survival"
-                ? "Bảng thi đấu loại trực tiếp của các đội bắn chính, sắp xếp theo thời gian vũ trang lâu nhất."
-                : "Bảng tổng điểm các vòng thi đấu tích luỹ gộp của toàn giải đấu đối với các đội bắn chính."
+                ? (language === "en" ? "Direct elimination standing of primary teams, sorted by survival index/points." : "Bảng thi đấu loại trực tiếp của các đội bắn chính, sắp xếp theo thời gian vũ trang lâu nhất.")
+                : (language === "en" ? "Tournament cumulative points breakdown of primary teams." : "Bảng tổng điểm các vòng thi đấu tích luỹ gộp của toàn giải đấu đối với các đội bắn chính.")
               : activeTab === "survival"
-                ? "Bảng xếp hạng đồng đội dựa trên tổng điểm tích lũy của các vận động viên bắn chính."
-                : "Bảng xếp hạng đồng đội đối với tất cả vận động viên của nhóm, bao gồm cả bắn chính và dự bị."}
+                ? (language === "en" ? "Team standings based on cumulative score of primary shooting athletes." : "Bảng xếp hạng đồng đội dựa trên tổng điểm tích lũy của các vận động viên bắn chính.")
+                : (language === "en" ? "Team standings for all group athletes, including primary and backup athletes." : "Bảng xếp hạng đồng đội đối với tất cả vận động viên của nhóm, bao gồm cả bắn chính và dự bị.")}
           </p>
         </div>
       </div>
@@ -1072,7 +1074,7 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
       {/* Tab Selector Area */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-100/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2 rounded-2xl mb-6">
         <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider px-3">
-          Hình thức xếp hạng đồng đội:
+          {language === "en" ? "Team Standings Format:" : "Hình thức xếp hạng đồng đội:"}
         </span>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
@@ -1085,7 +1087,9 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
             }`}
           >
             <Shield className="w-4 h-4" />
-            {competitionMode === "individual" ? "Team Bắn Chính" : "BXH Hiện Tại"}
+            {competitionMode === "individual" 
+              ? (language === "en" ? "Primary Team" : "Team Bắn Chính") 
+              : (language === "en" ? "Current Standings" : "BXH Hiện Tại")}
           </button>
           <button
             type="button"
@@ -1097,14 +1101,16 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
             }`}
           >
             <Trophy className="w-4 h-4" />
-            {competitionMode === "individual" ? "500 Anh Em" : "Toàn Giải (Cộng dồn)"}
+            {competitionMode === "individual" 
+              ? (language === "en" ? "All Athletes" : "500 Anh Em") 
+              : (language === "en" ? "Tournament (Cumulative)" : "Toàn Giải (Cộng dồn)")}
           </button>
         </div>
       </div>
 
       {teamLeaderboardData.length === 0 ? (
         <div className="text-center py-10 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-xl text-gray-400">
-          Chưa có vận động viên bắn chính hay câu lạc bộ nào để tổng hợp bảng đội.
+          {language === "en" ? "No primary athletes or clubs available to generate team standings." : "Chưa có vận động viên bắn chính hay câu lạc bộ nào để tổng hợp bảng đội."}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5">
@@ -1140,13 +1146,15 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                       {getTeamRankBadge(rank)}
                       
                       <div className="text-right">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Tổng điểm Đội</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                          {language === "en" ? "Team Score" : "Tổng điểm Đội"}
+                        </span>
                         <span className={`text-xl font-black font-mono ${
                           isTeamEliminated 
                             ? "text-red-600 dark:text-red-400" 
                             : "text-blue-700 dark:text-blue-400"
                         }`}>
-                          {team.totalScore} <span className="text-xs font-normal text-slate-500">đ</span>
+                          {team.totalScore} <span className="text-xs font-normal text-slate-500">{language === "en" ? "pts" : "đ"}</span>
                         </span>
                       </div>
                     </div>
@@ -1156,7 +1164,7 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                         {team.teamName}
                         {isIndividualTeam && (
                           <span className="text-[9px] text-gray-500 dark:text-gray-400 font-normal italic px-1 bg-gray-150 dark:bg-slate-800 rounded shrink-0">
-                            Tự Do
+                            {language === "en" ? "Free" : "Tự Do"}
                           </span>
                         )}
                       </h3>
@@ -1165,11 +1173,11 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                         <div className="mt-2.5">
                           {isTeamEliminated ? (
                             <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-300 font-bold uppercase">
-                              Bị loại • Vòng {team.survivalVal + 1} ({lastActiveRound?.distance || ""})
+                              {language === "en" ? `Eliminated • Round ${team.survivalVal + 1}` : `Bị loại • Vòng ${team.survivalVal + 1}`} ({lastActiveRound?.distance || ""})
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 font-bold uppercase">
-                              Trụ hạng thành công!
+                              {language === "en" ? "Successfully Advanced!" : "Trụ hạng thành công!"}
                             </span>
                           )}
                         </div>
@@ -1180,11 +1188,13 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                   <div className="flex items-center gap-2.5 text-[11px] text-gray-400 mt-4 font-mono border-t border-gray-100/50 dark:border-slate-800/50 pt-2 shrink-0">
                     <span className="flex items-center gap-0.5">
                       <Users className="w-3 h-3 text-gray-400 font-sans" />
-                      <strong>{team.memberCount}</strong> VĐV {competitionMode === "team" || activeTab === "survival" ? "chính" : "thành viên"}
+                      <strong>{team.memberCount}</strong> {language === "en" ? "Athletes" : "VĐV"} ({competitionMode === "team" || activeTab === "survival" ? (language === "en" ? "primary" : "chính") : (language === "en" ? "member" : "thành viên")})
                     </span>
                     <span>&bull;</span>
                     <span>
-                      {isPointModeActive ? "Hiệu suất điểm: " : "Hộp trúng: "}
+                      {isPointModeActive 
+                        ? (language === "en" ? "Score Efficiency: " : "Hiệu suất điểm: ") 
+                        : (language === "en" ? "Hits: " : "Hộp trúng: ")}
                       <strong className="text-emerald-650 dark:text-emerald-400 font-semibold">{team.averageAccuracy.toFixed(1)}%</strong>
                     </span>
                   </div>
@@ -1194,8 +1204,8 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                 <div className="flex-1 p-4 flex flex-col justify-center divide-y divide-gray-100 dark:divide-slate-800">
                   <div className="text-[11px] text-gray-400 font-semibold pb-1.5 uppercase tracking-wider font-sans">
                     {competitionMode === "team" || activeTab === "survival" 
-                      ? "Vận động viên bắn chính đóng góp điểm:" 
-                      : "Tất cả vận động viên đóng góp điểm:"}
+                      ? (language === "en" ? "Primary athletes contributing score:" : "Vận động viên bắn chính đóng góp điểm:") 
+                      : (language === "en" ? "All athletes contributing score:" : "Tất cả vận động viên đóng góp điểm:")}
                   </div>
                   {team.members.map((member, memberIdx) => {
                     const memberRank = memberIdx + 1;
@@ -1223,12 +1233,12 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                               <span className="truncate">{member.name}</span>
                               {isBackup && (
                                 <span className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold px-1 py-0.5 bg-amber-55 dark:bg-amber-950/40 rounded shrink-0">
-                                  Dự bị
+                                  {language === "en" ? "Backup" : "Dự bị"}
                                 </span>
                               )}
                             </span>
                             <span className="text-[9px] font-mono text-gray-400 block">
-                              Mã số VĐV: {member.id}
+                              {language === "en" ? "Athlete ID" : "Mã số VĐV"}: {member.id}
                             </span>
                           </div>
                         </div>
@@ -1237,7 +1247,7 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                           <span className="font-mono font-extrabold text-blue-600 dark:text-blue-400">
                             {member.totalScore}
                           </span>
-                          <span className="text-[10px] text-gray-400 ml-0.5">đ</span>
+                          <span className="text-[10px] text-gray-400 ml-0.5">{language === "en" ? "pts" : "đ"}</span>
                         </div>
                       </div>
                     );

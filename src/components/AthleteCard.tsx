@@ -397,7 +397,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                               isInputSoloLocked ? (
                                 <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
                                   if (isLockedByOtherReferee) {
-                                    alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                    alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
                                     return;
                                   }
                                   setShowLocalUnlockModal(true);
@@ -412,7 +412,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                               !isScoringEditAuthorized ? (
                                 <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
                                   if (isLockedByOtherReferee) {
-                                    alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                    alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
                                     return;
                                   }
                                   onTriggerUnlockModal?.();
@@ -523,7 +523,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                           readOnly={(!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee}
                           onClick={(e) => {
                             if (isLockedByOtherReferee) {
-                              alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                              alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
                               return;
                             }
                             if (!isInputTab && !isScoringEditAuthorized && !isDistancePreExisting) {
@@ -559,7 +559,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                           key={shotIdx}
                           onClick={() => {
                             if (isLockedByOtherReferee) {
-                              alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                              alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
                               return;
                             }
                             if (!isDistancePreExisting) {
@@ -687,7 +687,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isLockedByOtherReferee) {
-                        alert(`Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không thể thực hiện thao tác!`);
+                        alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot perform this action!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không thể thực hiện thao tác!`);
                         return;
                       }
                       onSaveSingleAthlete(athlete);

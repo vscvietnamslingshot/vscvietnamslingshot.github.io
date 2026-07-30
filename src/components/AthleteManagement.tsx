@@ -283,7 +283,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const handleAddVscToTournament = (athlete: Athlete) => {
     const exists = currentActiveAthletes.some(a => a.id === athlete.id);
     if (exists) {
-      alert(`Vận động viên "${athlete.name}" (ID: ${athlete.id}) đã có sẵn trong giải đấu hiện tại rồi!`);
+      alert(language === "en" ? `Athlete "${athlete.name}" (ID: ${athlete.id}) is already in the current tournament!` : `Vận động viên "${athlete.name}" (ID: ${athlete.id}) đã có sẵn trong giải đấu hiện tại rồi!`);
     } else {
       const freshScores: Record<string, (boolean | null)[]> = {};
       distances.forEach((dist) => {
@@ -455,7 +455,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
 
   const handleLoadCloudProfile = async (emailStr: string) => {
     if (!emailStr || !emailStr.trim()) {
-      alert("Vui lòng điền Email trước khi tra cứu!");
+      alert(language === "en" ? "Please enter an Email before searching!" : "Vui lòng điền Email trước khi tra cứu!");
       return;
     }
     try {
@@ -470,13 +470,13 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         if (profile.avatarUrl || profile.photoURL) {
           setFormAvatarUrl(profile.avatarUrl || profile.photoURL);
         }
-        alert(`Đã tìm thấy & tự động nạp thành công hồ sơ của vận động viên "${profile.displayName || emailStr}" từ đám mây Cloud!`);
+        alert(language === "en" ? `Successfully found and auto-loaded profile of athlete "${profile.displayName || emailStr}" from Cloud!` : `Đã tìm thấy & tự động nạp thành công hồ sơ của vận động viên "${profile.displayName || emailStr}" từ đám mây Cloud!`);
       } else {
-        alert(`Không tìm thấy hồ sơ cá nhân nào liên kết với email "${emailStr.trim()}" trên Cloud.`);
+        alert(language === "en" ? `No profile found associated with email "${emailStr.trim()}" on Cloud.` : `Không tìm thấy hồ sơ cá nhân nào liên kết với email "${emailStr.trim()}" trên Cloud.`);
       }
     } catch (e) {
       console.error(e);
-      alert("Không thể kết nối cơ sở dữ liệu tra cứu. Vui lòng kiểm tra lại mạng!");
+      alert(language === "en" ? "Could not connect to search database. Please check your network connection!" : "Không thể kết nối cơ sở dữ liệu tra cứu. Vui lòng kiểm tra lại mạng!");
     }
   };
 
@@ -658,12 +658,12 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     e.preventDefault();
     const name = newClubName.trim();
     if (!name) {
-      alert("Vui lòng nhập tên danh nghĩa CLB!");
+      alert(language === "en" ? "Please enter a Club Name!" : "Vui lòng nhập tên danh nghĩa CLB!");
       return;
     }
     const dupe = clubs.some(c => c.name.toLowerCase() === name.toLowerCase());
     if (dupe) {
-      alert("Tên Câu lạc bộ này đã tồn tại!");
+      alert(language === "en" ? "This Club name already exists!" : "Tên Câu lạc bộ này đã tồn tại!");
       return;
     }
     const newClub: Club = {
@@ -678,13 +678,13 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setClubs(prev => [...prev, newClub]);
     setNewClubName("");
     setNewClubProvince("");
-    setNotification({ type: "success", message: `Đã thêm thành công CLB "${name}"!` });
+    setNotification({ type: "success", message: language === "en" ? `Successfully added Club "${name}"!` : `Đã thêm thành công CLB "${name}"!` });
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleStartEditClub = (club: Club) => {
     if (!canModifyClub(club)) {
-      alert("Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      alert(language === "en" ? "You do not have permission to edit this club! Only the creator or Admin can." : "Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
       return;
     }
     setEditingClubId(club.id);
@@ -696,12 +696,12 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const handleSaveEditClub = (clubId: string) => {
     const targetClub = clubs.find(c => c.id === clubId);
     if (targetClub && !canModifyClub(targetClub)) {
-      alert("Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      alert(language === "en" ? "You do not have permission to edit this club! Only the creator or Admin can." : "Bạn không có quyền chỉnh sửa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
       return;
     }
     const name = editingClubName.trim();
     if (!name) {
-      alert("Tên CLB không được để trống!");
+      alert(language === "en" ? "Club name cannot be empty!" : "Tên CLB không được để trống!");
       return;
     }
     const updatedClub: Club = {
@@ -713,13 +713,13 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     saveVscSystemClub(updatedClub).catch(err => console.error("Failed to update global club:", err));
     setClubs(prev => prev.map(c => c.id === clubId ? updatedClub : c));
     setEditingClubId(null);
-    setNotification({ type: "success", message: "Đã cập nhật thông tin CLB thành công!" });
+    setNotification({ type: "success", message: language === "en" ? "Club updated successfully!" : "Đã cập nhật thông tin CLB thành công!" });
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleDeleteClub = (club: Club) => {
     if (!canModifyClub(club)) {
-      alert("Bạn không có quyền xóa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
+      alert(language === "en" ? "You do not have permission to delete this club! Only the creator or Admin can." : "Bạn không có quyền xóa câu lạc bộ này! Chỉ người tạo CLB hoặc Admin mới có quyền.");
       return;
     }
     setClubToDelete(club);
@@ -780,7 +780,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       XLSX.writeFile(workbook, isVscTab ? "Danh_Sach_Van_Dong_Vien_He_Thong_VSC.xlsx" : "Danh_Sach_Van_Dong_Vien_Giai.xlsx");
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi xuất file Excel!");
+      alert(language === "en" ? "An error occurred while exporting Excel file!" : "Có lỗi xảy ra khi xuất file Excel!");
     }
   };
 
@@ -832,11 +832,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         }).filter(ath => ath.id && ath.name);
 
         if (importedAthletes.length === 0) {
-          alert("Không tìm thấy dữ liệu vận động viên hợp lệ trong file Excel! Yêu cầu ít nhất cột ID và Họ Tên.");
+          alert(language === "en" ? "No valid athlete data found in the Excel file! Required at least ID and Full Name columns." : "Không tìm thấy dữ liệu vận động viên hợp lệ trong file Excel! Yêu cầu ít nhất cột ID và Họ Tên.");
           return;
         }
 
-        if (window.confirm(`Tìm thấy ${importedAthletes.length} VĐV trong file Excel. Bạn có muốn ghi đè / nhập thêm vào danh sách hiện tại không? (Các VĐV trùng mã số ID sẽ được cập nhật thông tin)`)) {
+        if (window.confirm(language === "en" ? `Found ${importedAthletes.length} athletes in the Excel file. Do you want to merge/overwrite them into the current roster? (Existing IDs will be updated)` : `Tìm thấy ${importedAthletes.length} VĐV trong file Excel. Bạn có muốn ghi đè / nhập thêm vào danh sách hiện tại không? (Các VĐV trùng mã số ID sẽ được cập nhật thông tin)`)) {
           // Auto-add any imported clubs that don't exist yet
           const importedClubNames = Array.from(new Set(importedAthletes.map(a => a.team?.trim()).filter(Boolean)));
           if (importedClubNames.length > 0) {
@@ -893,11 +893,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               return merged;
             });
           }
-          alert(`Đã nhập thành công ${importedAthletes.length} vận động viên!`);
+          alert(language === "en" ? `Successfully imported ${importedAthletes.length} athletes!` : `Đã nhập thành công ${importedAthletes.length} vận động viên!`);
         }
       } catch (err) {
         console.error(err);
-        alert("Có lỗi xảy ra khi đọc file Excel. Vui lòng kiểm tra lại cấu trúc file!");
+        alert(language === "en" ? "An error occurred while reading the Excel file. Please check the file structure!" : "Có lỗi xảy ra khi đọc file Excel. Vui lòng kiểm tra lại cấu trúc file!");
       }
     };
     fileReader.readAsArrayBuffer(file);
@@ -919,7 +919,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi xuất file JSON!");
+      alert(language === "en" ? "An error occurred while exporting JSON file!" : "Có lỗi xảy ra khi xuất file JSON!");
     }
   };
 
@@ -932,18 +932,18 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
       try {
         const parsed = JSON.parse(evt.target?.result as string);
         if (!Array.isArray(parsed)) {
-          alert("File JSON không hợp lệ! Dữ liệu phải là một mảng danh sách vận động viên.");
+          alert(language === "en" ? "Invalid JSON file! Data must be an array of athletes." : "File JSON không hợp lệ! Dữ liệu phải là một mảng danh sách vận động viên.");
           return;
         }
 
         const validated: Athlete[] = parsed.filter(ath => ath && typeof ath === 'object' && ath.id && ath.name);
 
         if (validated.length === 0) {
-          alert("Không tìm thấy dữ liệu vận động viên hợp lệ trong file JSON! Vui lòng đảm bảo các đối tượng có thuộc tính 'id' và 'name'.");
+          alert(language === "en" ? "No valid athlete data found in JSON! Make sure each object has 'id' and 'name' properties." : "Không tìm thấy dữ liệu vận động viên hợp lệ trong file JSON! Vui lòng đảm bảo các đối tượng có thuộc tính 'id' và 'name'.");
           return;
         }
 
-        if (window.confirm(`Tìm thấy ${validated.length} VĐV trong file JSON (bao gồm đầy đủ thông tin và đường dẫn ảnh). Bạn có muốn gộp/ghi đè vào danh sách hiện tại không?`)) {
+        if (window.confirm(language === "en" ? `Found ${validated.length} athletes in JSON file (including details and avatar paths). Do you want to merge/overwrite them into the current list?` : `Tìm thấy ${validated.length} VĐV trong file JSON (bao gồm đầy đủ thông tin và đường dẫn ảnh). Bạn có muốn gộp/ghi đè vào danh sách hiện tại không?`)) {
           if (isVscTab) {
             const merged = [...vscSystemAthletes];
             validated.forEach(imp => {
@@ -976,11 +976,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               return merged;
             });
           }
-          alert(`Đã nhập thành công ${validated.length} vận động viên từ file JSON!`);
+          alert(language === "en" ? `Successfully imported ${validated.length} athletes from JSON file!` : `Đã nhập thành công ${validated.length} vận động viên từ file JSON!`);
         }
       } catch (err) {
         console.error(err);
-        alert("Có lỗi xảy ra khi đọc file JSON. Hãy đảm bảo file đúng định dạng JSON!");
+        alert(language === "en" ? "An error occurred while reading the JSON file. Make sure it is in valid JSON format!" : "Có lỗi xảy ra khi đọc file JSON. Hãy đảm bảo file đúng định dạng JSON!");
       }
     };
     fileReader.readAsText(file);

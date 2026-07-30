@@ -1163,7 +1163,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
   const handlePublishNew = async () => {
     if (!currentUser) return;
     if (!customPublishName.trim()) {
-      alert("Vui lòng nhập tên giải đấu!");
+      alert(language === "en" ? "Please enter a tournament name!" : "Vui lòng nhập tên giải đấu!");
       return;
     }
     setCreating(true);
@@ -1188,7 +1188,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
         ...currentSetup
       };
       onSelectTournament(tourId, newDoc, "settings");
-      alert("Đã đăng giải đấu mới thành công lên Cloud!");
+      alert(language === "en" ? "Successfully published the new tournament to Cloud!" : "Đã đăng giải đấu mới thành công lên Cloud!");
       setIsPublishModalOpen(false);
       if (onRedirectToCreateTournament) {
         onRedirectToCreateTournament();
@@ -1204,7 +1204,7 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
 
   const handleOverwriteExisting = async (id: string, existingMatchName: string) => {
     if (!currentUser) return;
-    if (!confirm(`Bạn có chắc chắn muốn GHI ĐÈ toàn bộ thông tin cấu hình và điểm số của giải đấu "${existingMatchName}" trên Cloud bằng dữ liệu hiện tại không? Tất cả điểm số cũ của giải này trên Cloud sẽ bị thay thế.`)) {
+    if (!confirm(language === "en" ? `Are you sure you want to OVERWRITE all configuration and scores of "${existingMatchName}" on Cloud with the current data? All old scores on Cloud will be replaced.` : `Bạn có chắc chắn muốn GHI ĐÈ toàn bộ thông tin cấu hình và điểm số của giải đấu "${existingMatchName}" trên Cloud bằng dữ liệu hiện tại không? Tất cả điểm số cũ của giải này trên Cloud sẽ bị thay thế.`)) {
       return;
     }
     setCreating(true);
@@ -1226,11 +1226,11 @@ export const OnlineTournamentsPanel: React.FC<OnlineTournamentsPanelProps> = ({
       } as any;
 
       onSelectTournament(id, updatedDoc, "home");
-      alert("Đã cập nhật ghi đè toàn bộ dữ liệu lên giải đấu đám mây thành công!");
+      alert(language === "en" ? "Successfully updated and overwrote all data on the cloud tournament!" : "Đã cập nhật ghi đè toàn bộ dữ liệu lên giải đấu đám mây thành công!");
       setIsPublishModalOpen(false);
     } catch (err) {
       console.error("Failed to overwrite tournament online:", err);
-      alert("Đường truyền tải lên đám mây bị lỗi. Vui lòng kiểm tra lại mạng!");
+      alert(language === "en" ? "Cloud connection error. Please check your internet connection!" : "Đường truyền tải lên đám mây bị lỗi. Vui lòng kiểm tra lại mạng!");
     } finally {
       setCreating(false);
     }

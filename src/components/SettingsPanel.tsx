@@ -2307,7 +2307,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <h3 className="text-sm sm:text-base font-black uppercase text-slate-900 dark:text-white tracking-wide">
                     {language === "en" ? "Create New Tournament" : "Khởi Tạo Giải Đấu Mới"}
                   </h3>
-                  <p className="text-[10px] text-gray-500 font-extrabold uppercase">
+                  <p className="text-[10px] text-gray-550 font-extrabold uppercase">
                     {language === "en" ? "Set up information & system configuration" : "Thiết lập thông tin & cấu hình hệ thống"}
                   </p>
                 </div>
@@ -2396,27 +2396,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
               {/* Lựa Chọn Tạo Giải / Cơ Chế Giải Đấu */}
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Cơ chế giải đấu *</label>
+                <label className="block text-[10px] font-black text-gray-550 uppercase tracking-widest mb-1">
+                  {language === "en" ? "Tournament Type *" : "Cơ chế giải đấu *"}
+                </label>
                 <select
                   value={modalTournamentType}
                   onChange={(e) => setModalTournamentType(e.target.value as "individual" | "team" | "combined")}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-xs"
                 >
-                  <option value="individual">Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)</option>
-                  <option value="team">Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)</option>
-                  <option value="combined">Cá Nhân + Đồng Đội (Kết Hợp)</option>
+                  <option value="individual">{language === "en" ? "Individual Only" : "Cá Nhân (Chỉ hiển thị môi trường Cá Nhân)"}</option>
+                  <option value="team">{language === "en" ? "Team Only" : "Đồng Đội (Chỉ hiển thị môi trường Đồng Đội)"}</option>
+                  <option value="combined">{language === "en" ? "Combined (Individual + Team)" : "Cá Nhân + Đồng Đội (Kết Hợp)"}</option>
                 </select>
               </div>
 
               {/* Lane Capacity & Shots config */}
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-gray-150 dark:border-slate-800 space-y-3.5">
-                <h4 className="text-[10px] font-black text-slate-550 uppercase tracking-wider border-b border-gray-155 dark:border-slate-800 pb-1.5">Quy cách kỹ thuật (Cột điểm / Lượt bắn)</h4>
+                <h4 className="text-[10px] font-black text-slate-550 uppercase tracking-wider border-b border-gray-155 dark:border-slate-800 pb-1.5">
+                  {language === "en" ? "Technical specifications (Score columns / Shots)" : "Quy cách kỹ thuật (Cột điểm / Lượt bắn)"}
+                </h4>
                 
                 {/* Lane Capacity */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] font-extrabold text-gray-600 uppercase">Số VĐV / LANE (x) :</label>
-                    <span className="text-xs font-black font-mono text-rose-600 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded">{modalLaneCapacity} vận động viên</span>
+                    <label className="text-[10px] font-extrabold text-gray-600 uppercase">
+                      {language === "en" ? "Athletes / LANE (x) :" : "Số VĐV / LANE (x) :"}
+                    </label>
+                    <span className="text-xs font-black font-mono text-rose-600 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded">
+                      {modalLaneCapacity} {language === "en" ? "athletes" : "vận động viên"}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -2426,7 +2434,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     onChange={(e) => setModalLaneCapacity(Number(e.target.value))}
                     className="w-full accent-rose-600 cursor-pointer h-1.5 bg-gray-200 dark:bg-slate-850 rounded-lg"
                   />
-                  <span className="text-[9px] text-gray-500 font-semibold block mt-1">Khống chế số lượng bắn đồng thời trên mỗi hàng/bàn súng</span>
+                  <span className="text-[9px] text-gray-500 font-semibold block mt-1">
+                    {language === "en" ? "Limit shooters per lane" : "Khống chế số lượng bắn đồng thời trên mỗi hàng/bàn súng"}
+                  </span>
                 </div>
 
                 <div className={`grid grid-cols-1 ${
@@ -2726,11 +2736,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-full">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">Reset Toàn Bộ Điểm Số?</h3>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
+                {language === "en" ? "Reset All Scores?" : "Reset Toàn Bộ Điểm Số?"}
+              </h3>
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-              Bạn có chắc chắn muốn khôi phục toàn bộ bảng điểm cá nhân & đồng đội hiện tại về trống? Toàn bộ điểm số đã ghi sẽ bị xóa sạch khỏi giải đấu hiện hành.
+              {language === "en" 
+                ? "Are you sure you want to reset the current individual & team scoreboards to empty? All recorded scores will be completely cleared from this tournament."
+                : "Bạn có chắc chắn muốn khôi phục toàn bộ bảng điểm cá nhân & đồng đội hiện tại về trống? Toàn bộ điểm số đã ghi sẽ bị xóa sạch khỏi giải đấu hiện hành."}
             </p>
 
             <div className="flex gap-2 justify-end font-sans mt-1">
@@ -2739,7 +2753,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onClick={() => setConfirmReset(false)}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
               <button
                 type="button"
@@ -2749,7 +2763,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 }}
                 className="px-4 py-1.5 bg-amber-600 hover:bg-amber-705 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                Xác nhận Reset
+                {language === "en" ? "Confirm Reset" : "Xác nhận Reset"}
               </button>
             </div>
           </div>
@@ -2774,11 +2788,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className="p-2 bg-rose-50 dark:bg-rose-955/30 rounded-full">
                 <Trash2 className="w-5 h-5 animate-pulse" />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">Xóa Cự Ly Bắn?</h3>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
+                {language === "en" ? "Delete Shooting Distance?" : "Xóa Cự Ly Bắn?"}
+              </h3>
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-              Bạn có chắc muốn xóa cự ly <strong>{distanceToDelete.distance}</strong> ({confirmDeleteDistanceType === "individual" ? "Cá nhân" : "Đồng đội"})? Điều này sẽ xóa mọi bản ghi điểm của toàn bộ VĐV thuộc cự ly này.
+              {language === "en"
+                ? `Are you sure you want to delete the distance ${distanceToDelete.distance} (${confirmDeleteDistanceType === "individual" ? "Individual" : "Team"})? This will permanently delete all score entries for all athletes in this distance.`
+                : `Bạn có chắc muốn xóa cự ly ${distanceToDelete.distance} (${confirmDeleteDistanceType === "individual" ? "Cá nhân" : "Đồng đội"})? Điều này sẽ xóa mọi bản ghi điểm của toàn bộ VĐV thuộc cự ly này.`}
             </p>
 
             <div className="flex gap-2 justify-end font-sans mt-1">
@@ -2790,14 +2808,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 }}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   if (confirmDeleteDistanceType === "individual") {
                     if (distances.length <= 1) {
-                      setDistanceError("Bắt buộc giữ tối thiểu 1 cự ly bắn cá nhân!");
+                      setDistanceError(
+                        language === "en" 
+                          ? "At least 1 individual distance must be kept!" 
+                          : "Bắt buộc giữ tối thiểu 1 cự ly bắn cá nhân!"
+                      );
                       setConfirmDeleteDistanceId(null);
                       setConfirmDeleteDistanceType(null);
                       return;
@@ -2829,7 +2851,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     }
                   } else {
                     if (teamDistances.length <= 1) {
-                      setDistanceError("Bắt buộc giữ tối thiểu 1 cự ly bắn đồng đội!");
+                      setDistanceError(
+                        language === "en" 
+                          ? "At least 1 team distance must be kept!" 
+                          : "Bắt buộc giữ tối thiểu 1 cự ly bắn đồng đội!"
+                      );
                       setConfirmDeleteDistanceId(null);
                       setConfirmDeleteDistanceType(null);
                       return;
@@ -2865,7 +2891,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 }}
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                Đồng ý xóa
+                {language === "en" ? "Confirm Delete" : "Đồng ý xóa"}
               </button>
             </div>
           </div>
@@ -2888,12 +2914,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <AlertTriangle className="w-5 h-5 text-indigo-600 animate-pulse" />
               </div>
               <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-101 uppercase tracking-wide font-sans">
-                Xác Nhận Thay Đổi Cấu Hình?
+                {language === "en" ? "Confirm Configuration Changes?" : "Xác Nhận Thay Đổi Cấu Hình?"}
               </h3>
             </div>
             
             <div className="text-xs text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
-              <p className="mb-2">Bạn đang yêu cầu khóa cấu hình giải đấu. Các thay đổi chi tiết sau sẽ được áp dụng chính thức:</p>
+              <p className="mb-2">
+                {language === "en" 
+                  ? "You are locking the tournament configuration. The following changes will be officially applied:" 
+                  : "Bạn đang yêu cầu khóa cấu hình giải đấu. Các thay đổi chi tiết sau sẽ được áp dụng chính thức:"}
+              </p>
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl p-3 max-h-48 overflow-y-auto space-y-1.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                 {lockPendingChanges.map((change, idx) => (
                   <div key={idx} className="flex gap-1.5 items-start">
@@ -2910,7 +2940,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onClick={() => setIsConfirmLockModalOpen(false)}
                 className="px-3 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
               <button
                 type="button"
@@ -2925,7 +2955,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 }}
                 className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                Xác nhận thay đổi
+                {language === "en" ? "Confirm Changes" : "Xác nhận thay đổi"}
               </button>
             </div>
           </div>

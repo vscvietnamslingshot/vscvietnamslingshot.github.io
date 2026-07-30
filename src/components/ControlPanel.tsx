@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { Athlete, DistanceConfig } from "../types";
 import { getHitCount } from "../utils/qualification";
+import { useLanguage } from "../context/LanguageContext";
+import { Club } from "../types";
 
 interface ControlPanelProps {
   isGlobalAdmin?: boolean;
@@ -60,14 +62,14 @@ export const resolveTournamentType = (tour: TournamentData): "individual" | "tea
   return "combined";
 };
 
-const getTournamentModeLabel = (tour: TournamentData): string => {
+const getTournamentModeLabel = (tour: TournamentData, lang: "vi" | "en" = "vi"): string => {
   const mode = resolveTournamentType(tour);
   if (mode === "combined") {
-    return "Cá Nhân & Đồng Đội (Kết hợp)";
+    return lang === "en" ? "Individual & Team (Combined)" : "Cá Nhân & Đồng Đội (Kết hợp)";
   } else if (mode === "team") {
-    return "Đồng Đội";
+    return lang === "en" ? "Team Standings" : "Đồng Đội";
   } else {
-    return "Cá Nhân";
+    return lang === "en" ? "Individual" : "Cá Nhân";
   }
 };
 
@@ -78,6 +80,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onOpenAuthModal,
   forceSubTab
 }) => {
+  const { language } = useLanguage();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleConfirmCopy = async () => {
     if (!copyModalTour || !currentUser) return;
     if (!copyMatchName.trim()) {
-      alert("Vui lòng nhập tên giải đấu mới!");
+      alert(language === "en" ? "Please enter a new tournament name!" : "Vui lòng nhập tên giải đấu mới!");
       return;
     }
     setIsCopying(true);
@@ -161,14 +164,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         }
       );
 
-      alert(`Đã copy thành công giải đấu mới "${copyMatchName.trim()}"! Toàn bộ điểm số cũ đã được xóa sạch, giữ nguyên cấu hình và danh sách VĐV.`);
+      alert(language === "en" ? `Successfully copied new tournament "${copyMatchName.trim()}"! All previous scores have been cleared, while configuration and athlete roster are preserved.` : `Đã copy thành công giải đấu mới "${copyMatchName.trim()}"! Toàn bộ điểm số cũ đã được xóa sạch, giữ nguyên cấu hình và danh sách VĐV.`);
       setCopyModalTour(null);
       if (newTourId && onSelectTournament) {
         onSelectTournament(newTourId, { id: newTourId, matchName: copyMatchName.trim() });
       }
     } catch (err: any) {
       console.error("Failed to copy tournament:", err);
-      alert(`Lỗi khi sao chép giải đấu: ${err.message || err}`);
+      alert(language === "en" ? `Error copying tournament: ${err.message || err}` : `Lỗi khi sao chép giải đấu: ${err.message || err}`);
     } finally {
       setIsCopying(false);
     }
@@ -434,7 +437,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     e.preventDefault();
     if (!currentUser) return;
     if (!dispName.trim()) {
-      alert("Họ và tên hiển thị không được để trống!");
+      alert(language === "en" ? "Display name cannot be empty!" : "Họ và tên hiển thị không được để trống!");
       return;
     }
 
@@ -454,7 +457,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       if (isNameChanged) {
         if (!nameCooldownInfo.canChange) {
-          alert(`Bạn/VĐV đổi tên gần đây vào ngày ${nameCooldownInfo.lastDateStr}. Hãy đợi thêm ${nameCooldownInfo.daysRemaining} ngày để đổi tên tiếp theo nhé!`);
+          alert(language === "en" ? `You/Athlete recently updated name on ${nameCooldownInfo.lastDateStr}. Please wait ${nameCooldownInfo.daysRemaining} more days before updating again!` : `Bạn/VĐV đổi tên gần đây vào ngày ${nameCooldownInfo.lastDateStr}. Hãy đợi thêm ${nameCooldownInfo.daysRemaining} ngày để đổi tên tiếp theo nhé!`);
           setSavingProfile(false);
           return;
         }
@@ -471,10 +474,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         email: currentUser.email
       }));
 
-      alert("Cập nhật thông tin profile Vận động viên thành công!");
+      alert(language === "en" ? "Athlete profile updated successfully!" : "Cập nhật thông tin profile Vận động viên thành công!");
     } catch (err) {
       console.error(err);
-      alert("Đã xảy ra lỗi cập nhật cơ sở dữ liệu. Vui lòng kết nối lại!");
+      alert(language === "en" ? "Database update error. Please reconnect!" : "Đã xảy ra lỗi cập nhật cơ sở dữ liệu. Vui lòng kết nối lại!");
     } finally {
       setSavingProfile(false);
     }
@@ -489,7 +492,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       setShowConfirmDeleteId(null);
     } catch (err) {
       console.error(err);
-      alert("Không thể xóa giải đấu này. Bạn không phải trưởng giải hoặc không có quyền!");
+      alert(language === "en" ? "Cannot delete this tournament. You are not the tournament owner or do not have permission!" : "Không thể xóa giải đấu này. Bạn không phải trưởng giải hoặc không có quyền!");
     }
   };
 
@@ -500,10 +503,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-slate-205 dark:border-slate-800/80 pb-5">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <SlidersHorizontal className="w-6 h-6 text-indigo-650 dark:text-indigo-400" /> BẢNG ĐIỀU KHIỂN CÁ NHÂN (CONTROL PANEL)
+            <SlidersHorizontal className="w-6 h-6 text-indigo-650 dark:text-indigo-400" /> {language === "en" ? "MY CONTROL PANEL" : "BẢNG ĐIỀU KHIỂN CÁ NHÂN (CONTROL PANEL)"}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
-            Nơi tập trung theo dõi các giải đấu trực tuyến do chính bạn kiến tạo, hoặc các giải đấu mà bạn làm Trọng tài phân công.
+            {language === "en" ? "Centralized dashboard for tracking online tournaments you created or are assigned as referee." : "Nơi tập trung theo dõi các giải đấu trực tuyến do chính bạn kiến tạo, hoặc các giải đấu mà bạn làm Trọng tài phân công."}
           </p>
         </div>
 
@@ -529,17 +532,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
           <div className="flex flex-col gap-1.5">
             <h3 className="text-base sm:text-lg font-extrabold text-slate-905 dark:text-white">
-              Yêu cầu đăng nhập tài khoản Cloud
+              {language === "en" ? "Cloud Account Login Required" : "Yêu cầu đăng nhập tài khoản Cloud"}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
-              Vui lòng kết nối với tài khoản Google để sử dụng Bảng Điều Khiển này. Hệ thống sẽ tự động quét và lọc ra toàn bộ giải đấu do bạn khởi tạo hoặc được phân bổ làm trọng tài đám mây.
+              {language === "en" ? "Please connect with your Google account to use this Control Panel. The system will automatically scan and filter tournaments you created or are assigned to as cloud referee." : "Vui lòng kết nối với tài khoản Google để sử dụng Bảng Điều Khiển này. Hệ thống sẽ tự động quét và lọc ra toàn bộ giải đấu do bạn khởi tạo hoặc được phân bổ làm trọng tài đám mây."}
             </p>
           </div>
           <button
             onClick={onOpenAuthModal}
             className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer mt-1"
           >
-            Đăng nhập bằng Google Account
+            {language === "en" ? "Sign in with Google Account" : "Đăng nhập bằng Google Account"}
           </button>
         </div>
       ) : (
@@ -558,7 +561,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 }`}
               >
                 <UserCheck className="w-4 h-4" />
-                Hồ Sơ VĐV của Tôi
+                {language === "en" ? "My Athlete Profile" : "Hồ Sơ VĐV của Tôi"}
               </button>
               <button
                 onClick={() => setSubTab("created")}
@@ -569,7 +572,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 }`}
               >
                 <ShieldCheck className="w-4 h-4" />
-                Giải tôi tạo ({myCreatedTournaments.length})
+                {language === "en" ? `Created Tournaments (${myCreatedTournaments.length})` : `Giải tôi tạo (${myCreatedTournaments.length})`}
               </button>
               <button
                 onClick={() => setSubTab("referee")}
@@ -580,7 +583,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 }`}
               >
                 <Award className="w-4 h-4" />
-                Giải tôi làm Trọng tài ({myRefereeTournaments.length})
+                {language === "en" ? `Referee Tournaments (${myRefereeTournaments.length})` : `Giải tôi làm Trọng tài (${myRefereeTournaments.length})`}
               </button>
             </div>
 
@@ -590,7 +593,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Lọc tên giải đấu..."
+                  placeholder={language === "en" ? "Filter tournament name..." : "Lọc tên giải đấu..."}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-3 py-1.5 w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 transition-all text-slate-800 dark:text-slate-100"
@@ -603,7 +606,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           {loading ? (
             <div className="p-12 text-center flex flex-col justify-center items-center gap-2">
               <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-indigo-500 animate-spin"></div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Đang tải dữ liệu Cloud...</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {language === "en" ? "Loading Cloud data..." : "Đang tải dữ liệu Cloud..."}
+              </span>
             </div>
           ) : (
             <>
@@ -873,7 +878,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             {/* Summary info */}
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-1.5">
                               <div className="flex justify-between items-center text-slate-500">
-                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
+                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour, language)}</strong></span>
                                 <span>VĐV tham gia: <strong className="text-slate-700 dark:text-slate-300">{athleteStats.total} VĐV {athleteStats.active > 0 && athleteStats.active !== athleteStats.total ? `(${athleteStats.active} đã thi đấu)` : ""}</strong></span>
                               </div>
                               <div className="flex justify-between items-center text-slate-500 border-t border-slate-200/40 dark:border-slate-800/40 pt-1.5">
@@ -970,7 +975,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             {/* Details with Creator */}
                             <div className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-3 border border-slate-100 dark:border-slate-800/20 text-xs flex flex-col gap-2">
                               <div className="flex justify-between items-center text-slate-500">
-                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour)}</strong></span>
+                                <span>Chế độ: <strong className="text-slate-700 dark:text-slate-300">{getTournamentModeLabel(tour, language)}</strong></span>
                                 <span>VĐV tham gia: <strong className="text-slate-700 dark:text-slate-300">{refAthleteStats.total} VĐV {refAthleteStats.active > 0 && refAthleteStats.active !== refAthleteStats.total ? `(${refAthleteStats.active} đã thi đấu)` : ""}</strong></span>
                               </div>
                               <div className="flex justify-wrap gap-1 items-center text-[10px] text-slate-400 border-t border-slate-200/40 dark:border-slate-800/40 pt-2 leading-relaxed">
@@ -1059,7 +1064,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Giải đấu gốc:</span>
                 <strong className="text-sm text-slate-900 dark:text-slate-100 font-extrabold">{copyModalTour.matchName}</strong>
                 <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
-                  <span>Thể thức: <strong>{getTournamentModeLabel(copyModalTour)}</strong></span>
+                  <span>Thể thức: <strong>{getTournamentModeLabel(copyModalTour, language)}</strong></span>
                   <span>VĐV: <strong>{getTournamentAthleteStats(copyModalTour).total} VĐV</strong></span>
                 </div>
               </div>

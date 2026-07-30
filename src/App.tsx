@@ -1808,16 +1808,16 @@ export default function App() {
     try {
       const dataStr = localStorage.getItem(backupId);
       if (!dataStr) {
-        alert("Không tìm thấy dữ liệu sao lưu!");
+        alert(language === "en" ? "Backup data not found!" : "Không tìm thấy dữ liệu sao lưu!");
         return false;
       }
       const success = handleImportFullBackup(dataStr);
       if (success) {
-        alert("✓ Đã khôi phục thành công toàn bộ dữ liệu từ Bản sao lưu nội bộ!");
+        alert(language === "en" ? "✓ Successfully restored all data from device backup!" : "✓ Đã khôi phục thành công toàn bộ dữ liệu từ Bản sao lưu nội bộ!");
       }
       return success;
     } catch (err) {
-      alert("Lỗi khi khôi phục bản sao lưu: " + String(err));
+      alert((language === "en" ? "Error restoring backup: " : "Lỗi khi khôi phục bản sao lưu: ") + String(err));
       return false;
     }
   };
@@ -2690,7 +2690,7 @@ export default function App() {
 
   const handleUpdateDirectScore = (athleteId: string, distanceId: string, value: number | null) => {
     if (!isScoringEditAuthorized) {
-      alert("Bạn chưa bật quyền chỉnh sửa điểm số! Vui lòng bật quyền để tiếp tục.");
+      alert(language === "en" ? "You have not enabled score editing permissions! Please enable them to continue." : "Bạn chưa bật quyền chỉnh sửa điểm số! Vui lòng bật quyền để tiếp tục.");
       return;
     }
     executeDirectScoreUpdate(athleteId, distanceId, value);
@@ -2842,7 +2842,9 @@ export default function App() {
       const isIdTaken = masterAthletes.some((a) => a.id.trim().toLowerCase() === checkId.toLowerCase() && a.id !== athleteId);
       if (isIdTaken) {
         const existingAthlete = masterAthletes.find((a) => a.id.trim().toLowerCase() === checkId.toLowerCase());
-        alert(`Mã số VĐV (ID) "${checkId}" đã tồn tại trên hệ thống (thuộc VĐV "${existingAthlete?.name || ''}" - ${existingAthlete?.team || 'Tự do'}). Vui lòng chọn Mã số khác!`);
+        alert(language === "en" 
+          ? `Athlete ID "${checkId}" already exists on the system (belongs to athlete "${existingAthlete?.name || ''}" - ${existingAthlete?.team || 'Independent'}). Please choose a different ID!` 
+          : `Mã số VĐV (ID) "${checkId}" đã tồn tại trên hệ thống (thuộc VĐV "${existingAthlete?.name || ''}" - ${existingAthlete?.team || 'Tự do'}). Vui lòng chọn Mã số khác!`);
         return;
       }
     }
@@ -2952,7 +2954,7 @@ export default function App() {
   const handleSaveInputScoresToMain = () => {
     const activeInputList = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
     if (activeInputList.length === 0) {
-      alert("Không có vận động viên nào trong bảng Nhập Điểm!");
+      alert(language === "en" ? "There are no athletes in the scoring grid!" : "Không có vận động viên nào trong bảng Nhập Điểm!");
       return;
     }
     setSaveStatus(null);
@@ -2965,7 +2967,10 @@ export default function App() {
 
     const activeInputList = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
     if (activeInputList.length === 0) {
-      setSaveStatus({ success: false, message: "Không có vận động viên nào trong bảng Nhập Điểm!" });
+      setSaveStatus({ 
+        success: false, 
+        message: language === "en" ? "There are no athletes in the scoring grid!" : "Không có vận động viên nào trong bảng Nhập Điểm!" 
+      });
       setIsSavingScores(false);
       return;
     }
@@ -3271,7 +3276,7 @@ export default function App() {
       }
       return [newHistoryItem, ...prev];
     });
-    alert(`Đã lưu thành công trận đấu "${nameToSave}" vào danh sách lịch sử.`);
+    alert(language === "en" ? `Successfully saved tournament "${nameToSave}" to history list.` : `Đã lưu thành công trận đấu "${nameToSave}" vào danh sách lịch sử.`);
   };
 
   // Exit current tournament and reset all tournament state variables back to defaults
@@ -3374,7 +3379,9 @@ export default function App() {
     setTeamInputAthletes([]);
 
     setActiveTab("scoring"); // redirect back to scorecards
-    alert(`Đã mở chế độ xem trước BẢN NHÁP ngoại tuyến cho giải: "${target.matchName}". Thầy cô có thể kiểm tra danh sách thi đấu và bảng điểm, sau đó bấm "Xác nhận Đăng Online" ở thanh cảnh báo trên cùng để đồng bộ đám mây.`);
+    alert(language === "en" 
+      ? `Opened offline DRAFT preview mode for tournament: "${target.matchName}". You can check the roster and scores, then click "Confirm Publish Online" on the top warning bar to sync with Cloud.`
+      : `Đã mở chế độ xem trước BẢN NHÁP ngoại tuyến cho giải: "${target.matchName}". Thầy cô có thể kiểm tra danh sách thi đấu và bảng điểm, sau đó bấm "Xác nhận Đăng Online" ở thanh cảnh báo trên cùng để đồng bộ đám mây.`);
   };
 
   // Remove history snapshot
@@ -3391,13 +3398,15 @@ export default function App() {
   const handleOverwriteOnlinePublish = async (selectedOnlineTourId: string) => {
     if (!draftPreviewItem) return;
     if (!selectedOnlineTourId) {
-      alert("Vui lòng chọn giải đấu online cần ghi đè!");
+      alert(language === "en" ? "Please select an online tournament to overwrite!" : "Vui lòng chọn giải đấu online cần ghi đè!");
       return;
     }
     const targetTour = onlineTournaments.find(t => t.id === selectedOnlineTourId);
     if (!targetTour) return;
 
-    const confirmText = `⚠️ Bạn có chắc chắn muốn GHI ĐÈ toàn bộ điểm số, danh sách VĐV, và cấu hình của giải online "${targetTour.matchName}" bằng dữ liệu bản nháp này không?\n\nToàn bộ dữ liệu cũ của giải online này sẽ bị thay thế vĩnh viễn!`;
+    const confirmText = language === "en"
+      ? `⚠️ Are you sure you want to OVERWRITE all scores, athlete roster, and configuration of the online tournament "${targetTour.matchName}" with this draft data?\n\nAll old data of this online tournament will be permanently replaced!`
+      : `⚠️ Bạn có chắc chắn muốn GHI ĐÈ toàn bộ điểm số, danh sách VĐV, và cấu hình của giải online "${targetTour.matchName}" bằng dữ liệu bản nháp này không?\n\nToàn bộ dữ liệu cũ của giải online này sẽ bị thay thế vĩnh viễn!`;
     if (!window.confirm(confirmText)) {
       return;
     }
@@ -3428,23 +3437,23 @@ export default function App() {
       setIsPublishDraftModalOpen(false);
       setActiveTab("dashboard");
 
-      alert(`Đã ghi đè thành công dữ liệu bản nháp lên giải online "${targetTour.matchName}"!`);
+      alert(language === "en" ? `Successfully overwrote draft data onto online tournament "${targetTour.matchName}"!` : `Đã ghi đè thành công dữ liệu bản nháp lên giải online "${targetTour.matchName}"!`);
     } catch (err: any) {
-      alert(`Lỗi ghi đè online: ${err.message || err}`);
+      alert(language === "en" ? `Online overwrite error: ${err.message || err}` : `Lỗi ghi đè online: ${err.message || err}`);
     }
   };
 
   const handleCreateNewOnlinePublish = async (newOnlineTourName: string) => {
     if (!draftPreviewItem) return;
     if (!newOnlineTourName.trim()) {
-      alert("Vui lòng nhập tên giải đấu mới!");
+      alert(language === "en" ? "Please enter a new tournament name!" : "Vui lòng nhập tên giải đấu mới!");
       return;
     }
 
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        alert("Bạn cần đăng nhập để khởi tạo giải đấu online!");
+        alert(language === "en" ? "You need to log in to create an online tournament!" : "Bạn cần đăng nhập để khởi tạo giải đấu online!");
         return;
       }
 
@@ -3478,9 +3487,9 @@ export default function App() {
       setIsPublishDraftModalOpen(false);
       setActiveTab("dashboard");
 
-      alert(`Đã tạo mới và đăng giải online "${newOnlineTourName.trim()}" thành công!`);
+      alert(language === "en" ? `Successfully created and published new online tournament "${newOnlineTourName.trim()}"!` : `Đã tạo mới và đăng giải online "${newOnlineTourName.trim()}" thành công!`);
     } catch (err: any) {
-      alert(`Lỗi tạo giải mới online: ${err.message || err}`);
+      alert(language === "en" ? `Error creating online tournament: ${err.message || err}` : `Lỗi tạo giải mới online: ${err.message || err}`);
     }
   };
 
@@ -3610,7 +3619,7 @@ export default function App() {
           return prev;
         });
 
-        alert(`Đã khôi phục thành công giải đấu "${finalName}" và ghi nhận vào Lịch Sử.`);
+        alert(language === "en" ? `Successfully restored tournament "${finalName}" and logged it in History.` : `Đã khôi phục thành công giải đấu "${finalName}" và ghi nhận vào Lịch Sử.`);
         return true;
       }
       return false;
@@ -3802,6 +3811,363 @@ export default function App() {
       </div>
     );
   }
+
+  const renderAddInputAthleteModal = () => {
+    if (!isAddingAthleteToInputBoard || typeof document === "undefined") return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+          
+          {/* Header */}
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide">
+              <UserPlus className="w-4 h-4 text-indigo-600" />
+              {language === "en" ? "Select system athletes for scoring" : "Chọn VĐV hệ thống để Nhập Điểm"}
+            </h3>
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingAthleteToInputBoard(false);
+                setInputBoardAddSearch("");
+                setSelectedInputBoardAthleteIds([]);
+              }}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Search & Select All Tools */}
+          <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={language === "en" ? "Search profile by ID, Name, Team..." : "Tìm kiếm hồ sơ theo ID, Tên, Đội..."}
+                value={inputBoardAddSearch}
+                onChange={(e) => setInputBoardAddSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium dark:text-white"
+              />
+            </div>
+
+            {(() => {
+              const unselected = masterAthletes.filter(
+                (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
+              );
+              const filtered = unselected.filter((m) => {
+                if (!inputBoardAddSearch.trim()) return true;
+                const s = inputBoardAddSearch.toLowerCase();
+                return (
+                  m.id.toLowerCase().includes(s) ||
+                  m.name.toLowerCase().includes(s) ||
+                  (m.team && m.team.toLowerCase().includes(s))
+                );
+              });
+
+              if (filtered.length === 0) return null;
+
+              const allowedFiltered = filtered;
+              const allFilteredSelected = allowedFiltered.length > 0 && allowedFiltered.every((f) => selectedInputBoardAthleteIds.includes(f.id));
+
+              const handleToggleSelectAll = () => {
+                if (allFilteredSelected) {
+                  const filteredIds = allowedFiltered.map((f) => f.id);
+                  setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+                } else {
+                  const filteredIds = allowedFiltered.map((f) => f.id);
+                  setSelectedInputBoardAthleteIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+                }
+              };
+
+              return (
+                <div className="flex items-center justify-between px-1 text-xs pt-1">
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>
+                      {allFilteredSelected 
+                        ? (language === "en" ? "Deselect all" : "Bỏ chọn tất cả") 
+                        : (language === "en" ? "Select all results (" + allowedFiltered.length + ")" : "Chọn tất cả kết quả (" + allowedFiltered.length + ")")}
+                    </span>
+                  </button>
+                  {selectedInputBoardAthleteIds.length > 0 && (
+                    <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                      {language === "en" ? "Selected: " + selectedInputBoardAthleteIds.length + " athletes" : "Đã chọn: " + selectedInputBoardAthleteIds.length + " VĐV"}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Athlete Roster Scroll Area */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[220px]">
+            {(() => {
+              const unselected = masterAthletes.filter(
+                (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
+              );
+              const filtered = unselected.filter((m) => {
+                if (!inputBoardAddSearch.trim()) return true;
+                const s = inputBoardAddSearch.toLowerCase();
+                return (
+                  m.id.toLowerCase().includes(s) ||
+                  m.name.toLowerCase().includes(s) ||
+                  (m.team && m.team.toLowerCase().includes(s))
+                );
+              });
+
+              if (unselected.length === 0) {
+                return (
+                  <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {language === "en" ? "All athletes in the system are already present in this Input Board." : "Tất cả vận động viên trong hệ thống hiện đã có mặt ở bảng Nhập Điểm này."}
+                  </div>
+                );
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {language === "en" ? "No profiles found matching ID or Name." : "Không thấy hồ sơ nào có ID hoặc Tên khớp."}
+                  </div>
+                );
+              }
+
+              const sortedFiltered = [...filtered].sort((a, b) => {
+                const scoreA = currentAthletes.find((x) => x.id === a.id);
+                const scoreB = currentAthletes.find((x) => x.id === b.id);
+                
+                const statusA = !scoreA ? 0 : (currentDistances.some((d) => !scoreA.scores[d.id] || scoreA.scores[d.id].every(s => s === null)) ? 1 : 2);
+                const statusB = !scoreB ? 0 : (currentDistances.some((d) => !scoreB.scores[d.id] || scoreB.scores[d.id].every(s => s === null)) ? 1 : 2);
+                
+                if (statusA !== statusB) {
+                  return statusA - statusB;
+                }
+                return a.id.localeCompare(b.id, undefined, { numeric: true });
+              });
+
+              return sortedFiltered.map((m) => {
+                const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
+                const isAlreadyInScoring = !!scoringAthlete;
+                const isMissingSomeDistances = scoringAthlete 
+                  ? currentDistances.some((d) => {
+                      const shots = scoringAthlete.scores[d.id];
+                      return !shots || shots.every((s) => s === null);
+                    })
+                  : false;
+                
+                const activeListInDoc = competitionMode === "individual"
+                  ? (currentTournamentDoc?.inputAthletes || [])
+                  : (currentTournamentDoc?.teamInputAthletes || []);
+                const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
+                const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
+                  documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
+                  ? documentActivePlayer.calledBy
+                  : null;
+                
+                const isCallerBlocked = !!otherRefereeEmail;
+                const isSelectionBlocked = isCallerBlocked;
+                const isChecked = selectedInputBoardAthleteIds.includes(m.id);
+                
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      if (isCallerBlocked) {
+                        alert(language === "en" ? "Warning: Athlete \"" + m.name + "\" is currently being scored by another referee (" + otherRefereeEmail + ")!" : "Cảnh báo: Vận động viên \"" + m.name + "\" đang được gọi ghi điểm bởi trọng tài khác (" + otherRefereeEmail + ")!");
+                        return;
+                      }
+                      if (isSelectionBlocked) {
+                        alert(language === "en" ? "Warning: Athlete \"" + m.name + "\" has completed all distances in the scoring sheet! Cannot select further." : "Cảnh báo: Vận động viên \"" + m.name + "\" đã hoàn thành đầy đủ tất cả các cự ly trong bảng Ghi Điểm! Không thể chọn thêm.");
+                        return;
+                      }
+                      setSelectedInputBoardAthleteIds((prev) => 
+                        prev.includes(m.id) 
+                          ? prev.filter((id) => id !== m.id) 
+                          : [...prev, m.id]
+                      );
+                    }}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                      isSelectionBlocked
+                        ? "bg-amber-50/45 dark:bg-amber-955/10 border-amber-200 dark:border-amber-955/60 opacity-65 cursor-not-allowed"
+                        : isChecked
+                        ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-indigo-500 dark:border-indigo-600 shadow-sm ring-1 ring-indigo-500"
+                        : "bg-slate-50/50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/20"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
+                          isChecked
+                            ? "bg-indigo-600 border-indigo-600 text-white"
+                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-transparent"
+                        }`}
+                      >
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      </div>
+                      <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded shrink-0 border border-indigo-200 dark:border-indigo-900">
+                        ID: {m.id}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</span>
+                          {isCallerBlocked ? (
+                            <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0 animate-pulse">
+                              {language === "en" ? "🔒 Called by: " + otherRefereeEmail : "🔒 Đang được gọi bởi: " + otherRefereeEmail}
+                            </span>
+                          ) : (
+                            <>
+                              {isAlreadyInScoring && (
+                                isMissingSomeDistances ? (
+                                  <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0">
+                                    {language === "en" ? "Scored (Incomplete distances)" : "Đã có điểm (Chưa đủ cự ly)"}
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-900/60 uppercase whitespace-nowrap shrink-0">
+                                    {language === "en" ? "All distances completed" : "Đã đủ tất cả cự ly"}
+                                  </span>
+                                )
+                              )}
+                              {m.status === "Bỏ thi" && (
+                                <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0 animate-pulse">
+                                  {language === "en" ? "Withdrawn" : "Bỏ thi"}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-500 dark:text-slate-400 block truncate">
+                          {m.team || (language === "en" ? "Independent" : "Tự do")} • {m.gender === "Nữ" ? (language === "en" ? "Female" : "Nữ") : (language === "en" ? "Male" : "Nam")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isAlreadyInScoring && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingScrollAthleteId(m.id);
+                          setActiveTab("scoring");
+                          setIsAddingAthleteToInputBoard(false);
+                          setSelectedInputBoardAthleteIds([]);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> {language === "en" ? "View" : "Xem"}
+                      </button>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          {/* Footer: HỦY and GỌI X VĐV */}
+          <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between gap-3">
+            <div className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-none">
+              {language === "en" ? "If athletes are missing, go to " : "Nếu chưa có VĐV, vào tab "}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("settings");
+                  setSettingsSubTab("athletes");
+                  setIsAddingAthleteToInputBoard(false);
+                  setSelectedInputBoardAthleteIds([]);
+                }}
+                className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+              >
+                {language === "en" ? "Athlete Management" : "Quản Lý VĐV"}
+              </button>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingAthleteToInputBoard(false);
+                  setInputBoardAddSearch("");
+                  setSelectedInputBoardAthleteIds([]);
+                }}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                {language === "en" ? "CANCEL" : "HỦY"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedInputBoardAthleteIds.length === 0) {
+                    alert(language === "en" ? "Please select at least 1 athlete!" : "Vui lòng chọn ít nhất 1 vận động viên!");
+                    return;
+                  }
+                  const toAdd = masterAthletes.filter((m) => selectedInputBoardAthleteIds.includes(m.id));
+                  
+                  const activeListInDoc = competitionMode === "individual"
+                    ? (currentTournamentDoc?.inputAthletes || [])
+                    : (currentTournamentDoc?.teamInputAthletes || []);
+
+                  const validToAdd: typeof masterAthletes = [];
+                  const skippedNames: string[] = [];
+
+                  toAdd.forEach((m) => {
+                    const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
+                    const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
+                      documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
+                      ? documentActivePlayer.calledBy
+                      : null;
+                    if (otherRefereeEmail) {
+                      skippedNames.push(m.name + " (bởi " + otherRefereeEmail + ")");
+                    } else {
+                      validToAdd.push(m);
+                    }
+                  });
+
+                  if (skippedNames.length > 0) {
+                    alert(language === "en" ? "Skipped the following athletes because they are being scored by another referee:\n- " + skippedNames.join("\n- ") : "Bỏ qua các vận động viên sau do đang được nhập điểm bởi trọng tài khác:\n- " + skippedNames.join("\n- "));
+                  }
+
+                  if (validToAdd.length > 0) {
+                    const newAthletes: Athlete[] = validToAdd.map((m) => {
+                      const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
+                      const freshScores: Record<string, (boolean | null)[]> = {};
+                      currentDistances.forEach((d) => {
+                        if (scoringAthlete && scoringAthlete.scores[d.id]) {
+                          freshScores[d.id] = [...scoringAthlete.scores[d.id]];
+                        } else {
+                          freshScores[d.id] = Array(currentShotsCount).fill(null);
+                        }
+                      });
+                      return {
+                        ...m,
+                        scores: freshScores,
+                        soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
+                        calledBy: currentUser?.email || "anonymous",
+                      };
+                    });
+                    if (competitionMode === "individual") {
+                      setInputAthletes((prev) => [...prev, ...newAthletes]);
+                    } else {
+                      setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
+                    }
+                    setHasUnsavedChanges(true);
+                  }
+                  setSelectedInputBoardAthleteIds([]);
+                  setIsAddingAthleteToInputBoard(false);
+                  setInputBoardAddSearch("");
+                }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5"
+              >
+                <UserPlus className="w-4 h-4" />
+                {language === "en" ? "CALL " + selectedInputBoardAthleteIds.length + " ATHLETES" : "GỌI " + selectedInputBoardAthleteIds.length + " VĐV"}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>,
+      document.body
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-24 md:pb-16 transition-colors duration-200">
@@ -4913,14 +5279,14 @@ export default function App() {
                       onClick={() => setIsScoringEditAuthorized(false)}
                       className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Lock className="w-3.5 h-3.5" /> Lock: Chuyển Chế độ Xem
+                      <Lock className="w-3.5 h-3.5" /> {language === "en" ? "Lock: View Only" : "Lock: Chuyển Chế độ Xem"}
                     </button>
                   ) : (
                     <button
                       onClick={() => setIsScoringEditAuthorized(true)}
                       className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-extrabold rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer focus:ring-2 focus:ring-indigo-300"
                     >
-                      <Unlock className="w-3.5 h-3.5 animate-bounce" /> Unlock: Ghi Điểm
+                      <Unlock className="w-3.5 h-3.5 animate-bounce" /> {language === "en" ? "Unlock: Edit Scores" : "Unlock: Ghi Điểm"}
                     </button>
                   )}
                 </div>
@@ -4930,9 +5296,15 @@ export default function App() {
               {currentAthletes.length === 0 && (
                 <div className="text-center p-12 border-2 border-dashed border-gray-300 rounded-3xl bg-white">
                   <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <h3 className="text-lg font-bold text-gray-700">Hiện không có VĐV nào trong giải đấu</h3>
+                  <h3 className="text-lg font-bold text-gray-700">
+                    {language === "en" ? "No athletes in the tournament currently" : "Hiện không có VĐV nào trong giải đấu"}
+                  </h3>
                   <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
-                    Hãy nhấn nút <span className="text-rose-500 font-extrabold text-base border border-rose-200 bg-rose-50/50 px-2 py-0.5 rounded-lg">+</span> bên dưới để thêm các vận động viên từ hồ sơ hệ thống vào giải đấu hiện tại!
+                    {language === "en" ? (
+                      "Please click the '+' button below to add athletes from system profiles to this tournament!"
+                    ) : (
+                      <>Hãy nhấn nút <span className="text-rose-500 font-extrabold text-base border border-rose-200 bg-rose-50/50 px-2 py-0.5 rounded-lg">+</span> bên dưới để thêm các vận động viên từ hồ sơ hệ thống vào giải đấu hiện tại!</>
+                    )}
                   </p>
                 </div>
               )}
@@ -5188,7 +5560,7 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             if (selectedTourAthleteIds.length === 0) {
-                              alert("Vui lòng chọn ít nhất 1 vận động viên!");
+                              alert(language === "en" ? "Please select at least 1 athlete!" : "Vui lòng chọn ít nhất 1 vận động viên!");
                               return;
                             }
                             const toAdd = masterAthletes.filter((m) => selectedTourAthleteIds.includes(m.id));
@@ -5283,9 +5655,15 @@ export default function App() {
               <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 flex gap-3 text-xs text-amber-800 dark:text-amber-300">
                 <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
                 <div>
-                  <span className="font-bold block mb-1 font-sans">Bảng Nhập Điểm tạm thời:</span>
+                  <span className="font-bold block mb-1 font-sans">
+                    {language === "en" ? "Temporary Scoring Board:" : "Bảng Nhập Điểm tạm thời:"}
+                  </span>
                   <p className="text-[11px] leading-relaxed">
-                    Đây là khu vực nhập điểm nhanh cho tốp đấu mới hoặc các lượt thi đang diễn ra. Khi nhập điểm xong, hãy bấm nút <strong>LƯU ĐIỂM</strong> để tự động chuyển kết quả và lưu vĩnh viễn các vận động viên này sang tab <strong>Ghi Điểm</strong>.
+                    {language === "en" ? (
+                      <>This is a quick score entry area for new matches or ongoing rounds. When scoring is finished, click <strong>SAVE SCORES</strong> to automatically transfer results and save these athletes permanently into the main <strong>Scoring</strong> tab.</>
+                    ) : (
+                      <>Đây là khu vực nhập điểm nhanh cho tốp đấu mới hoặc các lượt thi đang diễn ra. Khi nhập điểm xong, hãy bấm nút <strong>LƯU ĐIỂM</strong> để tự động chuyển kết quả và lưu vĩnh viễn các vận động viên này sang tab <strong>Ghi Điểm</strong>.</>
+                    )}
                   </p>
                 </div>
               </div>
@@ -5294,402 +5672,21 @@ export default function App() {
               {currentInputAthletes.length === 0 && (
                 <div className="text-center p-12 border-2 border-dashed border-gray-300 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
                   <ClipboardCheck className="w-12 h-12 text-gray-400 dark:text-slate-600 mx-auto mb-3" />
-                  <h3 className="text-lg font-bold text-gray-700 dark:text-slate-300">Bảng nhập điểm hiện đang trống</h3>
+                  <h3 className="text-lg font-bold text-gray-700 dark:text-slate-300">
+                    {language === "en" ? "The score entry sheet is currently empty" : "Bảng nhập điểm hiện đang trống"}
+                  </h3>
                   <p className="text-sm text-gray-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
-                    Hãy nhấn nút <span className="text-indigo-500 font-extrabold text-base border border-indigo-200 bg-indigo-50/50 px-2 py-0.5 rounded-lg">+</span> bên dưới để chọn vận động viên từ hồ sơ hệ thống vào bảng Nhập Điểm!
+                    {language === "en" ? (
+                      "Please click the '+' button below to select athletes from system profiles to this Scoring board!"
+                    ) : (
+                      <>Hãy nhấn nút <span className="text-indigo-500 font-extrabold text-base border border-indigo-200 bg-indigo-50/50 px-2 py-0.5 rounded-lg">+</span> bên dưới để chọn vận động viên từ hồ sơ hệ thống vào bảng Nhập Điểm!</>
+                    )}
                   </p>
                 </div>
               )}
 
-              {/* Grid Athletes List of Cards (Dynamic responsive) */}
-              <div className="flex flex-col gap-6">
-                {activeFilteredInputAthletes.map((athlete) => {
-                  const originalIndex = currentInputAthletes.findIndex((a) => a.id === athlete.id);
-                  const isFirst = originalIndex === 0;
-                  const isLast = originalIndex === currentInputAthletes.length - 1;
-                  
-                  const isLockedByOtherReferee = !isGlobalAdmin && (!!(athlete.calledBy && 
-                    athlete.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()));
-                  const lockedByRefereeEmail = athlete.calledBy || "";
-
-                  return (
-                    <AthleteCard
-                      key={athlete.id}
-                      athlete={athlete}
-                      distances={currentDistances}
-                      shotsCount={currentShotsCount}
-                      onToggleScore={handleToggleInputScore}
-                      onUpdateAthlete={handleUpdateInputAthlete}
-                      onDeleteAthlete={handleDeleteInputAthlete}
-                      onMoveAthlete={handleMoveInputAthlete}
-                      isFirst={isFirst}
-                      isLast={isLast}
-                      isInputTab={true}
-                      mainAthletes={currentAthletes}
-                      onUpdateSoloHits={handleUpdateInputSoloHits}
-                      onUpdateDirectScore={handleUpdateDirectInputScore}
-                      directMaxPoints={competitionMode === "individual" ? directMaxPoints : teamDirectMaxPoints}
-                      isLockedByOtherReferee={isLockedByOtherReferee}
-                      lockedByRefereeEmail={lockedByRefereeEmail}
-                      onSaveSingleAthlete={(ath) => {
-                        setSingleAthleteToSave(ath);
-                        setSaveStatus(null);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Modal for selecting system athletes for Input Board (Nhập Điểm) */}
-              {isAddingAthleteToInputBoard && typeof document !== "undefined" && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-                    
-                    {/* Header */}
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
-                      <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide">
-                        <UserPlus className="w-4 h-4 text-indigo-600" />
-                        Chọn VĐV hệ thống để Nhập Điểm
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddingAthleteToInputBoard(false);
-                          setInputBoardAddSearch("");
-                          setSelectedInputBoardAthleteIds([]);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Search & Select All Tools */}
-                    <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
-                      <div className="relative">
-                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="Tìm kiếm hồ sơ theo ID, Tên, Đội..."
-                          value={inputBoardAddSearch}
-                          onChange={(e) => setInputBoardAddSearch(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium dark:text-white"
-                        />
-                      </div>
-
-                      {(() => {
-                        const unselected = masterAthletes.filter(
-                          (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                        );
-                        const filtered = unselected.filter((m) => {
-                          if (!inputBoardAddSearch.trim()) return true;
-                          const s = inputBoardAddSearch.toLowerCase();
-                          return (
-                            m.id.toLowerCase().includes(s) ||
-                            m.name.toLowerCase().includes(s) ||
-                            (m.team && m.team.toLowerCase().includes(s))
-                          );
-                        });
-
-                        if (filtered.length === 0) return null;
-
-                        const allowedFiltered = filtered;
-                        const allFilteredSelected = allowedFiltered.length > 0 && allowedFiltered.every((f) => selectedInputBoardAthleteIds.includes(f.id));
-
-                        const handleToggleSelectAll = () => {
-                          if (allFilteredSelected) {
-                            const filteredIds = allowedFiltered.map((f) => f.id);
-                            setSelectedInputBoardAthleteIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
-                          } else {
-                            const filteredIds = allowedFiltered.map((f) => f.id);
-                            setSelectedInputBoardAthleteIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
-                          }
-                        };
-
-                        return (
-                          <div className="flex items-center justify-between px-1 text-xs pt-1">
-                            <button
-                              type="button"
-                              onClick={handleToggleSelectAll}
-                              className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1.5"
-                            >
-                              <span>{allFilteredSelected ? "Bỏ chọn tất cả" : `Chọn tất cả kết quả (${allowedFiltered.length})`}</span>
-                            </button>
-                            {selectedInputBoardAthleteIds.length > 0 && (
-                              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
-                                Đã chọn: {selectedInputBoardAthleteIds.length} VĐV
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Athlete Roster Scroll Area */}
-                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[220px]">
-                      {(() => {
-                        const unselected = masterAthletes.filter(
-                          (m) => !currentInputAthletes.some((a) => a.id === m.id) && m.status !== "Bỏ thi" && (competitionMode !== "team" || m.isPrimaryTeam)
-                        );
-                        const filtered = unselected.filter((m) => {
-                          if (!inputBoardAddSearch.trim()) return true;
-                          const s = inputBoardAddSearch.toLowerCase();
-                          return (
-                            m.id.toLowerCase().includes(s) ||
-                            m.name.toLowerCase().includes(s) ||
-                            (m.team && m.team.toLowerCase().includes(s))
-                          );
-                        });
-
-                        if (unselected.length === 0) {
-                          return (
-                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                              Tất cả vận động viên trong hệ thống hiện đã có mặt ở bảng Nhập Điểm này.
-                            </div>
-                          );
-                        }
-
-                        if (filtered.length === 0) {
-                          return (
-                            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                              Không thấy hồ sơ nào có ID hoặc Tên khớp.
-                            </div>
-                          );
-                        }
-
-                        const sortedFiltered = [...filtered].sort((a, b) => {
-                          const scoreA = currentAthletes.find((x) => x.id === a.id);
-                          const scoreB = currentAthletes.find((x) => x.id === b.id);
-                          
-                          const statusA = !scoreA ? 0 : (currentDistances.some((d) => !scoreA.scores[d.id] || scoreA.scores[d.id].every(s => s === null)) ? 1 : 2);
-                          const statusB = !scoreB ? 0 : (currentDistances.some((d) => !scoreB.scores[d.id] || scoreB.scores[d.id].every(s => s === null)) ? 1 : 2);
-                          
-                          if (statusA !== statusB) {
-                            return statusA - statusB;
-                          }
-                          return a.id.localeCompare(b.id, undefined, { numeric: true });
-                        });
-
-                        return sortedFiltered.map((m) => {
-                          const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
-                          const isAlreadyInScoring = !!scoringAthlete;
-                          const isMissingSomeDistances = scoringAthlete 
-                            ? currentDistances.some((d) => {
-                                const shots = scoringAthlete.scores[d.id];
-                                return !shots || shots.every((s) => s === null);
-                              })
-                            : false;
-                          
-                          const activeListInDoc = competitionMode === "individual"
-                            ? (currentTournamentDoc?.inputAthletes || [])
-                            : (currentTournamentDoc?.teamInputAthletes || []);
-                          const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                          const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
-                            documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
-                            ? documentActivePlayer.calledBy
-                            : null;
-                          
-                          const isCallerBlocked = !!otherRefereeEmail;
-                          const isSelectionBlocked = isCallerBlocked;
-                          const isChecked = selectedInputBoardAthleteIds.includes(m.id);
-                          
-                          return (
-                            <div
-                              key={m.id}
-                              onClick={() => {
-                                if (isCallerBlocked) {
-                                  alert(`Cảnh báo: Vận động viên "${m.name}" đang được gọi ghi điểm bởi trọng tài khác (${otherRefereeEmail})!`);
-                                  return;
-                                }
-                                if (isSelectionBlocked) {
-                                  alert(`Cảnh báo: Vận động viên "${m.name}" đã hoàn thành đầy đủ tất cả các cự ly trong bảng Ghi Điểm! Không thể chọn thêm.`);
-                                  return;
-                                }
-                                setSelectedInputBoardAthleteIds((prev) => 
-                                  prev.includes(m.id) 
-                                    ? prev.filter((id) => id !== m.id) 
-                                    : [...prev, m.id]
-                                );
-                              }}
-                              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                                isSelectionBlocked
-                                  ? "bg-amber-50/45 dark:bg-amber-955/10 border-amber-200 dark:border-amber-955/60 opacity-65 cursor-not-allowed"
-                                  : isChecked
-                                  ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-indigo-500 dark:border-indigo-600 shadow-sm ring-1 ring-indigo-500"
-                                  : "bg-slate-50/50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/20"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div
-                                  className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border transition-all ${
-                                    isChecked
-                                      ? "bg-indigo-600 border-indigo-600 text-white"
-                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-transparent"
-                                  }`}
-                                >
-                                  <Check className="w-4 h-4 stroke-[3]" />
-                                </div>
-                                <span className="text-[10px] uppercase font-bold font-mono text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded shrink-0 border border-indigo-200 dark:border-indigo-900">
-                                  ID: {m.id}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</span>
-                                    {isCallerBlocked ? (
-                                      <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0 animate-pulse">
-                                        🔒 Đang được gọi bởi: {otherRefereeEmail}
-                                      </span>
-                                    ) : (
-                                      <>
-                                        {isAlreadyInScoring && (
-                                          isMissingSomeDistances ? (
-                                            <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60 uppercase whitespace-nowrap shrink-0">
-                                              Đã có điểm (Chưa đủ cự ly)
-                                            </span>
-                                          ) : (
-                                            <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-900/60 uppercase whitespace-nowrap shrink-0">
-                                              Đã đủ tất cả cự ly
-                                            </span>
-                                          )
-                                        )}
-                                        {m.status === "Bỏ thi" && (
-                                          <span className="text-[9px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 uppercase whitespace-nowrap shrink-0 animate-pulse">
-                                            Bỏ thi
-                                          </span>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                  <span className="text-[10px] text-gray-500 dark:text-slate-400 block truncate">
-                                    {m.team || "Tự do"} • {m.gender || "Nam"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {isAlreadyInScoring && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPendingScrollAthleteId(m.id);
-                                    setActiveTab("scoring");
-                                    setIsAddingAthleteToInputBoard(false);
-                                    setSelectedInputBoardAthleteIds([]);
-                                  }}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
-                                >
-                                  <Eye className="w-3.5 h-3.5" /> Xem
-                                </button>
-                              )}
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-
-                    {/* Footer: HỦY and GỌI X VĐV */}
-                    <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between gap-3">
-                      <div className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-none">
-                        Nếu chưa có VĐV, vào tab{" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTab("settings");
-                            setSettingsSubTab("athletes");
-                            setIsAddingAthleteToInputBoard(false);
-                            setSelectedInputBoardAthleteIds([]);
-                          }}
-                          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                        >
-                          Quản Lý VĐV
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsAddingAthleteToInputBoard(false);
-                            setInputBoardAddSearch("");
-                            setSelectedInputBoardAthleteIds([]);
-                          }}
-                          className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                        >
-                          HỦY
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (selectedInputBoardAthleteIds.length === 0) {
-                              alert("Vui lòng chọn ít nhất 1 vận động viên!");
-                              return;
-                            }
-                            const toAdd = masterAthletes.filter((m) => selectedInputBoardAthleteIds.includes(m.id));
-                            
-                            const activeListInDoc = competitionMode === "individual"
-                              ? (currentTournamentDoc?.inputAthletes || [])
-                              : (currentTournamentDoc?.teamInputAthletes || []);
-
-                            const validToAdd: typeof masterAthletes = [];
-                            const skippedNames: string[] = [];
-
-                            toAdd.forEach((m) => {
-                              const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                              const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
-                                documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
-                                ? documentActivePlayer.calledBy
-                                : null;
-                              if (otherRefereeEmail) {
-                                skippedNames.push(`${m.name} (bởi ${otherRefereeEmail})`);
-                              } else {
-                                validToAdd.push(m);
-                              }
-                            });
-
-                            if (skippedNames.length > 0) {
-                              alert(`Bỏ qua các vận động viên sau do đang được nhập điểm bởi trọng tài khác:\n- ${skippedNames.join("\n- ")}`);
-                            }
-
-                            if (validToAdd.length > 0) {
-                              const newAthletes: Athlete[] = validToAdd.map((m) => {
-                                const scoringAthlete = currentAthletes.find((a) => a.id === m.id);
-                                const freshScores: Record<string, (boolean | null)[]> = {};
-                                currentDistances.forEach((d) => {
-                                  if (scoringAthlete && scoringAthlete.scores[d.id]) {
-                                    freshScores[d.id] = [...scoringAthlete.scores[d.id]];
-                                  } else {
-                                    freshScores[d.id] = Array(currentShotsCount).fill(null);
-                                  }
-                                });
-                                return {
-                                  ...m,
-                                  scores: freshScores,
-                                  soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
-                                  calledBy: currentUser?.email || "anonymous",
-                                };
-                              });
-                              if (competitionMode === "individual") {
-                                setInputAthletes((prev) => [...prev, ...newAthletes]);
-                              } else {
-                                setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
-                              }
-                              setHasUnsavedChanges(true);
-                            }
-                            setSelectedInputBoardAthleteIds([]);
-                            setIsAddingAthleteToInputBoard(false);
-                            setInputBoardAddSearch("");
-                          }}
-                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5"
-                        >
-                          <UserPlus className="w-4 h-4" />
-                          GỌI {selectedInputBoardAthleteIds.length} VĐV
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>,
-                document.body
-              )}
+              {/* Modal for adding system athletes to Input Board */}
+              {renderAddInputAthleteModal()}
 
               {/* The action buttons panel - PLUS & SAVE SIDE BY SIDE */}
               <div className="flex justify-center items-center gap-4 py-6">
@@ -5965,7 +5962,7 @@ export default function App() {
           <div>
             <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              Kênh Truyền Thông & Nhóm Đăng Ký
+              {t("footer.media")}
             </h4>
             <div className="flex flex-wrap gap-3">
               <a 
@@ -6006,7 +6003,7 @@ export default function App() {
           <div>
             <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              Đơn Vị Đồng Hành & Câu Lạc Bộ Tài Trợ
+              {t("footer.sponsors")}
             </h4>
             <div className="flex flex-wrap gap-2.5">
               <span className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-300 text-xs font-bold shadow-sm">
@@ -6022,10 +6019,10 @@ export default function App() {
 
         <div className="text-center">
           <p className="font-semibold text-gray-600 dark:text-gray-400 text-xs">
-            Hệ thống tính điểm mục tiêu bộ môn thể thao Ná Cao Su &copy; {new Date().getFullYear()} bởi #HiepNAT
+            {t("footer.copyright")}
           </p>
           <p className="text-[10px] text-gray-400 mt-1.5">
-            Dữ liệu được lưu trữ tự động vào trình lưu trữ cục bộ của bạn (LocalStorage). Bạn có thể sao lưu thủ công bất cứ lúc nào qua tab &quot;Cấu Hình&quot;.
+            {t("footer.storage_hint")}
           </p>
         </div>
       </footer>
@@ -6081,28 +6078,53 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-200 uppercase tracking-wide">
-                    {pendingAddAthlete ? "Mở khóa để thêm VĐV?" : "Xác nhận ghi / sửa điểm?"}
+                    {pendingAddAthlete 
+                      ? (language === "en" ? "Unlock to add athlete?" : "Mở khóa để thêm VĐV?") 
+                      : (language === "en" ? "Confirm score entry/edit?" : "Xác nhận ghi / sửa điểm?")
+                    }
                   </h3>
-                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Lớp bảo vệ tránh bấm nhầm</p>
+                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                    {language === "en" ? "Accidental-touch protection layer" : "Lớp bảo vệ tránh bấm nhầm"}
+                  </p>
                 </div>
               </div>
               
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6 space-y-2">
                 {pendingAddAthlete ? (
                   <p>
-                    Hệ thống đang ở Chế độ Xem để bảo vệ dữ liệu. Để <strong>thêm vận động viên mới hoặc đăng ký thi đấu</strong>, vui lòng xác nhận mở khóa Chế độ Ghi Điểm.
+                    {language === "en" ? (
+                      "The system is currently in View Only mode to protect data. To add a new athlete or register for competition, please confirm to unlock Scoring Mode."
+                    ) : (
+                      <>Hệ thống đang ở Chế độ Xem để bảo vệ dữ liệu. Để <strong>thêm vận động viên mới hoặc đăng ký thi đấu</strong>, vui lòng xác nhận mở khóa Chế độ Ghi Điểm.</>
+                    )}
                   </p>
                 ) : (
                   <p>
-                    Hệ thống phát hiện Thầy/Cô vừa chạm vào ô ghi điểm của vận động viên. Để tránh việc <strong>vô tình chạm làm sai lệch tỉ số</strong>, vui lòng xác nhận ghi điểm.
+                    {language === "en" ? (
+                      "The system detected a click on an athlete's scorecard. To prevent accidental touches from altering scores, please confirm to edit."
+                    ) : (
+                      <>Hệ thống phát hiện Thầy/Cô vừa chạm vào ô ghi điểm của vận động viên. Để tránh việc <strong>vô tình chạm làm sai lệch tỉ số</strong>, vui lòng xác nhận ghi điểm.</>
+                    )}
                   </p>
                 )}
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-[11px] flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800">
                   <span className="font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-indigo-500" /> Cách hoạt động:
+                    <Shield className="w-3.5 h-3.5 text-indigo-500" /> {language === "en" ? "How it works:" : "Cách hoạt động:"}
                   </span>
-                  <span className="text-gray-500 font-medium">• <strong>Xác nhận xong</strong>: Chế độ Ghi Điểm sẽ được mở khóa, Thầy/Cô có thể tự do ghi điểm, thêm hoặc sửa VĐV mà không gặp lại bảng này.</span>
-                  <span className="text-gray-500 font-medium">• <strong>Khóa lại</strong>: Thầy/Cô có thể chủ động bấm Khóa ở đầu trang Ghi Điểm bất kỳ lúc nào để quay lại chế độ bảo vệ.</span>
+                  <span className="text-gray-500 font-medium">
+                    {language === "en" ? (
+                      <>• <strong>Once unlocked</strong>: Scoring Mode is active. You can freely record scores, add, or edit athletes without seeing this dialog again.</>
+                    ) : (
+                      <>• <strong>Xác nhận xong</strong>: Chế độ Ghi Điểm sẽ được mở khóa, Thầy/Cô có thể tự do ghi điểm, thêm hoặc sửa VĐV mà không gặp lại bảng này.</>
+                    )}
+                  </span>
+                  <span className="text-gray-500 font-medium">
+                    {language === "en" ? (
+                      <>• <strong>Relock</strong>: You can manually click the Lock button at the top of any scoring sheet to re-enable protection.</>
+                    ) : (
+                      <>• <strong>Khóa lại</strong>: Thầy/Cô có thể chủ động bấm Khóa ở đầu trang Ghi Điểm bất kỳ lúc nào để quay lại chế độ bảo vệ.</>
+                    )}
+                  </span>
                 </div>
               </div>
 
@@ -6116,7 +6138,7 @@ export default function App() {
                   }}
                   className="px-4 py-2 text-xs font-bold border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-slate-750 dark:text-slate-300 transition-all cursor-pointer"
                 >
-                  Hủy (Giữ Chế độ Xem)
+                  {language === "en" ? "Cancel (Keep View Only)" : "Hủy (Giữ Chế độ Xem)"}
                 </button>
                 <button
                   type="button"
@@ -6135,7 +6157,7 @@ export default function App() {
                   }}
                   className="px-4 py-2 text-xs font-extrabold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all active:scale-[0.98] cursor-pointer"
                 >
-                  Xác nhận mở khóa
+                  {language === "en" ? "Confirm Unlock" : "Xác nhận mở khóa"}
                 </button>
               </div>
             </div>
@@ -6149,10 +6171,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10006] p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl relative text-left">
             <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight uppercase flex items-center gap-2">
-              ⚠️ Xác nhận Thoát Giải Đấu
+              ⚠️ {language === "en" ? "Confirm Exit Tournament" : "Xác nhận Thoát Giải Đấu"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-semibold">
-              Thầy cô muốn thoát giải đấu hiện tại để làm gì? Vui lòng chọn một hành động điều hướng nhanh bên dưới:
+              {language === "en" ? "What do you want to do by exiting the current tournament? Please choose a quick action below:" : "Thầy cô muốn thoát giải đấu hiện tại để làm gì? Vui lòng chọn một hành động điều hướng nhanh bên dưới:"}
             </p>
             
             <div className="flex flex-col gap-2.5 mt-5">
@@ -6167,7 +6189,7 @@ export default function App() {
                 className="w-full px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4 shrink-0" />
-                Tạo giải đấu mới (Cài đặt)
+                {language === "en" ? "Create New Tournament (Config)" : "Tạo giải đấu mới (Cài đặt)"}
               </button>
 
               <button
@@ -6179,7 +6201,7 @@ export default function App() {
                 className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-705 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer border border-slate-200 dark:border-slate-700"
               >
                 <Home className="w-4 h-4 shrink-0" />
-                Thoát & Quay về Trang Chủ
+                {language === "en" ? "Exit & Return to Home" : "Thoát & Quay về Trang Chủ"}
               </button>
 
               <button
@@ -6187,7 +6209,7 @@ export default function App() {
                 onClick={() => setShowExitConfirmModal(false)}
                 className="w-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-450 dark:text-slate-500 rounded-xl text-xs font-bold transition-all text-center mt-1 cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
             </div>
           </div>
@@ -6199,10 +6221,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10006] p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl relative text-left">
             <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight uppercase flex items-center gap-2">
-              ⚠️ Xác nhận Thoát để Tạo Giải Mới
+              ⚠️ {language === "en" ? "Confirm Exit to Create New Tournament" : "Xác nhận Thoát để Tạo Giải Mới"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-semibold">
-              Thầy cô có chắc chắn muốn thoát khỏi giải đấu hiện tại để tiến hành tạo một giải đấu trực tuyến mới không?
+              {language === "en" ? "Are you sure you want to exit the current tournament to proceed with creating a new online tournament?" : "Thầy cô có chắc chắn muốn thoát khỏi giải đấu hiện tại để tiến hành tạo một giải đấu trực tuyến mới không?"}
             </p>
             
             <div className="flex flex-col gap-2.5 mt-5 font-sans">
@@ -6217,7 +6239,7 @@ export default function App() {
                 className="w-full px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4 shrink-0" />
-                Xác nhận thoát & Tạo giải mới
+                {language === "en" ? "Confirm Exit & Create New" : "Xác nhận thoát & Tạo giải mới"}
               </button>
 
               <button
@@ -6225,7 +6247,7 @@ export default function App() {
                 onClick={() => setShowExitAndCreateConfirmModal(false)}
                 className="w-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-450 dark:text-slate-500 rounded-xl text-xs font-bold transition-all text-center mt-1 cursor-pointer"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
             </div>
           </div>
@@ -6237,10 +6259,14 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-[10006] p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl relative text-left">
             <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight uppercase flex items-center gap-2">
-              ⚠️ Xác nhận Chuyển Giải
+              ⚠️ {language === "en" ? "Confirm Switch Tournament" : "Xác nhận Chuyển Giải"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2.5 leading-relaxed font-semibold">
-              Thầy cô đang tham gia giải đấu <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Giải đấu hiện tại"}"</strong>. Thầy cô có chắc chắn muốn thoát giải đấu này để chuyển sang giải đấu <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong> không?
+              {language === "en" ? (
+                <>You are currently in the tournament <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Current Tournament"}"</strong>. Are you sure you want to exit this tournament to switch to <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong>?</>
+              ) : (
+                <>Thầy cô đang tham gia giải đấu <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Giải đấu hiện tại"}"</strong>. Thầy cô có chắc chắn muốn thoát giải đấu này để chuyển sang giải đấu <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong> không?</>
+              )}
             </p>
             
             <div className="flex gap-3 mt-6">
@@ -6249,7 +6275,7 @@ export default function App() {
                 onClick={() => setSwitchingTournamentData(null)}
                 className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center"
               >
-                Hủy bỏ
+                {language === "en" ? "Cancel" : "Hủy bỏ"}
               </button>
 
               <button
@@ -6257,7 +6283,7 @@ export default function App() {
                 onClick={confirmTournamentSwitch}
                 className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md text-center"
               >
-                Xác nhận
+                {language === "en" ? "Confirm" : "Xác nhận"}
               </button>
             </div>
           </div>
@@ -6287,32 +6313,36 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
-                  Xác nhận Lưu Điểm Số
+                  {language === "en" ? "Confirm Saving Scores" : "Xác nhận Lưu Điểm Số"}
                 </h3>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Thao tác cập nhật bảng ghi điểm chính thức
+                  {language === "en" ? "Updating the official score log" : "Thao tác cập nhật bảng ghi điểm chính thức"}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-4">
-              Hệ thống sẽ đồng bộ toàn bộ điểm số từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ lưỡng các thông tin điểm số trước khi xác nhận.
+              {language === "en" ? (
+                "The system will synchronize all scores from the Temporary Scoreboard to the official Scoring sheet of the tournament. Please review all details carefully before confirming."
+              ) : (
+                <>Hệ thống sẽ đồng bộ toàn bộ điểm số từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ lưỡng các thông tin điểm số trước khi xác nhận.</>
+              )}
             </p>
 
             {/* Network connectivity feedback inside save modal */}
             <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Trạng thái kết nối:
+                {language === "en" ? "Connection status:" : "Trạng thái kết nối:"}
               </span>
               {networkStatus === "offline" ? (
                 <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <WifiOff className="w-3.5 h-3.5" />
-                  Mất mạng (Lưu máy)
+                  {language === "en" ? "Offline (Local Cached)" : "Mất mạng (Lưu máy)"}
                 </span>
               ) : (
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <Wifi className="w-3.5 h-3.5" />
-                  Trực tuyến (Đồng bộ mây)
+                  {language === "en" ? "Online (Cloud Synced)" : "Trực tuyến (Đồng bộ mây)"}
                 </span>
               )}
             </div>
@@ -6347,7 +6377,7 @@ export default function App() {
                 }}
                 className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
               >
-                Hủy kiểm tra lại
+                {language === "en" ? "Cancel & Review" : "Hủy kiểm tra lại"}
               </button>
 
               <button
@@ -6359,11 +6389,11 @@ export default function App() {
                 {isSavingScores ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Đang lưu...
+                    {language === "en" ? "Saving..." : "Đang lưu..."}
                   </>
                 ) : (
                   <>
-                    Đồng ý Lưu Điểm
+                    {language === "en" ? "Confirm & Save" : "Đồng ý Lưu Điểm"}
                   </>
                 )}
               </button>
@@ -6382,10 +6412,10 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
-                  Xác nhận Lưu Điểm VĐV
+                  {language === "en" ? "Confirm Athlete Score Save" : "Xác nhận Lưu Điểm VĐV"}
                 </h3>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Thao tác chuyển điểm số VĐV sang danh sách Ghi Điểm
+                  {language === "en" ? "Save athlete scores to the official Scoring sheet" : "Thao tác chuyển điểm số VĐV sang danh sách Ghi Điểm"}
                 </p>
               </div>
             </div>
@@ -6400,29 +6430,33 @@ export default function App() {
                   {singleAthleteToSave.name}
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  Đội: {singleAthleteToSave.team || "Tự do"} • {singleAthleteToSave.gender || "Nam"}
+                  {language === "en" ? "Team" : "Đội"}: {singleAthleteToSave.team || (language === "en" ? "Independent" : "Tự do")} • {singleAthleteToSave.gender === "Nữ" ? (language === "en" ? "Female" : "Nữ") : (language === "en" ? "Male" : "Nam")}
                 </div>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-4">
-              Hệ thống sẽ đồng bộ toàn bộ điểm số của vận động viên <span className="text-indigo-600 dark:text-indigo-400 font-bold">{singleAthleteToSave.name}</span> từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ trước khi xác nhận.
+              {language === "en" ? (
+                `The system will synchronize all scores of the athlete ${singleAthleteToSave.name} from the Temporary Scoreboard to the official tournament Scoring sheet. Please check carefully before confirming.`
+              ) : (
+                <>Hệ thống sẽ đồng bộ toàn bộ điểm số của vận động viên <span className="text-indigo-600 dark:text-indigo-400 font-bold">{singleAthleteToSave.name}</span> từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ trước khi xác nhận.</>
+              )}
             </p>
 
             {/* Network connectivity feedback */}
             <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Trạng thái kết nối:
+                {language === "en" ? "Connection status:" : "Trạng thái kết nối:"}
               </span>
               {networkStatus === "offline" ? (
                 <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <WifiOff className="w-3.5 h-3.5" />
-                  Mất mạng (Lưu máy)
+                  {language === "en" ? "Offline (Local Cached)" : "Mất mạng (Lưu máy)"}
                 </span>
               ) : (
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <Wifi className="w-3.5 h-3.5" />
-                  Trực tuyến (Đồng bộ mây)
+                  {language === "en" ? "Online (Cloud Synced)" : "Trực tuyến (Đồng bộ mây)"}
                 </span>
               )}
             </div>
@@ -6457,7 +6491,7 @@ export default function App() {
                 }}
                 className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
               >
-                Hủy kiểm tra lại
+                {language === "en" ? "Cancel & Review" : "Hủy kiểm tra lại"}
               </button>
 
               <button
@@ -6469,12 +6503,12 @@ export default function App() {
                 {isSavingScores ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Đang lưu...
+                    {language === "en" ? "Saving..." : "Đang lưu..."}
                   </>
                 ) : (
                   <>
                     <Save className="w-3.5 h-3.5" />
-                    Lưu VĐV này
+                    {language === "en" ? "Save Athlete" : "Lưu VĐV này"}
                   </>
                 )}
               </button>
@@ -6493,32 +6527,36 @@ export default function App() {
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-950 dark:text-slate-50 uppercase tracking-tight">
-                  Cảnh Báo: Điểm Chưa Lưu!
+                  {language === "en" ? "Warning: Unsaved Scores!" : "Cảnh Báo: Điểm Chưa Lưu!"}
                 </h3>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Thầy cô đang có điểm chấm dở chưa lưu
+                  {language === "en" ? "You have unsaved changes in progress" : "Thầy cô đang có điểm chấm dở chưa lưu"}
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold mb-6">
-              Thao tác chuyển trang sẽ làm <span className="text-amber-600 dark:text-amber-400 font-bold">MẤT HOÀN TOÀN</span> các thông tin điểm số thầy cô đang chấm dở trong bảng Nhập Điểm. Thầy cô có muốn lưu điểm số ngay hay hủy bỏ các thay đổi này để tiếp tục?
+              {language === "en" ? (
+                "Leaving this page will completely LOSE all unsaved scores currently in progress on the Temporary Scoreboard. Would you like to save them now, or discard these changes to proceed?"
+              ) : (
+                <>Thao tác chuyển trang sẽ làm <span className="text-amber-600 dark:text-amber-400 font-bold">MẤT HOÀN TOÀN</span> các thông tin điểm số thầy cô đang chấm dở trong bảng Nhập Điểm. Thầy cô có muốn lưu điểm số ngay hay hủy bỏ các thay đổi này để tiếp tục?</>
+              )}
             </p>
 
             {/* Network connectivity feedback inside warning modal */}
             <div className="mb-4 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Trạng thái kết nối:
+                {language === "en" ? "Connection status:" : "Trạng thái kết nối:"}
               </span>
               {networkStatus === "offline" ? (
                 <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <WifiOff className="w-3.5 h-3.5" />
-                  Mất mạng (Lưu máy)
+                  {language === "en" ? "Offline (Local Cached)" : "Mất mạng (Lưu máy)"}
                 </span>
               ) : (
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
                   <Wifi className="w-3.5 h-3.5" />
-                  Trực tuyến (Đồng bộ mây)
+                  {language === "en" ? "Online (Cloud Synced)" : "Trực tuyến (Đồng bộ mây)"}
                 </span>
               )}
             </div>
@@ -6553,11 +6591,11 @@ export default function App() {
                 {isSavingScores ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Đang lưu...
+                    {language === "en" ? "Saving..." : "Đang lưu..."}
                   </>
                 ) : (
                   <>
-                    Đồng ý Lưu Điểm & Tiếp Tục
+                    {language === "en" ? "Save Scores & Continue" : "Đồng ý Lưu Điểm & Tiếp Tục"}
                   </>
                 )}
               </button>
@@ -6602,7 +6640,7 @@ export default function App() {
                 }}
                 className="w-full px-4 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-rose-100 dark:border-rose-900/40 text-center disabled:opacity-50"
               >
-                Bỏ qua thay đổi (Xóa tạm) & Tiếp tục
+                {language === "en" ? "Discard Changes & Continue" : "Bỏ qua thay đổi (Xóa tạm) & Tiếp tục"}
               </button>
 
               <button
@@ -6616,7 +6654,7 @@ export default function App() {
                 }}
                 className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer border border-slate-200 dark:border-slate-700 text-center disabled:opacity-50"
               >
-                Quay lại bảng chấm điểm
+                {language === "en" ? "Go Back to Scoring Board" : "Quay lại bảng chấm điểm"}
               </button>
             </div>
           </div>
@@ -6800,7 +6838,7 @@ export default function App() {
                       ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
                       : "font-bold text-white/70 mt-1"
                   }`}>
-                    Tạo giải
+                    {language === "en" ? "Create" : "Tạo giải"}
                   </span>
                 </div>
               </button>
@@ -6829,7 +6867,7 @@ export default function App() {
                       ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
                       : "font-bold text-white/70 mt-1"
                   }`}>
-                    Đang đấu
+                    {language === "en" ? "Live" : "Đang đấu"}
                   </span>
                 </div>
               </button>
@@ -6875,7 +6913,7 @@ export default function App() {
                       ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
                       : "font-bold text-white/70 mt-1"
                   }`}>
-                    Theo dõi
+                    {language === "en" ? "Followed" : "Theo dõi"}
                   </span>
                 </div>
               </button>
@@ -6905,7 +6943,7 @@ export default function App() {
                       ? "font-black text-yellow-400 mt-0.5 uppercase tracking-wider" 
                       : "font-bold text-white/70 mt-1"
                   }`}>
-                    Hồ sơ
+                    {language === "en" ? "Profile" : "Hồ sơ"}
                   </span>
                 </div>
               </button>
