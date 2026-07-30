@@ -249,7 +249,7 @@ const PublishDraftModal: React.FC<{
               {language === "en" ? "Publish draft to Online Cloud 🏆" : "Đăng bản nháp lên Online Cloud 🏆"}
             </h3>
             <p className="text-[10px] text-indigo-100 mt-1">
-              {language === "en" ? "Sync history scores to the online system" : "Đồng bộ bảng điểm lịch sử của thầy cô lên hệ thống trực tuyến"}
+              {language === "en" ? "Sync history scores to the online system" : "Đồng bộ bảng điểm lịch sử của bạn lên hệ thống trực tuyến"}
             </p>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-all text-white cursor-pointer">
@@ -329,7 +329,7 @@ const PublishDraftModal: React.FC<{
                   ))}
                 </select>
                 <p className="text-[9px] text-rose-500 font-medium">
-                  {language === "en" ? "⚠️ Notice: This action will completely overwrite scores of the selected tournament." : "⚠️ Thầy cô lưu ý: Hành động này sẽ thay thế hoàn toàn điểm số của giải đấu được chọn."}
+                  {language === "en" ? "⚠️ Notice: This action will completely overwrite scores of the selected tournament." : "⚠️ Bạn lưu ý: Hành động này sẽ thay thế hoàn toàn điểm số của giải đấu được chọn."}
                 </p>
               </div>
             )}
@@ -3381,7 +3381,7 @@ export default function App() {
     setActiveTab("scoring"); // redirect back to scorecards
     alert(language === "en" 
       ? `Opened offline DRAFT preview mode for tournament: "${target.matchName}". You can check the roster and scores, then click "Confirm Publish Online" on the top warning bar to sync with Cloud.`
-      : `Đã mở chế độ xem trước BẢN NHÁP ngoại tuyến cho giải: "${target.matchName}". Thầy cô có thể kiểm tra danh sách thi đấu và bảng điểm, sau đó bấm "Xác nhận Đăng Online" ở thanh cảnh báo trên cùng để đồng bộ đám mây.`);
+      : `Đã mở chế độ xem trước BẢN NHÁP ngoại tuyến cho giải: "${target.matchName}". Bạn có thể kiểm tra danh sách thi đấu và bảng điểm, sau đó bấm "Xác nhận Đăng Online" ở thanh cảnh báo trên cùng để đồng bộ đám mây.`);
   };
 
   // Remove history snapshot
@@ -4191,7 +4191,7 @@ export default function App() {
         <div className={`fixed ${networkStatus === "offline" ? "top-[36px]" : "top-0"} left-0 right-0 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-white text-[11px] sm:text-xs font-black py-2.5 px-4 text-center z-[9999] flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 shadow-xl border-b border-amber-400/20`}>
           <div className="flex items-center gap-1.5">
             <span className="text-sm shrink-0 animate-pulse">⚡</span>
-            <span className="tracking-wide">BẢN NHÁP: Thầy cô đang xem trước lịch sử thi đấu ngoại tuyến.</span>
+            <span className="tracking-wide">BẢN NHÁP: Bạn đang xem trước lịch sử thi đấu ngoại tuyến.</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -5267,7 +5267,7 @@ export default function App() {
                     </span>
                     <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-tight">
                       {isScoringEditAuthorized 
-                        ? "Bảng điểm đã được mở khóa. Thầy/Cô có thể ghi điểm trực tiếp." 
+                        ? "Bảng điểm đã được mở khóa. Bạn có thể ghi điểm trực tiếp." 
                         : "Nhấp vào bất kỳ phát bắn nào sẽ hiển thị cảnh báo mở khóa để tránh click nhầm."}
                     </p>
                   </div>
@@ -6103,7 +6103,7 @@ export default function App() {
                     {language === "en" ? (
                       "The system detected a click on an athlete's scorecard. To prevent accidental touches from altering scores, please confirm to edit."
                     ) : (
-                      <>Hệ thống phát hiện Thầy/Cô vừa chạm vào ô ghi điểm của vận động viên. Để tránh việc <strong>vô tình chạm làm sai lệch tỉ số</strong>, vui lòng xác nhận ghi điểm.</>
+                      <>Hệ thống phát hiện bạn vừa chạm vào ô ghi điểm của vận động viên. Để tránh việc <strong>vô tình chạm làm sai lệch tỉ số</strong>, vui lòng xác nhận ghi điểm.</>
                     )}
                   </p>
                 )}
@@ -6115,14 +6115,14 @@ export default function App() {
                     {language === "en" ? (
                       <>• <strong>Once unlocked</strong>: Scoring Mode is active. You can freely record scores, add, or edit athletes without seeing this dialog again.</>
                     ) : (
-                      <>• <strong>Xác nhận xong</strong>: Chế độ Ghi Điểm sẽ được mở khóa, Thầy/Cô có thể tự do ghi điểm, thêm hoặc sửa VĐV mà không gặp lại bảng này.</>
+                      <>• <strong>Xác nhận xong</strong>: Chế độ Ghi Điểm sẽ được mở khóa, bạn có thể tự do ghi điểm, thêm hoặc sửa VĐV mà không gặp lại bảng này.</>
                     )}
                   </span>
                   <span className="text-gray-500 font-medium">
                     {language === "en" ? (
                       <>• <strong>Relock</strong>: You can manually click the Lock button at the top of any scoring sheet to re-enable protection.</>
                     ) : (
-                      <>• <strong>Khóa lại</strong>: Thầy/Cô có thể chủ động bấm Khóa ở đầu trang Ghi Điểm bất kỳ lúc nào để quay lại chế độ bảo vệ.</>
+                      <>• <strong>Khóa lại</strong>: Bạn có thể chủ động bấm Khóa ở đầu trang Ghi Điểm bất kỳ lúc nào để quay lại chế độ bảo vệ.</>
                     )}
                   </span>
                 </div>
@@ -6174,7 +6174,7 @@ export default function App() {
               ⚠️ {language === "en" ? "Confirm Exit Tournament" : "Xác nhận Thoát Giải Đấu"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-semibold">
-              {language === "en" ? "What do you want to do by exiting the current tournament? Please choose a quick action below:" : "Thầy cô muốn thoát giải đấu hiện tại để làm gì? Vui lòng chọn một hành động điều hướng nhanh bên dưới:"}
+              {language === "en" ? "What do you want to do by exiting the current tournament? Please choose a quick action below:" : "Bạn muốn thoát giải đấu hiện tại để làm gì? Vui lòng chọn một hành động điều hướng nhanh bên dưới:"}
             </p>
             
             <div className="flex flex-col gap-2.5 mt-5">
@@ -6224,7 +6224,7 @@ export default function App() {
               ⚠️ {language === "en" ? "Confirm Exit to Create New Tournament" : "Xác nhận Thoát để Tạo Giải Mới"}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-semibold">
-              {language === "en" ? "Are you sure you want to exit the current tournament to proceed with creating a new online tournament?" : "Thầy cô có chắc chắn muốn thoát khỏi giải đấu hiện tại để tiến hành tạo một giải đấu trực tuyến mới không?"}
+              {language === "en" ? "Are you sure you want to exit the current tournament to proceed with creating a new online tournament?" : "Bạn có chắc chắn muốn thoát khỏi giải đấu hiện tại để tiến hành tạo một giải đấu trực tuyến mới không?"}
             </p>
             
             <div className="flex flex-col gap-2.5 mt-5 font-sans">
@@ -6265,7 +6265,7 @@ export default function App() {
               {language === "en" ? (
                 <>You are currently in the tournament <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Current Tournament"}"</strong>. Are you sure you want to exit this tournament to switch to <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong>?</>
               ) : (
-                <>Thầy cô đang tham gia giải đấu <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Giải đấu hiện tại"}"</strong>. Thầy cô có chắc chắn muốn thoát giải đấu này để chuyển sang giải đấu <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong> không?</>
+                <>Bạn đang tham gia giải đấu <strong className="text-indigo-650 dark:text-indigo-400">"{matchName || "Giải đấu hiện tại"}"</strong>. Bạn có chắc chắn muốn thoát giải đấu này để chuyển sang giải đấu <strong className="text-emerald-605 dark:text-emerald-400">"{switchingTournamentData.tournamentName}"</strong> không?</>
               )}
             </p>
             
@@ -6325,7 +6325,7 @@ export default function App() {
               {language === "en" ? (
                 "The system will synchronize all scores from the Temporary Scoreboard to the official Scoring sheet of the tournament. Please review all details carefully before confirming."
               ) : (
-                <>Hệ thống sẽ đồng bộ toàn bộ điểm số từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ lưỡng các thông tin điểm số trước khi xác nhận.</>
+                <>Hệ thống sẽ đồng bộ toàn bộ điểm số từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Bạn vui lòng kiểm tra kỹ lưỡng các thông tin điểm số trước khi xác nhận.</>
               )}
             </p>
 
@@ -6439,7 +6439,7 @@ export default function App() {
               {language === "en" ? (
                 `The system will synchronize all scores of the athlete ${singleAthleteToSave.name} from the Temporary Scoreboard to the official tournament Scoring sheet. Please check carefully before confirming.`
               ) : (
-                <>Hệ thống sẽ đồng bộ toàn bộ điểm số của vận động viên <span className="text-indigo-600 dark:text-indigo-400 font-bold">{singleAthleteToSave.name}</span> từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Thầy cô vui lòng kiểm tra kỹ trước khi xác nhận.</>
+                <>Hệ thống sẽ đồng bộ toàn bộ điểm số của vận động viên <span className="text-indigo-600 dark:text-indigo-400 font-bold">{singleAthleteToSave.name}</span> từ bảng <span className="text-indigo-600 dark:text-indigo-400 font-bold">Nhập Điểm</span> sang bảng <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ghi Điểm</span> chính thức của giải đấu. Bạn vui lòng kiểm tra kỹ trước khi xác nhận.</>
               )}
             </p>
 
@@ -6530,7 +6530,7 @@ export default function App() {
                   {language === "en" ? "Warning: Unsaved Scores!" : "Cảnh Báo: Điểm Chưa Lưu!"}
                 </h3>
                 <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  {language === "en" ? "You have unsaved changes in progress" : "Thầy cô đang có điểm chấm dở chưa lưu"}
+                  {language === "en" ? "You have unsaved changes in progress" : "Bạn đang có điểm chấm dở chưa lưu"}
                 </p>
               </div>
             </div>
@@ -6539,7 +6539,7 @@ export default function App() {
               {language === "en" ? (
                 "Leaving this page will completely LOSE all unsaved scores currently in progress on the Temporary Scoreboard. Would you like to save them now, or discard these changes to proceed?"
               ) : (
-                <>Thao tác chuyển trang sẽ làm <span className="text-amber-600 dark:text-amber-400 font-bold">MẤT HOÀN TOÀN</span> các thông tin điểm số thầy cô đang chấm dở trong bảng Nhập Điểm. Thầy cô có muốn lưu điểm số ngay hay hủy bỏ các thay đổi này để tiếp tục?</>
+                <>Thao tác chuyển trang sẽ làm <span className="text-amber-600 dark:text-amber-400 font-bold">MẤT HOÀN TOÀN</span> các thông tin điểm số bạn đang chấm dở trong bảng Nhập Điểm. Bạn có muốn lưu điểm số ngay hay hủy bỏ các thay đổi này để tiếp tục?</>
               )}
             </p>
 
