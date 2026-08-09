@@ -2669,6 +2669,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setMasterAthletes([]);
                     setInputAthletes?.([]);
                     setTeamInputAthletes?.([]);
+                    localStorage.removeItem("slingshot_athletes");
+                    localStorage.removeItem("slingshot_team_athletes");
+                    localStorage.removeItem("slingshot_input_athletes");
+                    localStorage.removeItem("slingshot_team_input_athletes");
                     setStartDate(modalStartDate);
                     setEndDate(modalEndDate);
                     setAvatarUrl("");
@@ -2699,8 +2703,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     setIsTournamentLocked(true);
 
                     // 3. Set precision shots points count for individual & teams
-                    handleShotsCountChange(modalShotsCount);
-                    handleTeamShotsCountChange(modalTeamShotsCount);
+                    setShotsCount(modalShotsCount);
+                    setTeamShotsCount(modalTeamShotsCount);
                     setDirectMaxShots(modalShotsCount === 1 ? modalDirectMaxShots : 10);
                     setDirectMaxPoints(modalShotsCount === 1 ? modalDirectMaxPoints : undefined);
                     setTeamDirectMaxShots(modalTeamShotsCount === 1 ? modalTeamDirectMaxShots : 10);

@@ -1984,8 +1984,17 @@ export default function App() {
         setInputAthletes((prev) => deepEqual(prev, docVal.inputAthletes || []) ? prev : (docVal.inputAthletes || []));
         setTeamInputAthletes((prev) => deepEqual(prev, docVal.teamInputAthletes || []) ? prev : (docVal.teamInputAthletes || []));
         setMasterAthletes((prev) => {
-          const target = docVal.masterAthletes || docVal.athletes || [];
-          return deepEqual(prev, target) ? prev : target;
+          const rawTarget = docVal.masterAthletes && docVal.masterAthletes.length > 0
+            ? docVal.masterAthletes
+            : (docVal.athletes || []);
+          const cleanedTarget = rawTarget.map((a: Athlete) => ({
+            ...a,
+            scores: {},
+            soloHits: {},
+            soloRounds: {},
+            calledBy: "",
+          }));
+          return deepEqual(prev, cleanedTarget) ? prev : cleanedTarget;
         });
         if (docVal.directMaxPoints !== undefined) {
           const target = docVal.directMaxPoints !== null ? docVal.directMaxPoints : undefined;
@@ -3389,11 +3398,18 @@ export default function App() {
       setClubs([]);
     }
     
-    // Restore master list of that match fully into master registry (Quản lý VĐV)
-    const restoredMasters = target.masterAthletes && target.masterAthletes.length > 0
+    // Restore master list of that match fully into master registry (Quản lý VĐV), stripping leftover scores
+    const rawMasters = target.masterAthletes && target.masterAthletes.length > 0
       ? target.masterAthletes
       : target.athletes;
-    setMasterAthletes(JSON.parse(JSON.stringify(restoredMasters)));
+    const restoredMasters = (rawMasters || []).map((a: Athlete) => ({
+      ...a,
+      scores: {},
+      soloHits: {},
+      soloRounds: {},
+      calledBy: "",
+    }));
+    setMasterAthletes(restoredMasters);
 
     // Clear active temporary inputs
     setInputAthletes([]);
@@ -3525,6 +3541,9 @@ export default function App() {
         return {
           ...athlete,
           scores: resetScores,
+          soloHits: {},
+          soloRounds: {},
+          calledBy: "",
         };
       })
     );
@@ -3538,9 +3557,17 @@ export default function App() {
         return {
           ...athlete,
           scores: resetScores,
+          soloHits: {},
+          soloRounds: {},
+          calledBy: "",
         };
       })
     );
+
+    setInputAthletes([]);
+    setTeamInputAthletes([]);
+    deviceStorage.set("slingshot_input_athletes", []);
+    deviceStorage.set("slingshot_team_input_athletes", []);
   };
 
   // Validate and read imported text data backup (Active tournament configuration & active athletes only)
