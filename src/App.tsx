@@ -5685,6 +5685,45 @@ export default function App() {
                 </div>
               )}
 
+              {/* Grid Athletes List of Cards (Dynamic responsive) */}
+              <div className="flex flex-col gap-6">
+                {activeFilteredInputAthletes.map((athlete) => {
+                  const originalIndex = currentInputAthletes.findIndex((a) => a.id === athlete.id);
+                  const isFirst = originalIndex === 0;
+                  const isLast = originalIndex === currentInputAthletes.length - 1;
+                  
+                  const isLockedByOtherReferee = !isGlobalAdmin && (!!(athlete.calledBy && 
+                    athlete.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()));
+                  const lockedByRefereeEmail = athlete.calledBy || "";
+
+                  return (
+                    <AthleteCard
+                      key={athlete.id}
+                      athlete={athlete}
+                      distances={currentDistances}
+                      shotsCount={currentShotsCount}
+                      onToggleScore={handleToggleInputScore}
+                      onUpdateAthlete={handleUpdateInputAthlete}
+                      onDeleteAthlete={handleDeleteInputAthlete}
+                      onMoveAthlete={handleMoveInputAthlete}
+                      isFirst={isFirst}
+                      isLast={isLast}
+                      isInputTab={true}
+                      mainAthletes={currentAthletes}
+                      onUpdateSoloHits={handleUpdateInputSoloHits}
+                      onUpdateDirectScore={handleUpdateDirectInputScore}
+                      directMaxPoints={competitionMode === "individual" ? directMaxPoints : teamDirectMaxPoints}
+                      isLockedByOtherReferee={isLockedByOtherReferee}
+                      lockedByRefereeEmail={lockedByRefereeEmail}
+                      onSaveSingleAthlete={(ath) => {
+                        setSingleAthleteToSave(ath);
+                        setSaveStatus(null);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
               {/* Modal for adding system athletes to Input Board */}
               {renderAddInputAthleteModal()}
 
