@@ -723,7 +723,13 @@ export default function App() {
       if (seen.has(stripped)) return false;
       seen.add(stripped);
       return true;
-    });
+    }).map((a: Athlete) => ({
+      ...a,
+      scores: {},
+      soloHits: {},
+      soloRounds: {},
+      calledBy: "",
+    }));
   });
 
   const [history, setHistory] = useState<MatchHistoryItem[]>(() => {
@@ -1067,7 +1073,13 @@ export default function App() {
           }
         });
 
-        const mergedList = Array.from(updatedGlobalMap.values());
+        const mergedList = Array.from(updatedGlobalMap.values()).map((ath) => ({
+          ...ath,
+          scores: {},
+          soloHits: {},
+          soloRounds: {},
+          calledBy: "",
+        }));
         localStorage.setItem("slingshot_master_athletes_global", JSON.stringify(stripBase64Avatars(mergedList)));
       } catch (e) {
         console.error("Failed to sync global athletes:", e);
@@ -3307,19 +3319,28 @@ export default function App() {
 
     setActiveHistoryId(null);
     setAthletes([]);
+    setTeamAthletes([]);
+    setInputAthletes([]);
+    setTeamInputAthletes([]);
+
+    // Clear active session rosters from storage so home re-hydration doesn't resurrect stale scores
+    deviceStorage.set("slingshot_athletes", []);
+    deviceStorage.set("slingshot_team_athletes", []);
+    deviceStorage.set("slingshot_input_athletes", []);
+    deviceStorage.set("slingshot_team_input_athletes", []);
+
     try {
       const savedGlobal = localStorage.getItem("slingshot_master_athletes_global") || localStorage.getItem("slingshot_master_athletes");
       if (savedGlobal) {
-        setMasterAthletes(restoreBase64Avatars(JSON.parse(savedGlobal)));
+        const parsed = restoreBase64Avatars(JSON.parse(savedGlobal));
+        const cleaned = parsed.map((a: Athlete) => ({ ...a, scores: {}, soloHits: {}, soloRounds: {}, calledBy: "" }));
+        setMasterAthletes(cleaned);
       } else {
         setMasterAthletes([]);
       }
     } catch (e) {
       setMasterAthletes([]);
     }
-    setTeamAthletes([]);
-    setInputAthletes([]);
-    setTeamInputAthletes([]);
     setMatchName("");
     setHeaderTempName("");
     setStartDate("");
@@ -4111,8 +4132,9 @@ export default function App() {
 
                   toAdd.forEach((m) => {
                     const documentActivePlayer = activeListInDoc.find((a) => a.id === m.id);
-                    const otherRefereeEmail = !isGlobalAdmin && documentActivePlayer?.calledBy && 
-                      documentActivePlayer.calledBy.toLowerCase().trim() !== (currentUser?.email || "anonymous").toLowerCase().trim()
+                    const caller = documentActivePlayer?.calledBy ? documentActivePlayer.calledBy.toLowerCase().trim() : "";
+                    const myEmail = currentUser?.email ? currentUser.email.toLowerCase().trim() : "anonymous";
+                    const otherRefereeEmail = !isGlobalAdmin && caller && caller !== "anonymous" && caller !== myEmail
                       ? documentActivePlayer.calledBy
                       : null;
                     if (otherRefereeEmail) {
@@ -4145,9 +4167,19 @@ export default function App() {
                       };
                     });
                     if (competitionMode === "individual") {
-                      setInputAthletes((prev) => [...prev, ...newAthletes]);
+                      const updated = [...inputAthletes.filter(a => !newAthletes.some(n => n.id === a.id)), ...newAthletes];
+                      setInputAthletes(updated);
+                      deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(updated));
+                      if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                        updateOnlineTournament(activeHistoryId, { inputAthletes: stripBase64Avatars(updated) });
+                      }
                     } else {
-                      setTeamInputAthletes((prev) => [...prev, ...newAthletes]);
+                      const updated = [...teamInputAthletes.filter(a => !newAthletes.some(n => n.id === a.id)), ...newAthletes];
+                      setTeamInputAthletes(updated);
+                      deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(updated));
+                      if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                        updateOnlineTournament(activeHistoryId, { teamInputAthletes: stripBase64Avatars(updated) });
+                      }
                     }
                     setHasUnsavedChanges(true);
                   }
