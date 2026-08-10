@@ -4270,6 +4270,7 @@ export default function App() {
                         ...m,
                         scores: freshScores,
                         soloHits: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloHits || {})) : {},
+                        soloRounds: scoringAthlete ? JSON.parse(JSON.stringify(scoringAthlete.soloRounds || {})) : {},
                         calledBy: currentUser?.email || "anonymous",
                       };
                     });

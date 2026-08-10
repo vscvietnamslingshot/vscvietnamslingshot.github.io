@@ -55,8 +55,8 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   const [editTeam, setEditTeam] = useState(athlete.team);
   const [editIdString, setEditIdString] = useState(athlete.id);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isInputSoloLocked, setIsInputSoloLocked] = useState(true);
-  const [showLocalUnlockModal, setShowLocalUnlockModal] = useState(false);
+  const [inputSoloLockedMap, setInputSoloLockedMap] = useState<Record<string, boolean>>({});
+  const [unlockingDistanceId, setUnlockingDistanceId] = useState<string | null>(null);
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -525,7 +525,8 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                     {distance.isElimination && distance.isSolo && rounds.map((roundShots, rIdx) => {
                       const roundHitCount = roundShots.filter(v => v === true).length;
                       const totalSoloScore = rounds.reduce((sum, r) => sum + r.filter(v => v === true).length, 0);
-                      const isLocked = isInputSoloLocked || (!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee;
+                      const isSoloLockedForDistance = inputSoloLockedMap[distance.id] !== false;
+                      const isLocked = isSoloLockedForDistance || (!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee;
 
                       return (
                         <tr 
@@ -546,14 +547,14 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                               <div className="flex items-center gap-1 shrink-0">
                                 {rIdx === 0 && (
                                   isInputTab ? (
-                                    isInputSoloLocked ? (
+                                    isSoloLockedForDistance ? (
                                       <button 
                                         onClick={() => {
                                           if (isLockedByOtherReferee) {
                                             alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
                                             return;
                                           }
-                                          setShowLocalUnlockModal(true);
+                                          setUnlockingDistanceId(distance.id);
                                         }}
                                         className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-200 hover:bg-purple-300 text-purple-800 transition cursor-pointer text-[10px] font-bold shrink-0"
                                         title={language === "en" ? "Locked. Click to unlock." : "Đã khóa. Bấm để mở khóa."}
@@ -565,12 +566,13 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                       <button 
                                         onClick={() => {
                                           if (isLockedByOtherReferee) return;
-                                          setIsInputSoloLocked(true);
+                                          setInputSoloLockedMap(prev => ({ ...prev, [distance.id]: true }));
                                         }}
-                                        className="p-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer"
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer text-[10px] font-bold shrink-0"
                                         title={language === "en" ? "Unlocked. Click to lock." : "Đã mở khóa. Bấm để khóa lại."}
                                       >
-                                        <Unlock className="w-2.5 h-2.5" />
+                                        <span>+KHÓA</span>
+                                        <Unlock className="w-2.5 h-2.5 shrink-0" />
                                       </button>
                                     )
                                   ) : (
@@ -590,11 +592,11 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                         <span>+Solo</span>
                                       </button>
                                     ) : (
-                                      isInputSoloLocked ? (
+                                      isSoloLockedForDistance ? (
                                         <button 
                                           onClick={() => {
                                             if (isLockedByOtherReferee) return;
-                                            setShowLocalUnlockModal(true);
+                                            setUnlockingDistanceId(distance.id);
                                           }}
                                           className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-200 hover:bg-purple-300 text-purple-800 transition cursor-pointer text-[10px] font-bold shrink-0"
                                           title={language === "en" ? "Locked. Click to unlock." : "Đã khóa. Bấm để mở khóa."}
@@ -606,12 +608,13 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                         <button 
                                           onClick={() => {
                                             if (isLockedByOtherReferee) return;
-                                            setIsInputSoloLocked(true);
+                                            setInputSoloLockedMap(prev => ({ ...prev, [distance.id]: true }));
                                           }}
-                                          className="p-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer"
+                                          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer text-[10px] font-bold shrink-0"
                                           title={language === "en" ? "Unlocked. Click to lock." : "Đã mở khóa. Bấm để khóa lại."}
                                         >
-                                          <Unlock className="w-2.5 h-2.5" />
+                                          <span>+KHÓA</span>
+                                          <Unlock className="w-2.5 h-2.5 shrink-0" />
                                         </button>
                                       )
                                     )
@@ -637,67 +640,66 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                       onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
                                     }}
                                     className="px-1 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-black transition cursor-pointer"
-                                    title={language === "en" ? "Delete this round" : "Xóa lượt này"}
-                                  >
-                                    ×
-                                  </button>
-                                )}
+                                     title={language === "en" ? "Delete this round" : "Xóa lượt này"}
+                                   >
+                                     ×
+                                   </button>
+                                 )}
                               </div>
                             </div>
                           </td>
 
-                          <td colSpan={shotsCount} className="p-1.5 align-middle text-center bg-purple-50/50 dark:bg-purple-950/20">
-                            {!isLocked && (
-                              <div className="flex items-center justify-center gap-1.5">
-                                {Array.from({ length: shotsCount }).map((_, shotIdx) => {
-                                  const sVal = roundShots[shotIdx];
-                                  const isHit = sVal === true;
-                                  const isMiss = sVal === false;
-                                  return (
+                          {isLocked ? (
+                            <td colSpan={shotsCount} className="p-1.5 align-middle text-center bg-purple-50/20 dark:bg-purple-950/10 border-r border-purple-200 dark:border-purple-900/40">
+                              {/* Hidden detail shots count cell when locked */}
+                            </td>
+                          ) : (
+                            Array.from({ length: shotsCount }).map((_, shotIdx) => {
+                              const sVal = roundShots[shotIdx];
+                              const isHit = sVal === true;
+                              const isMiss = sVal === false;
+                              return (
+                                <td 
+                                  key={shotIdx}
+                                  onClick={() => {
+                                    if (isLockedByOtherReferee) {
+                                      alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                      return;
+                                    }
+                                    const newRounds = rounds.map((r, i) => {
+                                      if (i !== rIdx) return r;
+                                      const newR = [...r];
+                                      const cur = newR[shotIdx];
+                                      if (cur === true) newR[shotIdx] = false;
+                                      else if (cur === false) newR[shotIdx] = null;
+                                      else newR[shotIdx] = true;
+                                      return newR;
+                                    });
+                                    onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
+                                  }}
+                                  className={`text-center p-1 transition-colors relative border-r border-purple-200 dark:border-purple-900/40 bg-purple-50/20 dark:bg-purple-950/10 cursor-pointer hover:bg-purple-100/50 ${
+                                    shotIdx === shotsCount - 1 ? "" : "border-r"
+                                  }`}
+                                  title={`L${rIdx + 1} - Phát ${shotIdx + 1}`}
+                                >
+                                  <div className="flex items-center justify-center py-2">
                                     <div
-                                      key={shotIdx}
-                                      onClick={() => {
-                                        if (isLocked) {
-                                          if (!isInputTab && !isScoringEditAuthorized) {
-                                            onTriggerUnlockModal?.();
-                                          } else if (isInputSoloLocked) {
-                                            setShowLocalUnlockModal(true);
-                                          }
-                                          return;
-                                        }
-                                        if (isLockedByOtherReferee) {
-                                          alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                                          return;
-                                        }
-                                        const newRounds = rounds.map((r, i) => {
-                                          if (i !== rIdx) return r;
-                                          const newR = [...r];
-                                          const cur = newR[shotIdx];
-                                          if (cur === true) newR[shotIdx] = false;
-                                          else if (cur === false) newR[shotIdx] = null;
-                                          else newR[shotIdx] = true;
-                                          return newR;
-                                        });
-                                        onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
-                                      }}
-                                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150 border-2 cursor-pointer select-none shadow-xs ${
+                                      className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-150 border-2 select-none ${
                                         isHit
-                                          ? "bg-purple-600 border-purple-600 text-white"
+                                          ? "bg-purple-600 border-purple-600 shadow-sm"
                                           : isMiss
-                                            ? "bg-rose-600 border-rose-600 text-white"
-                                            : "bg-white dark:bg-slate-900 border-purple-300 hover:border-purple-500 text-gray-700 dark:text-gray-300 font-mono font-bold text-xs"
+                                            ? "bg-rose-600 border-rose-600 shadow-sm"
+                                            : "bg-white dark:bg-slate-900 border-purple-300 hover:border-purple-500 text-gray-700 dark:text-gray-300"
                                       }`}
-                                      title={`L${rIdx + 1} - Phát ${shotIdx + 1}`}
                                     >
-                                      {isHit && <Check className="w-4 h-4 stroke-[3.5]" />}
-                                      {isMiss && <X className="w-4 h-4 stroke-[3.5]" />}
-                                      {!isHit && !isMiss && <span className="text-[10px] text-purple-400 font-mono">{shotIdx + 1}</span>}
+                                      {isHit && <Check className="w-4 h-4 text-white stroke-[3.5]" />}
+                                      {isMiss && <X className="w-4 h-4 text-white stroke-[3.5]" />}
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </td>
+                                  </div>
+                                </td>
+                              );
+                            })
+                          )}
                         </tr>
                       );
                     })}
@@ -806,7 +808,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
         );
       })()}
 
-      {showLocalUnlockModal && typeof document !== "undefined" && createPortal(
+      {unlockingDistanceId !== null && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-101">
           <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 animate-scaleIn">
             <div className="flex items-center gap-3 mb-4">
@@ -830,7 +832,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
             <div className="flex gap-2.5 justify-end">
               <button
                 type="button"
-                onClick={() => setShowLocalUnlockModal(false)}
+                onClick={() => setUnlockingDistanceId(null)}
                 className="px-4 py-2 text-xs font-bold border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               >
                 {language === "en" ? "Cancel" : "Hủy"}
@@ -838,8 +840,8 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setIsInputSoloLocked(false);
-                  setShowLocalUnlockModal(false);
+                  setInputSoloLockedMap(prev => ({ ...prev, [unlockingDistanceId]: false }));
+                  setUnlockingDistanceId(null);
                 }}
                 className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg cursor-pointer"
               >
