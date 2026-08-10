@@ -1087,7 +1087,7 @@ export default function App() {
     }
   }, [masterAthletes]);
 
-  const handleSelectTournament = (id: string, tournament: any, targetTab?: string) => {
+  const handleSelectTournament = async (id: string, tournament: any, targetTab?: string) => {
     const targetId = id;
     const resolvedTargetTab = targetTab || "dashboard";
 
@@ -1103,6 +1103,35 @@ export default function App() {
       setPendingTabTarget({ type: "select_tour", payload: { id: targetId, tournament, targetTab: resolvedTargetTab } });
       setIsUnsavedModalOpen(true);
       return;
+    }
+
+    if (activeHistoryId && activeHistoryId.startsWith("tour-") && (userRole === "admin" || userRole === "referee")) {
+      try {
+        await updateOnlineTournament(activeHistoryId, {
+          matchName,
+          startDate,
+          endDate,
+          distances,
+          shotsCount,
+          athletes,
+          teamDistances,
+          teamShotsCount,
+          teamAthletes,
+          inputAthletes,
+          teamInputAthletes,
+          directMaxPoints,
+          teamDirectMaxPoints,
+          directMaxShots,
+          teamDirectMaxShots,
+          masterAthletes,
+          bannerUrl,
+          avatarUrl,
+          laneCapacity,
+          clubs
+        });
+      } catch (err) {
+        console.error("Failed to sync previous online tournament before switch:", err);
+      }
     }
 
     // DISARM ALL AUTO-SYNC PUBLISHERS IMMEDIATELY BEFORE SWITCHING TOURNAMENTS
@@ -1204,12 +1233,12 @@ export default function App() {
     setActiveTab(targetTab);
   };
 
-  const changeExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
+  const changeExitTournament = async (filter: "all" | "all_list" | "active" | "followed" = "all") => {
     if (hasUnsavedChanges) {
       setPendingTabTarget({ type: "exit", value: filter });
       setIsUnsavedModalOpen(true);
     } else {
-      handleExitTournament(filter);
+      await handleExitTournament(filter);
     }
   };
 
@@ -3301,8 +3330,37 @@ export default function App() {
   };
 
   // Exit current tournament and reset all tournament state variables back to defaults
-  const handleExitTournament = (filter: "all" | "all_list" | "active" | "followed" = "all") => {
+  const handleExitTournament = async (filter: "all" | "all_list" | "active" | "followed" = "all") => {
     const isOnlineTourExit = !!(activeHistoryId && activeHistoryId.startsWith("tour-"));
+
+    if (isOnlineTourExit && activeHistoryId && (userRole === "admin" || userRole === "referee")) {
+      try {
+        await updateOnlineTournament(activeHistoryId, {
+          matchName,
+          startDate,
+          endDate,
+          distances,
+          shotsCount,
+          athletes,
+          teamDistances,
+          teamShotsCount,
+          teamAthletes,
+          inputAthletes,
+          teamInputAthletes,
+          directMaxPoints,
+          teamDirectMaxPoints,
+          directMaxShots,
+          teamDirectMaxShots,
+          masterAthletes,
+          bannerUrl,
+          avatarUrl,
+          laneCapacity,
+          clubs
+        });
+      } catch (err) {
+        console.error("Failed to sync online tournament on exit:", err);
+      }
+    }
 
     // DISARM ALL AUTO-SYNC PUBLISHERS IMMEDIATELY BEFORE EXITING
     setIsTournamentConfigLoaded(false);
