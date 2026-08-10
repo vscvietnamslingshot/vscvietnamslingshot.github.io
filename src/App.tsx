@@ -2797,11 +2797,22 @@ export default function App() {
   };
 
   // Update solo shootout hits for main athletes
-  const handleUpdateSoloHits = (athleteId: string, distanceId: string, rounds: (number | null)[]) => {
-    const isAnyNumber = rounds.some((r) => r !== null && r !== undefined);
-    const sum = isAnyNumber 
-      ? rounds.reduce<number>((s, r) => s + (r === null || r === undefined ? 0 : r), 0)
-      : null;
+  const handleUpdateSoloHits = (athleteId: string, distanceId: string, rounds: any[]) => {
+    const sum = rounds.reduce<number>((s, r) => {
+      if (Array.isArray(r)) {
+        return s + r.filter((v: any) => v === true).length;
+      } else if (typeof r === 'number') {
+        return s + r;
+      }
+      return s;
+    }, 0);
+
+    const isAnyActive = rounds.some(r => {
+      if (Array.isArray(r)) return r.some(v => v === true || v === false);
+      return r !== null && r !== undefined;
+    });
+
+    const finalSum = isAnyActive ? sum : null;
 
     if (competitionMode === "individual") {
       setAthletes((prev) =>
@@ -2811,7 +2822,7 @@ export default function App() {
             ...athlete,
             soloHits: {
               ...(athlete.soloHits || {}),
-              [distanceId]: sum as any,
+              [distanceId]: finalSum as any,
             },
             soloRounds: {
               ...(athlete.soloRounds || {}),
@@ -2828,7 +2839,7 @@ export default function App() {
             ...athlete,
             soloHits: {
               ...(athlete.soloHits || {}),
-              [distanceId]: sum as any,
+              [distanceId]: finalSum as any,
             },
             soloRounds: {
               ...(athlete.soloRounds || {}),
@@ -2841,11 +2852,22 @@ export default function App() {
   };
 
   // Update solo shootout hits for input board athletes
-  const handleUpdateInputSoloHits = (athleteId: string, distanceId: string, rounds: (number | null)[]) => {
-    const isAnyNumber = rounds.some((r) => r !== null && r !== undefined);
-    const sum = isAnyNumber 
-      ? rounds.reduce<number>((s, r) => s + (r === null || r === undefined ? 0 : r), 0)
-      : null;
+  const handleUpdateInputSoloHits = (athleteId: string, distanceId: string, rounds: any[]) => {
+    const sum = rounds.reduce<number>((s, r) => {
+      if (Array.isArray(r)) {
+        return s + r.filter((v: any) => v === true).length;
+      } else if (typeof r === 'number') {
+        return s + r;
+      }
+      return s;
+    }, 0);
+
+    const isAnyActive = rounds.some(r => {
+      if (Array.isArray(r)) return r.some(v => v === true || v === false);
+      return r !== null && r !== undefined;
+    });
+
+    const finalSum = isAnyActive ? sum : null;
 
     setHasUnsavedChanges(true);
     if (competitionMode === "individual") {
@@ -2856,7 +2878,7 @@ export default function App() {
             ...athlete,
             soloHits: {
               ...(athlete.soloHits || {}),
-              [distanceId]: sum as any,
+              [distanceId]: finalSum as any,
             },
             soloRounds: {
               ...(athlete.soloRounds || {}),
@@ -2873,7 +2895,7 @@ export default function App() {
             ...athlete,
             soloHits: {
               ...(athlete.soloHits || {}),
-              [distanceId]: sum as any,
+              [distanceId]: finalSum as any,
             },
             soloRounds: {
               ...(athlete.soloRounds || {}),

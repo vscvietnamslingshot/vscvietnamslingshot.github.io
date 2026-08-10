@@ -77,6 +77,15 @@ export function sanitizeFirestoreData<T>(obj: T): T {
   if (obj === undefined) return null as any;
   if (obj === null) return null as any;
   if (Array.isArray(obj)) {
+    // Check if any element in this array is also an array (nested array)
+    const hasNestedArray = obj.some(item => Array.isArray(item));
+    if (hasNestedArray) {
+      const mapObj: Record<string, any> = {};
+      obj.forEach((item, idx) => {
+        mapObj[String(idx)] = sanitizeFirestoreData(item);
+      });
+      return mapObj as any;
+    }
     return obj.map(item => sanitizeFirestoreData(item)) as any;
   }
   if (isPlainObject(obj)) {

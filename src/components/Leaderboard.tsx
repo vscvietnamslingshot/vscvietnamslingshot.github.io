@@ -1812,17 +1812,27 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                                       if (!hasSoloValue) {
                                         return null;
                                       }
-                                      const rounds = athlete.soloRounds?.[distConfig.id];
+                                      const rawRounds = athlete.soloRounds?.[distConfig.id];
+                                      const rounds = Array.isArray(rawRounds)
+                                        ? rawRounds
+                                        : (rawRounds && typeof rawRounds === 'object' ? Object.values(rawRounds) : null);
                                       if (rounds && rounds.length > 0) {
-                                        return rounds.map((rVal, idx) => {
-                                          const displayVal = rVal === null || rVal === undefined ? "-" : rVal;
+                                        return rounds.map((rVal: any, idx) => {
+                                          let hitCount = 0;
+                                          if (Array.isArray(rVal)) {
+                                            hitCount = rVal.filter(v => v === true || v === 'true').length;
+                                          } else if (rVal && typeof rVal === 'object') {
+                                            hitCount = Object.values(rVal).filter(v => v === true || v === 'true').length;
+                                          } else if (typeof rVal === 'number') {
+                                            hitCount = rVal;
+                                          }
                                           return (
                                             <span 
                                               key={idx} 
                                               className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-[9px] font-black border border-purple-200 whitespace-nowrap" 
                                               title={language === "en" ? `Solo Round ${idx + 1} Score` : `Điểm Solo Lần ${idx + 1}`}
                                             >
-                                              🎯S{idx + 1}:{displayVal}
+                                              🎯S{idx + 1}:{hitCount}
                                             </span>
                                           );
                                         });

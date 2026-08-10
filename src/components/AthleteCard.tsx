@@ -326,286 +326,387 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
             </tr>
           </thead>
           <tbody>
-            {distances.map((distance, distIdx) => {
-              const rowScoreObj = rowScores.find((r) => r.distanceId === distance.id) || { hitCount: 0, score: 0 };
-              const hits = athlete.scores[distance.id] || Array(shotsCount).fill(null);
+            {(() => {
+              const totalTableRows = distances.reduce((acc, dist) => {
+                const isSolo = dist.isElimination && dist.isSolo;
+                const rawRounds = athlete.soloRounds?.[dist.id];
+                const rawRoundsArr = Array.isArray(rawRounds)
+                  ? rawRounds
+                  : (rawRounds && typeof rawRounds === 'object' ? Object.values(rawRounds) : null);
+                const rCount = isSolo ? (Array.isArray(rawRoundsArr) && rawRoundsArr.length > 0 ? rawRoundsArr.length : 1) : 0;
+                return acc + 1 + rCount;
+              }, 0);
 
-              // Check if distance has pre-existing scores in main tournament ledger (Ghi Điểm)
-              const scoringAthlete = mainAthletes?.find((a) => a.id === athlete.id);
-              const isDistancePreExisting = isInputTab && scoringAthlete && scoringAthlete.scores[distance.id] && scoringAthlete.scores[distance.id].some((slot) => slot !== null);
+              return distances.map((distance, distIdx) => {
+                const rowScoreObj = rowScores.find((r) => r.distanceId === distance.id) || { hitCount: 0, score: 0 };
+                const hits = athlete.scores[distance.id] || Array(shotsCount).fill(null);
 
-              return (
-                <tr 
-                  key={distance.id} 
-                  className={`transition-colors ${
-                    isDistancePreExisting 
-                      ? "bg-slate-100/50 dark:bg-slate-900/30 text-gray-400 select-none cursor-not-allowed opacity-75"
-                      : "hover:bg-slate-50/50"
-                  } ${
-                    distIdx < distances.length - 1 ? "border-b border-gray-200" : ""
-                  }`}
-                >
-                  {/* DIỂM TỔNG spanned tall cell in first row only */}
-                  {distIdx === 0 && (
-                    <td 
-                      rowSpan={distances.length} 
-                      className="border-r border-gray-200 align-middle text-center font-mono text-3xl font-extrabold text-blue-700 bg-blue-50/50 p-2 select-text"
+                // Check if distance has pre-existing scores in main tournament ledger (Ghi Điểm)
+                const scoringAthlete = mainAthletes?.find((a) => a.id === athlete.id);
+                const isDistancePreExisting = isInputTab && scoringAthlete && scoringAthlete.scores[distance.id] && scoringAthlete.scores[distance.id].some((slot) => slot !== null);
+
+                const rawRounds = athlete.soloRounds?.[distance.id];
+                const rawRoundsArr = Array.isArray(rawRounds)
+                  ? rawRounds
+                  : (rawRounds && typeof rawRounds === 'object' ? Object.values(rawRounds) : null);
+
+                const rounds: (boolean | null)[][] = distance.isElimination && distance.isSolo && Array.isArray(rawRoundsArr) && rawRoundsArr.length > 0
+                  ? rawRoundsArr.map(r => {
+                      if (Array.isArray(r)) return r;
+                      if (r && typeof r === 'object') return Object.values(r) as (boolean | null)[];
+                      if (typeof r === 'number') return Array.from({ length: shotsCount }, (_, i) => i < r);
+                      return Array.from({ length: shotsCount }, () => null);
+                    })
+                  : [Array.from({ length: shotsCount }, () => null)];
+
+                return (
+                  <React.Fragment key={distance.id}>
+                    <tr 
+                      className={`transition-colors ${
+                        isDistancePreExisting 
+                          ? "bg-slate-100/50 dark:bg-slate-900/30 text-gray-400 select-none cursor-not-allowed opacity-75"
+                          : "hover:bg-slate-50/50"
+                      } ${
+                        distIdx < distances.length - 1 && !(distance.isElimination && distance.isSolo) ? "border-b border-gray-200" : ""
+                      }`}
                     >
-                      {totalScore}
-                    </td>
-                  )}
-
-                  {/* Điểm (Current row score computed) */}
-                  <td className={`border-r border-gray-200 text-center font-mono text-lg font-bold p-2 ${
-                    isDistancePreExisting ? "text-gray-400 bg-slate-200/20" : "text-gray-800 bg-amber-50/30"
-                  }`}>
-                    {rowScoreObj.score}
-                    <div className="text-[10px] text-gray-400 font-normal mt-0.5">
-                      ({rowScoreObj.hitCount} {language === "en" ? "hits" : "viên"})
-                    </div>
-                  </td>
-
-                  {/* Điểm nhân (Multiplier) */}
-                  <td className="border-r border-gray-200 text-center font-mono text-sm text-gray-500 p-2">
-                    {distance.multiplier}
-                  </td>
-
-                  {/* Cự ly (Distance) */}
-                  <td className="border-r border-gray-200 text-center text-sm font-bold text-gray-700 p-2">
-                    <div className="text-[10px] text-indigo-500 font-mono font-bold block mb-0.5">{language === "en" ? "Round" : "Vòng"} {distIdx + 1}</div>
-                    <div className="flex items-center justify-center gap-1">
-                      <span>{distance.distance}</span>
-                      {isDistancePreExisting && (
-                        <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 inline-block" title={language === "en" ? "Score protected" : "Điểm số đã được bảo vệ"} />
+                      {/* DIỂM TỔNG spanned tall cell in first row only */}
+                      {distIdx === 0 && (
+                        <td 
+                          rowSpan={totalTableRows} 
+                          className="border-r border-gray-200 align-middle text-center font-mono text-3xl font-extrabold text-blue-700 bg-blue-50/50 p-2 select-text"
+                        >
+                          {totalScore}
+                        </td>
                       )}
-                    </div>
-                    {isDistancePreExisting && (
-                      <span className="text-[8.5px] uppercase font-bold text-emerald-600 block mt-0.5">{language === "en" ? "Locked" : "Đã Khóa"}</span>
-                    )}
 
-                    {distance.isElimination && distance.isSolo && (() => {
-                      const rounds = athlete.soloRounds?.[distance.id] ?? 
-                        (athlete.soloHits?.[distance.id] !== undefined && athlete.soloHits[distance.id] !== null ? [athlete.soloHits[distance.id]] : [null]);
+                      {/* Điểm (Current row score computed) */}
+                      <td className={`border-r border-gray-200 text-center font-mono text-lg font-bold p-2 ${
+                        isDistancePreExisting ? "text-gray-400 bg-slate-200/20" : "text-gray-800 bg-amber-50/30"
+                      }`}>
+                        {rowScoreObj.score}
+                        <div className="text-[10px] text-gray-400 font-normal mt-0.5">
+                          ({rowScoreObj.hitCount} {language === "en" ? "hits" : "viên"})
+                        </div>
+                      </td>
 
+                      {/* Điểm nhân (Multiplier) */}
+                      <td className="border-r border-gray-200 text-center font-mono text-sm text-gray-500 p-2">
+                        {distance.multiplier}
+                      </td>
+
+                      {/* Cự ly (Distance) */}
+                      <td className="border-r border-gray-200 text-center text-sm font-bold text-gray-700 p-2">
+                        <div className="text-[10px] text-indigo-500 font-mono font-bold block mb-0.5">{language === "en" ? "Round" : "Vòng"} {distIdx + 1}</div>
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{distance.distance}</span>
+                          {distance.isElimination && distance.isSolo && (
+                            <span className="text-[9px] bg-purple-100 text-purple-700 font-black px-1.5 py-0.5 rounded ml-1">SOLO</span>
+                          )}
+                          {isDistancePreExisting && (
+                            <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 inline-block" title={language === "en" ? "Score protected" : "Điểm số đã được bảo vệ"} />
+                          )}
+                        </div>
+                        {isDistancePreExisting && (
+                          <span className="text-[8.5px] uppercase font-bold text-emerald-600 block mt-0.5">{language === "en" ? "Locked" : "Đã Khóa"}</span>
+                        )}
+                      </td>
+
+                       {/* Shots checkboxes or direct score TEXT input */}
+                      {isDirectMode ? (
+                        <td 
+                          colSpan={shotsCount}
+                          className={`text-center p-2 border-r border-gray-100 ${
+                            isDistancePreExisting 
+                              ? "bg-slate-100/40 dark:bg-slate-900/10 cursor-not-allowed" 
+                              : "bg-white dark:bg-slate-950"
+                          }`}
+                        >
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="text"
+                              pattern="[0-9]*"
+                              inputMode="numeric"
+                              placeholder={language === "en" ? "Enter score" : "Nhập điểm"}
+                              value={(() => {
+                                const val = hits[0];
+                                if (val === true || val === "true" || val === "TRUE") return "1";
+                                if (val === false || val === "false" || val === "FALSE") return "0";
+                                if (val === null || val === undefined) return "";
+                                return String(val);
+                              })()}
+                              disabled={isDistancePreExisting || isLockedByOtherReferee}
+                              readOnly={(!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee}
+                              onClick={(e) => {
+                                if (isLockedByOtherReferee) {
+                                  alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                  return;
+                                }
+                                if (!isInputTab && !isScoringEditAuthorized && !isDistancePreExisting) {
+                                  onTriggerUnlockModal?.();
+                                }
+                              }}
+                              onChange={(e) => {
+                                if (isLockedByOtherReferee) {
+                                  return;
+                                }
+                                const raw = e.target.value.trim();
+                                if (raw !== "" && !/^\d+$/.test(raw)) {
+                                  return;
+                                }
+                                const val = raw === "" ? null : parseInt(raw, 10);
+                                onUpdateDirectScore?.(athlete.id, distance.id, val);
+                              }}
+                              className={`w-28 text-center text-xs font-black font-mono border rounded-lg py-1 px-2 focus:outline-none focus:ring-1 ${
+                                isDistancePreExisting || isLockedByOtherReferee
+                                  ? "bg-gray-100 dark:bg-slate-900 border-gray-300 dark:border-slate-800 text-gray-400 cursor-not-allowed"
+                                  : "bg-white dark:bg-slate-950 border-blue-400 text-blue-800 dark:text-blue-400 focus:ring-blue-500 font-mono"
+                              }`}
+                            />
+                          </div>
+                        </td>
+                      ) : (
+                        Array.from({ length: shotsCount }).map((_, shotIdx) => {
+                          const shotVal = hits[shotIdx];
+                          const isHit = shotVal === true;
+                          const isMiss = shotVal === false;
+                          return (
+                            <td 
+                              key={shotIdx}
+                              onClick={() => {
+                                if (isLockedByOtherReferee) {
+                                  alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                  return;
+                                }
+                                if (!isDistancePreExisting) {
+                                  onToggleScore(athlete.id, distance.id, shotIdx);
+                                }
+                              }}
+                              className={`text-center p-1 transition-colors relative border-r border-gray-100 ${
+                                isDistancePreExisting || isLockedByOtherReferee
+                                  ? "cursor-not-allowed bg-slate-100/40 dark:bg-slate-900/10" 
+                                  : "cursor-pointer hover:bg-blue-50/75"
+                              } ${
+                                shotIdx === shotsCount - 1 ? "" : "border-r"
+                              }`}
+                              title={isDistancePreExisting 
+                                ? `Điểm cự ly ${distance.distance} đã có sẵn. Muốn sửa, vui lòng chuyển qua tab Ghi Điểm & bật chế độ sửa.` 
+                                : `Cự ly: ${distance.distance}, Lượt: ${shotIdx + 1}`}
+                            >
+                              <div className="flex items-center justify-center py-2">
+                                <div 
+                                  className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-150 border-2 select-none ${
+                                    isHit 
+                                      ? isDistancePreExisting
+                                        ? "bg-slate-400 border-slate-400 shadow-sm opacity-60"
+                                        : "bg-blue-600 border-blue-600 shadow-sm" 
+                                      : isMiss
+                                        ? isDistancePreExisting
+                                          ? "bg-slate-350 border-slate-350 shadow-sm opacity-55"
+                                          : "bg-rose-600 border-rose-600 shadow-sm"
+                                        : "bg-white border-gray-300 hover:border-gray-500"
+                                  }`}
+                                >
+                                  {isHit && (
+                                    <Check className="w-4 h-4 text-white stroke-[3.5]" />
+                                  )}
+                                  {isMiss && (
+                                    <X className="w-4 h-4 text-white stroke-[3.5]" />
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        })
+                      )}
+                    </tr>
+
+                    {/* SOLO SUB-ROWS */}
+                    {distance.isElimination && distance.isSolo && rounds.map((roundShots, rIdx) => {
+                      const roundHitCount = roundShots.filter(v => v === true).length;
+                      const totalSoloScore = rounds.reduce((sum, r) => sum + r.filter(v => v === true).length, 0);
                       const isLocked = isInputSoloLocked || (!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee;
 
                       return (
-                        <div className="mt-2 flex flex-col items-center bg-purple-50 hover:bg-purple-100/75 dark:bg-slate-900 border border-purple-200 rounded p-1.5 animate-fadeIn mx-1 min-w-[75px]">
-                          <span className="text-[8.5px] text-purple-700 dark:text-purple-400 font-black uppercase leading-tight text-center flex items-center gap-1 justify-center">
-                            {language === "en" ? "Solo Score" : "Điểm Solo"}
-                            {isInputTab ? (
-                              isInputSoloLocked ? (
-                                <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
-                                  if (isLockedByOtherReferee) {
-                                    alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                                    return;
-                                  }
-                                  setShowLocalUnlockModal(true);
-                                }} />
-                              ) : (
-                                <Unlock className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 cursor-pointer" onClick={() => {
-                                  if (isLockedByOtherReferee) return;
-                                  setIsInputSoloLocked(true);
-                                }} />
-                              )
-                            ) : (
-                              !isScoringEditAuthorized ? (
-                                <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
-                                  if (isLockedByOtherReferee) {
-                                    alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                                    return;
-                                  }
-                                  onTriggerUnlockModal?.();
-                                }} />
-                              ) : (
-                                isInputSoloLocked ? (
-                                  <Lock className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => {
-                                    if (isLockedByOtherReferee) return;
-                                    setShowLocalUnlockModal(true);
-                                  }} />
-                                ) : (
-                                  <Unlock className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 cursor-pointer" onClick={() => {
-                                    if (isLockedByOtherReferee) return;
-                                    setIsInputSoloLocked(true);
-                                  }} />
-                                )
-                              )
-                            )}
-                          </span>
-                          
-                          <div className="flex flex-col gap-1 w-full mt-1.5">
-                            {rounds.map((roundVal, idx) => (
-                              <div key={idx} className="flex items-center justify-center gap-0.5">
-                                <span className="text-[8px] text-purple-500 font-mono font-bold">L{idx + 1}:</span>
-                                <input
-                                  type={isLocked ? "text" : "number"}
-                                  min={0}
-                                  placeholder="-"
-                                  value={isLocked && (roundVal === null || roundVal === undefined) ? "-" : (roundVal ?? "")}
-                                  readOnly={isLocked}
-                                  onClick={() => {
-                                    if (!isInputTab && !isScoringEditAuthorized) {
-                                      onTriggerUnlockModal?.();
-                                    } else if (isInputSoloLocked) {
-                                      setShowLocalUnlockModal(true);
-                                    }
-                                  }}
-                                  onChange={(e) => {
-                                    if (isLocked) return;
-                                    const raw = e.target.value.trim();
-                                    const val = raw === "" ? null : Math.max(0, parseInt(raw, 10) || 0);
-                                    const newRounds = [...rounds];
-                                    newRounds[idx] = val;
-                                    onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
-                                  }}
-                                  className={`w-9 text-center text-[11px] border rounded font-bold font-mono bg-white dark:bg-slate-950 focus:outline-none focus:ring-1 py-0.2 ${
-                                    isLocked
-                                      ? "border-slate-300 text-slate-400 cursor-pointer bg-slate-50"
-                                      : "border-purple-350 focus:ring-purple-500 text-purple-800"
-                                  }`}
-                                />
+                        <tr 
+                          key={`solo-${distance.id}-${rIdx}`}
+                          className="bg-purple-50/90 dark:bg-purple-950/45 border-b border-purple-200 dark:border-purple-900/60 transition-colors"
+                        >
+                          <td colSpan={3} className="border-r border-purple-200 dark:border-purple-900/60 p-1.5 align-middle">
+                            <div className="flex items-center justify-between gap-1 px-0.5 min-w-0">
+                              <div className="flex items-center gap-1 shrink-0 min-w-0">
+                                <span className="text-[10px] font-black uppercase text-purple-700 dark:text-purple-300 font-mono truncate">
+                                  ⚡ SOLO L{rIdx + 1}
+                                </span>
+                                <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 bg-purple-200/60 dark:bg-purple-900/60 px-1 py-0.5 rounded font-mono shrink-0">
+                                  {roundHitCount}v (T: {totalSoloScore}v)
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {rIdx === 0 && (
+                                  isInputTab ? (
+                                    isInputSoloLocked ? (
+                                      <button 
+                                        onClick={() => {
+                                          if (isLockedByOtherReferee) {
+                                            alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                            return;
+                                          }
+                                          setShowLocalUnlockModal(true);
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-200 hover:bg-purple-300 text-purple-800 transition cursor-pointer text-[10px] font-bold shrink-0"
+                                        title={language === "en" ? "Locked. Click to unlock." : "Đã khóa. Bấm để mở khóa."}
+                                      >
+                                        <Lock className="w-2.5 h-2.5" />
+                                        <span>+Solo</span>
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        onClick={() => {
+                                          if (isLockedByOtherReferee) return;
+                                          setIsInputSoloLocked(true);
+                                        }}
+                                        className="p-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer"
+                                        title={language === "en" ? "Unlocked. Click to lock." : "Đã mở khóa. Bấm để khóa lại."}
+                                      >
+                                        <Unlock className="w-2.5 h-2.5" />
+                                      </button>
+                                    )
+                                  ) : (
+                                    !isScoringEditAuthorized ? (
+                                      <button 
+                                        onClick={() => {
+                                          if (isLockedByOtherReferee) {
+                                            alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                            return;
+                                          }
+                                          onTriggerUnlockModal?.();
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-200 hover:bg-purple-300 text-purple-800 transition cursor-pointer text-[10px] font-bold shrink-0"
+                                        title={language === "en" ? "Locked. Click to unlock." : "Đã khóa. Bấm để mở khóa."}
+                                      >
+                                        <Lock className="w-2.5 h-2.5" />
+                                        <span>+Solo</span>
+                                      </button>
+                                    ) : (
+                                      isInputSoloLocked ? (
+                                        <button 
+                                          onClick={() => {
+                                            if (isLockedByOtherReferee) return;
+                                            setShowLocalUnlockModal(true);
+                                          }}
+                                          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-200 hover:bg-purple-300 text-purple-800 transition cursor-pointer text-[10px] font-bold shrink-0"
+                                          title={language === "en" ? "Locked. Click to unlock." : "Đã khóa. Bấm để mở khóa."}
+                                        >
+                                          <Lock className="w-2.5 h-2.5" />
+                                          <span>+Solo</span>
+                                        </button>
+                                      ) : (
+                                        <button 
+                                          onClick={() => {
+                                            if (isLockedByOtherReferee) return;
+                                            setIsInputSoloLocked(true);
+                                          }}
+                                          className="p-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer"
+                                          title={language === "en" ? "Unlocked. Click to lock." : "Đã mở khóa. Bấm để khóa lại."}
+                                        >
+                                          <Unlock className="w-2.5 h-2.5" />
+                                        </button>
+                                      )
+                                    )
+                                  )
+                                )}
+
+                                {rIdx === rounds.length - 1 && !isLocked && (
+                                  <button
+                                    onClick={() => {
+                                      onUpdateSoloHits?.(athlete.id, distance.id, [...rounds, Array.from({ length: shotsCount }, () => null)]);
+                                    }}
+                                    className="px-1 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-[9px] font-bold transition cursor-pointer shadow-xs"
+                                    title={language === "en" ? "Add solo round" : "Thêm lượt"}
+                                  >
+                                    + {language === "en" ? "Round" : "Lượt"}
+                                  </button>
+                                )}
+
                                 {rounds.length > 1 && !isLocked && (
                                   <button
-                                    title={language === "en" ? "Delete round" : "Xóa lượt"}
                                     onClick={() => {
-                                      const newRounds = rounds.filter((_, rIdx) => rIdx !== idx);
+                                      const newRounds = rounds.filter((_, idx) => idx !== rIdx);
                                       onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
                                     }}
-                                    className="text-red-500 hover:text-red-700 hover:scale-110 active:scale-90 transition cursor-pointer text-[11px] font-black px-0.5"
+                                    className="px-1 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-black transition cursor-pointer"
+                                    title={language === "en" ? "Delete this round" : "Xóa lượt này"}
                                   >
                                     ×
                                   </button>
                                 )}
                               </div>
-                            ))}
-                          </div>
-
-                          {!isLocked && (
-                            <button
-                              title={language === "en" ? "Add solo round" : "Thêm lượt solo"}
-                              onClick={() => {
-                                onUpdateSoloHits?.(athlete.id, distance.id, [...rounds, null]);
-                              }}
-                              className="mt-1.5 w-full py-0.5 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 rounded border border-purple-200 hover:bg-purple-200 dark:hover:bg-purple-900 text-[8.5px] font-black flex items-center justify-center gap-0.5 transition cursor-pointer"
-                            >
-                              + {language === "en" ? "Add" : "Thêm"}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </td>
-
-                   {/* Shots checkboxes or direct score TEXT input */}
-                  {isDirectMode ? (
-                    <td 
-                      colSpan={shotsCount}
-                      className={`text-center p-2 border-r border-gray-100 ${
-                        isDistancePreExisting 
-                          ? "bg-slate-100/40 dark:bg-slate-900/10 cursor-not-allowed" 
-                          : "bg-white dark:bg-slate-950"
-                      }`}
-                    >
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="text"
-                          pattern="[0-9]*"
-                          inputMode="numeric"
-                          placeholder={language === "en" ? "Enter score" : "Nhập điểm"}
-                          value={(() => {
-                            const val = hits[0];
-                            if (val === true || val === "true" || val === "TRUE") return "1";
-                            if (val === false || val === "false" || val === "FALSE") return "0";
-                            if (val === null || val === undefined) return "";
-                            return String(val);
-                          })()}
-                          disabled={isDistancePreExisting || isLockedByOtherReferee}
-                          readOnly={(!isInputTab && !isScoringEditAuthorized) || isLockedByOtherReferee}
-                          onClick={(e) => {
-                            if (isLockedByOtherReferee) {
-                              alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                              return;
-                            }
-                            if (!isInputTab && !isScoringEditAuthorized && !isDistancePreExisting) {
-                              onTriggerUnlockModal?.();
-                            }
-                          }}
-                          onChange={(e) => {
-                            if (isLockedByOtherReferee) {
-                              return;
-                            }
-                            const raw = e.target.value.trim();
-                            if (raw !== "" && !/^\d+$/.test(raw)) {
-                              return;
-                            }
-                            const val = raw === "" ? null : parseInt(raw, 10);
-                            onUpdateDirectScore?.(athlete.id, distance.id, val);
-                          }}
-                          className={`w-28 text-center text-xs font-black font-mono border rounded-lg py-1 px-2 focus:outline-none focus:ring-1 ${
-                            isDistancePreExisting || isLockedByOtherReferee
-                              ? "bg-gray-100 dark:bg-slate-900 border-gray-300 dark:border-slate-800 text-gray-400 cursor-not-allowed"
-                              : "bg-white dark:bg-slate-950 border-blue-400 text-blue-800 dark:text-blue-400 focus:ring-blue-500 font-mono"
-                          }`}
-                        />
-                      </div>
-                    </td>
-                  ) : (
-                    Array.from({ length: shotsCount }).map((_, shotIdx) => {
-                      const shotVal = hits[shotIdx];
-                      const isHit = shotVal === true;
-                      const isMiss = shotVal === false;
-                      return (
-                        <td 
-                          key={shotIdx}
-                          onClick={() => {
-                            if (isLockedByOtherReferee) {
-                              alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                              return;
-                            }
-                            if (!isDistancePreExisting) {
-                              onToggleScore(athlete.id, distance.id, shotIdx);
-                            }
-                          }}
-                          className={`text-center p-1 transition-colors relative border-r border-gray-100 ${
-                            isDistancePreExisting || isLockedByOtherReferee
-                              ? "cursor-not-allowed bg-slate-100/40 dark:bg-slate-900/10" 
-                              : "cursor-pointer hover:bg-blue-50/75"
-                          } ${
-                            shotIdx === shotsCount - 1 ? "" : "border-r"
-                          }`}
-                          title={isDistancePreExisting 
-                            ? `Điểm cự ly ${distance.distance} đã có sẵn. Muốn sửa, vui lòng chuyển qua tab Ghi Điểm & bật chế độ sửa.` 
-                            : `Cự ly: ${distance.distance}, Lượt: ${shotIdx + 1}`}
-                        >
-                          <div className="flex items-center justify-center py-2">
-                            <div 
-                              className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-150 border-2 select-none ${
-                                isHit 
-                                  ? isDistancePreExisting
-                                    ? "bg-slate-400 border-slate-400 shadow-sm opacity-60"
-                                    : "bg-blue-600 border-blue-600 shadow-sm" 
-                                  : isMiss
-                                    ? isDistancePreExisting
-                                      ? "bg-slate-350 border-slate-350 shadow-sm opacity-55"
-                                      : "bg-rose-600 border-rose-600 shadow-sm"
-                                    : "bg-white border-gray-300 hover:border-gray-500"
-                              }`}
-                            >
-                              {isHit && (
-                                <Check className="w-4 h-4 text-white stroke-[3.5]" />
-                              )}
-                              {isMiss && (
-                                <X className="w-4 h-4 text-white stroke-[3.5]" />
-                              )}
                             </div>
-                          </div>
-                        </td>
+                          </td>
+
+                          <td colSpan={shotsCount} className="p-1.5 align-middle text-center bg-purple-50/50 dark:bg-purple-950/20">
+                            {!isLocked && (
+                              <div className="flex items-center justify-center gap-1.5">
+                                {Array.from({ length: shotsCount }).map((_, shotIdx) => {
+                                  const sVal = roundShots[shotIdx];
+                                  const isHit = sVal === true;
+                                  const isMiss = sVal === false;
+                                  return (
+                                    <div
+                                      key={shotIdx}
+                                      onClick={() => {
+                                        if (isLocked) {
+                                          if (!isInputTab && !isScoringEditAuthorized) {
+                                            onTriggerUnlockModal?.();
+                                          } else if (isInputSoloLocked) {
+                                            setShowLocalUnlockModal(true);
+                                          }
+                                          return;
+                                        }
+                                        if (isLockedByOtherReferee) {
+                                          alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                          return;
+                                        }
+                                        const newRounds = rounds.map((r, i) => {
+                                          if (i !== rIdx) return r;
+                                          const newR = [...r];
+                                          const cur = newR[shotIdx];
+                                          if (cur === true) newR[shotIdx] = false;
+                                          else if (cur === false) newR[shotIdx] = null;
+                                          else newR[shotIdx] = true;
+                                          return newR;
+                                        });
+                                        onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
+                                      }}
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150 border-2 cursor-pointer select-none shadow-xs ${
+                                        isHit
+                                          ? "bg-purple-600 border-purple-600 text-white"
+                                          : isMiss
+                                            ? "bg-rose-600 border-rose-600 text-white"
+                                            : "bg-white dark:bg-slate-900 border-purple-300 hover:border-purple-500 text-gray-700 dark:text-gray-300 font-mono font-bold text-xs"
+                                      }`}
+                                      title={`L${rIdx + 1} - Phát ${shotIdx + 1}`}
+                                    >
+                                      {isHit && <Check className="w-4 h-4 stroke-[3.5]" />}
+                                      {isMiss && <X className="w-4 h-4 stroke-[3.5]" />}
+                                      {!isHit && !isMiss && <span className="text-[10px] text-purple-400 font-mono">{shotIdx + 1}</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
                       );
-                    })
-                  )}
-                </tr>
-              );
-            })}
+                    })}
+                  </React.Fragment>
+                );
+              });
+            })()}
+
+
           </tbody>
         </table>
       </div>
