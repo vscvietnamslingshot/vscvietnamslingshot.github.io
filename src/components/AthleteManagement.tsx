@@ -1041,17 +1041,6 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   ? (language === "en" ? "VSC Database Athletes" : "VĐV Hệ Thống VSC") 
                   : (language === "en" ? "Tournament Athletes" : "Vận Động Viên Giải")} ({currentRoster.length})
               </h2>
-              
-              <button
-                type="button"
-                onClick={handleStartCreate}
-                className="p-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md font-bold flex items-center gap-1 transition-all cursor-pointer"
-                title={isVscTab 
-                  ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
-                  : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
-              >
-                <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
-              </button>
             </div>
 
         {/* Search */}
@@ -1136,77 +1125,92 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           </div>
         </div>
 
-        {/* Reset list option */}
-        {currentRoster.length > 0 && (
-          <div className="pt-1.5 flex flex-col gap-1.5 border-b border-gray-150 dark:border-slate-800/60 pb-2.5">
-            {resetConfirmStep === 0 ? (
+        {/* Add New & Reset list options */}
+        <div className="pt-1.5 flex flex-col gap-1.5 border-b border-gray-150 dark:border-slate-800/60 pb-2.5">
+          <div className="flex gap-2 items-center">
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              className="flex-1 py-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+              title={isVscTab 
+                ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
+                : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
+            >
+              <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
+            </button>
+
+            {currentRoster.length > 0 && resetConfirmStep === 0 && (
               <button
                 type="button"
                 onClick={() => setResetConfirmStep(1)}
-                className="w-full py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
+                className="flex-1 py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
               >
                 <Trash2 className="w-3.5 h-3.5" /> 
-                Xóa tất cả {currentRoster.length} VĐV hiện tại (Reset)
+                Xóa tất cả ({currentRoster.length})
               </button>
-            ) : resetConfirmStep === 1 ? (
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-amber-900 dark:text-amber-300 animate-fadeIn font-extrabold shadow-sm">
-                <span className="text-center font-bold text-[10px] text-amber-800 dark:text-amber-400 leading-snug">
-                  ⚠️ XÁC NHẬN LẦN 1: Bạn có chắc chắn muốn xóa hết {currentRoster.length} VĐV?
-                </span>
-                <div className="flex gap-1.5 w-full">
-                  <button
-                    type="button"
-                    onClick={() => setResetConfirmStep(2)}
-                    className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-sm transition-colors"
-                  >
-                    Xác nhận lần 1
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setResetConfirmStep(0)}
-                    className="py-1 px-3 bg-gray-250 text-slate-700 dark:text-slate-350 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-red-900 dark:text-red-300 animate-fadeIn font-extrabold shadow-sm">
-                <span className="text-center font-bold text-[10.5px] text-red-700 dark:text-red-400 leading-snug">
-                  🚨 XÁC NHẬN LẦN 2 (CẢNH BÁO): Chắc chắn xóa VĨNH VIỄN?
-                </span>
-                <div className="flex gap-1.5 w-full">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isVscTab) {
-                        updateVscSystemAthletesAndKeepSync([]);
-                      } else {
-                        setAthletes([]);
-                      }
-                      setResetConfirmStep(0);
-                      setNotification({
-                        type: "success",
-                        message: "Đã reset sạch sẽ danh sách vận động viên!"
-                      });
-                      setTimeout(() => setNotification(null), 3500);
-                    }}
-                    className="flex-1 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-md transition-colors"
-                  >
-                    CÓ, XÓA TOÀN BỘ VĐV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setResetConfirmStep(0)}
-                    className="py-1.5 px-3 bg-gray-250 text-slate-700 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              </div>
             )}
           </div>
-        )}
+
+          {currentRoster.length > 0 && resetConfirmStep === 1 && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-amber-900 dark:text-amber-300 animate-fadeIn font-extrabold shadow-sm">
+              <span className="text-center font-bold text-[10px] text-amber-800 dark:text-amber-400 leading-snug">
+                ⚠️ XÁC NHẬN LẦN 1: Bạn có chắc chắn muốn xóa hết {currentRoster.length} VĐV?
+              </span>
+              <div className="flex gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => setResetConfirmStep(2)}
+                  className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-sm transition-colors"
+                >
+                  Xác nhận lần 1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResetConfirmStep(0)}
+                  className="py-1 px-3 bg-gray-250 text-slate-700 dark:text-slate-350 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
+
+          {currentRoster.length > 0 && resetConfirmStep === 2 && (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-red-900 dark:text-red-300 animate-fadeIn font-extrabold shadow-sm">
+              <span className="text-center font-bold text-[10.5px] text-red-700 dark:text-red-400 leading-snug">
+                🚨 XÁC NHẬN LẦN 2 (CẢNH BÁO): Chắc chắn xóa VĨNH VIỄN?
+              </span>
+              <div className="flex gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isVscTab) {
+                      updateVscSystemAthletesAndKeepSync([]);
+                    } else {
+                      setAthletes([]);
+                    }
+                    setResetConfirmStep(0);
+                    setNotification({
+                      type: "success",
+                      message: "Đã reset sạch sẽ danh sách vận động viên!"
+                    });
+                    setTimeout(() => setNotification(null), 3500);
+                  }}
+                  className="flex-1 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-md transition-colors"
+                >
+                  CÓ, XÓA TOÀN BỘ VĐV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResetConfirmStep(0)}
+                  className="py-1.5 px-3 bg-gray-250 text-slate-700 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Athletes roster */}
         <div className="flex-1 overflow-y-auto space-y-1 my-1 max-h-[500px] pr-1">
