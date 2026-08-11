@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { Athlete, MatchHistoryItem } from "../types";
 import { 
@@ -806,18 +807,19 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       )}
 
       {/* 5. Biography Modal Drawer / Full Details */}
-      {selectedAthlete && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs" id="biography-drawer-overlay">
-          {/* Backdrop overlay */}
-          <div 
-            className="fixed inset-0"
-            onClick={() => setSelectedAthlete(null)}
-          />
-          
+      {selectedAthlete && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100" 
+          id="biography-drawer-overlay"
+          onClick={() => setSelectedAthlete(null)}
+        >
           {/* Main Sheet panel content */}
-          <div className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-950 rounded-2xl shadow-2xl z-[170] flex flex-col text-left overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[90vh] animate-scaleIn">
+          <div 
+            className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-950 rounded-2xl shadow-2xl z-[170] flex flex-col text-left overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[85vh] animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header section with brand accent color */}
-            <div className="bg-[#9c0c13] text-white p-5 flex items-center justify-between shadow-md border-b border-red-800">
+            <div className="bg-[#9c0c13] text-white p-4 sm:p-5 flex items-center justify-between shadow-md border-b border-red-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="bg-white/10 p-2 rounded-xl border border-white/10 shrink-0">
                   <User className="w-5 h-5 text-yellow-300" />
@@ -836,7 +838,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
             </div>
 
             {/* Profile Avatar & Hero Information Card */}
-            <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm text-center relative overflow-hidden">
                 <div className="absolute top-3 right-3 bg-red-50 dark:bg-red-950/25 border border-red-100 dark:border-red-900/30 text-[#9c0c13] dark:text-red-400 text-xs font-black px-2.5 py-1 rounded-lg">
                   {selectedAthlete.id}
@@ -1045,7 +1047,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
             </div>
 
             {/* Pinned Footer for easy closure */}
-            <div className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 flex justify-end shrink-0">
+            <div className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 flex justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedAthlete(null)}
@@ -1055,20 +1057,23 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 6. Form Modal Overlay: Create / Edit VSC Profile */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-[180] flex items-center justify-center p-4" id="profile-form-overlay">
+      {isFormOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100" 
+          id="profile-form-overlay"
+          onClick={() => setIsFormOpen(false)}
+        >
           <div 
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsFormOpen(false)}
-          />
-          
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl z-20 border border-slate-200 dark:border-slate-800 flex flex-col text-left overflow-hidden max-h-[90vh] animate-scaleIn">
+            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl z-20 border border-slate-200 dark:border-slate-800 flex flex-col text-left overflow-hidden max-h-[85vh] animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Form Header */}
-            <div className="bg-[#9c0c13] text-white p-5 flex items-center justify-between">
+            <div className="bg-[#9c0c13] text-white p-4 sm:p-5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Building className="w-5 h-5 text-yellow-300" />
                 <h3 className="text-sm font-black uppercase tracking-wider text-yellow-300">
@@ -1076,6 +1081,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                 </h3>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsFormOpen(false)}
                 className="text-white hover:bg-white/10 p-1.5 rounded-full cursor-pointer"
               >
@@ -1085,187 +1091,186 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
 
             {/* Form Body */}
             <form onSubmit={handleSaveProfile} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
                 {formValidationError && (
                   <div className="bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-bold p-3 rounded-xl border border-rose-100 dark:border-rose-900/30">
                     {formValidationError}
                   </div>
                 )}
 
-              {/* ID and Email (Locked fields for standard users) */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900">
-                <div>
-                  <label className="block text-[9px] font-black uppercase text-slate-450 mb-1">Mã VĐV (Hệ thống)</label>
-                  <input
-                    type="text"
-                    value={formId}
-                    onChange={(e) => userRole === "admin" && setFormId(e.target.value)}
-                    disabled={userRole !== "admin"}
-                    className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs font-black text-slate-850 dark:text-slate-100 focus:outline-none disabled:opacity-70"
-                    placeholder="VSC-XXXX"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-black uppercase text-slate-450 mb-1">Email liên kết</label>
-                  <input
-                    type="email"
-                    value={formEmail}
-                    onChange={(e) => userRole === "admin" && setFormEmail(e.target.value)}
-                    disabled={userRole !== "admin"}
-                    className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs font-bold text-slate-850 dark:text-slate-100 focus:outline-none disabled:opacity-70 truncate"
-                    placeholder="email@vscs.asia"
-                  />
-                </div>
-              </div>
-
-              {/* Personal details fields */}
-              <div className="space-y-3">
-                {/* Full name */}
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Họ và Tên <span className="text-[#9c0c13]">*</span></label>
-                  <input
-                    type="text"
-                    value={formName}
-                    onChange={(e) => !isNameEditDisabled && setFormName(e.target.value)}
-                    required
-                    disabled={isNameEditDisabled}
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13] disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:opacity-75 disabled:cursor-not-allowed"
-                    placeholder="Nguyễn Văn A"
-                  />
-                  {isNameEditDisabled && (
-                    <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-1">
-                      ⚠️ {language === "en" ? "You have already edited your name once. Please contact an Admin for further changes." : "Bạn đã sử dụng hết lượt tự đổi tên (tối đa 1 lần). Vui lòng liên hệ Ban trọng tài/Admin nếu cần sửa đổi thêm."}
-                    </p>
-                  )}
-                </div>
-
-                {/* Club / Team */}
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Câu lạc bộ (Đơn vị)</label>
-                  <input
-                    type="text"
-                    value={formTeam}
-                    onChange={(e) => setFormTeam(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                    placeholder="Ví dụ: 36 Slingshot Club"
-                  />
-                </div>
-
-                {/* Gender, DOB */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* ID and Email (Locked fields for standard users) */}
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900">
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Giới tính</label>
-                    <select
-                      value={formGender}
-                      onChange={(e) => setFormGender(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                    >
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Ngày sinh</label>
-                    <input
-                      type="date"
-                      value={formDob}
-                      onChange={(e) => setFormDob(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                    />
-                  </div>
-                </div>
-
-                {/* Province, Hometown */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Tỉnh thành</label>
+                    <label className="block text-[9px] font-black uppercase text-slate-450 mb-1">Mã VĐV (Hệ thống)</label>
                     <input
                       type="text"
-                      value={formProvince}
-                      onChange={(e) => setFormProvince(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                      placeholder="Thanh Hóa, Hà Nội..."
+                      value={formId}
+                      onChange={(e) => userRole === "admin" && setFormId(e.target.value)}
+                      disabled={userRole !== "admin"}
+                      className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs font-black text-slate-850 dark:text-slate-100 focus:outline-none disabled:opacity-70"
+                      placeholder="VSC-XXXX"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Quê quán</label>
+                    <label className="block text-[9px] font-black uppercase text-slate-450 mb-1">Email liên kết</label>
                     <input
-                      type="text"
-                      value={formHometown}
-                      onChange={(e) => setFormHometown(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                      placeholder="Quảng Xương, Thanh Hóa..."
+                      type="email"
+                      value={formEmail}
+                      onChange={(e) => userRole === "admin" && setFormEmail(e.target.value)}
+                      disabled={userRole !== "admin"}
+                      className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs font-bold text-slate-850 dark:text-slate-100 focus:outline-none disabled:opacity-70 truncate"
+                      placeholder="email@vscs.asia"
                     />
                   </div>
                 </div>
 
-                {/* CCCD ID Card for secure tournament registry */}
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Số CCCD / CMT (Bảo mật - chỉ dùng xác thực thi đấu)</label>
-                  <input
-                    type="text"
-                    value={formIdCard}
-                    onChange={(e) => setFormIdCard(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                    placeholder="Ví dụ: 038012345678"
-                  />
-                </div>
-
-                {/* Custom Profile Avatar Image Selection */}
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-2">Ảnh đại diện</label>
-                  <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900">
-                    <img 
-                      src={formAvatarUrl} 
-                      alt="Avatar preview" 
-                      className="w-14 h-14 rounded-full object-cover border-2 border-red-500 shadow-sm"
-                      referrerPolicy="no-referrer"
+                {/* Personal details fields */}
+                <div className="space-y-3">
+                  {/* Full name */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Họ và Tên <span className="text-[#9c0c13]">*</span></label>
+                    <input
+                      type="text"
+                      value={formName}
+                      onChange={(e) => !isNameEditDisabled && setFormName(e.target.value)}
+                      required
+                      disabled={isNameEditDisabled}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13] disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:opacity-75 disabled:cursor-not-allowed"
+                      placeholder="Nguyễn Văn A"
                     />
-                    <div className="flex-1 flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFormAvatarUrl(AVATAR_MALE)}
-                          className={`px-3 py-1 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
-                            formAvatarUrl === AVATAR_MALE 
-                              ? "bg-[#9c0c13] border-[#9c0c13] text-white" 
-                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                          }`}
-                        >
-                          ♂️ Mặc định Nam
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormAvatarUrl(AVATAR_FEMALE)}
-                          className={`px-3 py-1 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
-                            formAvatarUrl === AVATAR_FEMALE 
-                              ? "bg-pink-500 border-pink-500 text-white" 
-                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                          }`}
-                        >
-                          ♀️ Mặc định Nữ
-                        </button>
+                    {isNameEditDisabled && (
+                      <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-1">
+                        ⚠️ {language === "en" ? "You have already edited your name once. Please contact an Admin for further changes." : "Bạn đã sử dụng hết lượt tự đổi tên (tối đa 1 lần). Vui lòng liên hệ Ban trọng tài/Admin nếu cần sửa đổi thêm."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Club / Team */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Câu lạc bộ (Đơn vị)</label>
+                    <input
+                      type="text"
+                      value={formTeam}
+                      onChange={(e) => setFormTeam(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                      placeholder="Ví dụ: 36 Slingshot Club"
+                    />
+                  </div>
+
+                  {/* Gender, DOB */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Giới tính</label>
+                      <select
+                        value={formGender}
+                        onChange={(e) => setFormGender(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                      >
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Ngày sinh</label>
+                      <input
+                        type="date"
+                        value={formDob}
+                        onChange={(e) => setFormDob(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Province, Hometown */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Tỉnh thành</label>
+                      <input
+                        type="text"
+                        value={formProvince}
+                        onChange={(e) => setFormProvince(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                        placeholder="Thanh Hóa, Hà Nội..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Quê quán</label>
+                      <input
+                        type="text"
+                        value={formHometown}
+                        onChange={(e) => setFormHometown(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                        placeholder="Quảng Xương, Thanh Hóa..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* CCCD ID Card for secure tournament registry */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Số CCCD / CMT (Bảo mật - chỉ dùng xác thực thi đấu)</label>
+                    <input
+                      type="text"
+                      value={formIdCard}
+                      onChange={(e) => setFormIdCard(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                      placeholder="Ví dụ: 038012345678"
+                    />
+                  </div>
+
+                  {/* Custom Profile Avatar Image Selection */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-2">Ảnh đại diện</label>
+                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900">
+                      <img 
+                        src={formAvatarUrl} 
+                        alt="Avatar preview" 
+                        className="w-14 h-14 rounded-full object-cover border-2 border-red-500 shadow-sm"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormAvatarUrl(AVATAR_MALE)}
+                            className={`px-3 py-1 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
+                              formAvatarUrl === AVATAR_MALE 
+                                ? "bg-[#9c0c13] border-[#9c0c13] text-white" 
+                                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                            }`}
+                          >
+                            ♂️ Mặc định Nam
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormAvatarUrl(AVATAR_FEMALE)}
+                            className={`px-3 py-1 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
+                              formAvatarUrl === AVATAR_FEMALE 
+                                ? "bg-pink-500 border-pink-500 text-white" 
+                                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                            }`}
+                          >
+                            ♀️ Mặc định Nữ
+                          </button>
+                        </div>
+                        
+                        {/* Image Upload Input */}
+                        <label className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-center cursor-pointer shadow-xs max-w-[150px]">
+                          📁 Tải ảnh lên...
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarFileChange}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
-                      
-                      {/* Image Upload Input */}
-                      <label className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-center cursor-pointer shadow-xs max-w-[150px]">
-                        📁 Tải ảnh lên...
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarFileChange}
-                          className="hidden"
-                        />
-                      </label>
                     </div>
                   </div>
                 </div>
               </div>
-
-              </div>
               
               {/* Action Buttons (Pinned Footer) */}
-              <div className="flex gap-3 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-850 p-5 shrink-0">
+              <div className="flex gap-3 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-850 p-4 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
@@ -1282,68 +1287,78 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {deletingAthleteId && (() => {
-        const deletingAthlete = systemAthletes.find(a => a.id.toLowerCase() === deletingAthleteId.toLowerCase());
-        return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-fade-in">
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transform transition-all p-6 scale-100">
-              <div className="flex items-center gap-3 text-rose-600 dark:text-rose-500 mb-4">
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/20 rounded-xl">
-                  <Trash2 className="w-6 h-6" />
+      {deletingAthleteId && typeof document !== "undefined" && createPortal(
+        (() => {
+          const deletingAthlete = systemAthletes.find(a => a.id.toLowerCase() === deletingAthleteId.toLowerCase());
+          return (
+            <div 
+              className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs transition-opacity animate-fadeIn text-slate-800 dark:text-slate-100"
+              onClick={() => setDeletingAthleteId(null)}
+            >
+              <div 
+                className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden p-5 sm:p-6 scale-100 animate-scaleIn z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 text-rose-600 dark:text-rose-500 mb-4">
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/20 rounded-xl">
+                    <Trash2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      {language === "en" ? "Delete VSC System Profile" : "Xác nhận xóa Hồ sơ VĐV Hệ Thống"}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                      {language === "en" ? "Irreversible Action" : "Hành động nguy hiểm không thể hoàn tác"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    {language === "en" ? "Delete VSC System Profile" : "Xác nhận xóa Hồ sơ VĐV Hệ Thống"}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                    {language === "en" ? "Irreversible Action" : "Hành động nguy hiểm không thể hoàn tác"}
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-3 mb-6">
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                  {language === "en" 
-                    ? `Are you sure you want to permanently delete the official system profile of athlete `
-                    : `Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ VĐV Hệ Thống chính thức của `}
-                  <span className="font-extrabold text-slate-900 dark:text-white">
-                    {deletingAthlete?.name || deletingAthleteId}
-                  </span>{" "}
-                  ({deletingAthleteId})?
-                </p>
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl p-3">
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold leading-relaxed">
-                    ⚠️ {language === "en"
-                      ? "All bio history, match logs, and stats linked with this profile on the National VSC system will be permanently purged."
-                      : "Toàn bộ lịch sử hoạt động, thành tích thi đấu và thống kê liên quan của VĐV này trên hệ thống VSC quốc gia sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu."}
+                <div className="space-y-3 mb-6">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                    {language === "en" 
+                      ? `Are you sure you want to permanently delete the official system profile of athlete `
+                      : `Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ VĐV Hệ Thống chính thức của `}
+                    <span className="font-extrabold text-slate-900 dark:text-white">
+                      {deletingAthlete?.name || deletingAthleteId}
+                    </span>{" "}
+                    ({deletingAthleteId})?
                   </p>
+                  <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl p-3">
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold leading-relaxed">
+                      ⚠️ {language === "en"
+                        ? "All bio history, match logs, and stats linked with this profile on the National VSC system will be permanently purged."
+                        : "Toàn bộ lịch sử hoạt động, thành tích thi đấu và thống kê liên quan của VĐV này trên hệ thống VSC quốc gia sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu."}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDeletingAthleteId(null)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer text-center"
-                >
-                  {language === "en" ? "Cancel" : "Hủy bỏ"}
-                </button>
-                <button
-                  type="button"
-                  onClick={executeDeleteProfile}
-                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer text-center shadow-md border border-rose-700"
-                >
-                  {language === "en" ? "Delete Permanently" : "Xóa vĩnh viễn"}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeletingAthleteId(null)}
+                    className="flex-1 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer text-center"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={executeDeleteProfile}
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer text-center shadow-md border border-rose-700"
+                  >
+                    {language === "en" ? "Delete Permanently" : "Xóa vĩnh viễn"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })(),
+        document.body
+      )}
 
     </div>
   );

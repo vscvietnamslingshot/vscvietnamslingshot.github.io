@@ -101,7 +101,7 @@ service cloud.firestore {
 
     match /vsc_system_athletes/{documentId} {
       allow read: if true;
-      allow write: if isEmailVerified() && isValidId(documentId) && isAdmin() && isValidVscSystemAthletes(incoming());
+      allow write: if isEmailVerified() && isValidId(documentId) && isValidVscSystemAthletes(incoming());
     }
 
     // --- VSC Official System Clubs ---
