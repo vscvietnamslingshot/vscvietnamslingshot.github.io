@@ -88,6 +88,18 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
 
   // Subscriptions
   useEffect(() => {
+    // Prevent body background scroll when any directory modal is open
+    if (selectedAthlete || isFormOpen || deletingAthleteId) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedAthlete, isFormOpen, deletingAthleteId]);
+
+  useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     setLoading(true);
     try {
@@ -809,13 +821,13 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       {/* 5. Biography Modal Drawer / Full Details */}
       {selectedAthlete && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100" 
+          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-fadeIn text-slate-800 dark:text-slate-100" 
           id="biography-drawer-overlay"
           onClick={() => setSelectedAthlete(null)}
         >
           {/* Main Sheet panel content */}
           <div 
-            className="relative w-full max-w-2xl bg-slate-50 dark:bg-slate-950 rounded-2xl shadow-2xl z-[170] flex flex-col text-left overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[85vh] animate-scaleIn"
+            className="relative my-auto w-full max-w-2xl bg-slate-50 dark:bg-slate-950 rounded-2xl shadow-2xl z-[170] flex flex-col text-left overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[85vh] shrink-0 animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header section with brand accent color */}
@@ -1064,12 +1076,12 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       {/* 6. Form Modal Overlay: Create / Edit VSC Profile */}
       {isFormOpen && typeof document !== "undefined" && createPortal(
         <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100" 
+          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-fadeIn text-slate-800 dark:text-slate-100" 
           id="profile-form-overlay"
           onClick={() => setIsFormOpen(false)}
         >
           <div 
-            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl z-20 border border-slate-200 dark:border-slate-800 flex flex-col text-left overflow-hidden max-h-[85vh] animate-scaleIn"
+            className="relative my-auto bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl z-20 border border-slate-200 dark:border-slate-800 flex flex-col text-left overflow-hidden max-h-[85vh] shrink-0 animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Form Header */}
@@ -1297,11 +1309,11 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
           const deletingAthlete = systemAthletes.find(a => a.id.toLowerCase() === deletingAthleteId.toLowerCase());
           return (
             <div 
-              className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs transition-opacity animate-fadeIn text-slate-800 dark:text-slate-100"
+              className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto transition-opacity animate-fadeIn text-slate-800 dark:text-slate-100"
               onClick={() => setDeletingAthleteId(null)}
             >
               <div 
-                className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden p-5 sm:p-6 scale-100 animate-scaleIn z-10"
+                className="relative my-auto w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden p-5 sm:p-6 scale-100 shrink-0 animate-scaleIn z-10"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3 text-rose-600 dark:text-rose-500 mb-4">

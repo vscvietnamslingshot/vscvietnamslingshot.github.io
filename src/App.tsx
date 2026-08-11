@@ -6167,7 +6167,7 @@ export default function App() {
           {activeTab === "vsc_system_directory" && (
             <VscSystemDirectory
               currentUser={currentUser}
-              userRole={userRole}
+              userRole={isGlobalAdmin ? "admin" : "user"}
               history={history}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
             />
