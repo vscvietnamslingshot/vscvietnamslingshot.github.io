@@ -390,17 +390,20 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setDuplicateSysMatch(null);
     setIsConfirmingDelete(false);
 
-    // Generate automatic unique ID string skipping any existing IDs
+    // Generate automatic unique ID string skipping any existing IDs in VSC-XXXX format
     let nextIdNum = 1;
     const allExistingIds = new Set([
       ...currentRoster.map((a) => a.id.trim().toLowerCase()),
       ...vscSystemAthletes.map((a) => a.id.trim().toLowerCase()),
       ...(currentActiveAthletes || []).map((a) => a.id.trim().toLowerCase()),
     ]);
-    while (allExistingIds.has(nextIdNum.toString().padStart(4, "0").toLowerCase())) {
+    while (
+      allExistingIds.has(`vsc-${nextIdNum.toString().padStart(4, "0")}`) ||
+      allExistingIds.has(nextIdNum.toString().padStart(4, "0"))
+    ) {
       nextIdNum++;
     }
-    const finalIdStr = nextIdNum.toString().padStart(4, "0");
+    const finalIdStr = `VSC-${nextIdNum.toString().padStart(4, "0")}`;
 
     setFormId(finalIdStr);
     setFormName("");

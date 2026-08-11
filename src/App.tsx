@@ -57,6 +57,7 @@ import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { MemberManagementPanel } from "./components/MemberManagementPanel";
+import { VscSystemDirectory } from "./components/VscSystemDirectory";
 import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart, Menu } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
@@ -803,7 +804,7 @@ export default function App() {
 
         // 2. Active Tab
         const tabParam = params.get("tab");
-        const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv"];
+        const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory"];
         if (tabParam && allowedTabs.includes(tabParam)) {
           setActiveTab(tabParam as any);
         } else {
@@ -959,11 +960,11 @@ export default function App() {
     }
   }, [masterAthletes]);
 
-  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel" | "qltv">(() => {
+  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel" | "qltv" | "vsc_system_directory">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv"];
+      const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory"];
       if (tabParam && allowedTabs.includes(tabParam)) {
         return tabParam as any;
       }
@@ -1040,7 +1041,7 @@ export default function App() {
 
   // Keep non-logged in guests restricted to public-facing viewing tabs
   useEffect(() => {
-    if (!currentUser && !["home", "dashboard", "leaderboard", "teams"].includes(activeTab)) {
+    if (!currentUser && !["home", "dashboard", "leaderboard", "teams", "vsc_system_directory"].includes(activeTab)) {
       setActiveTab("home");
     }
   }, [currentUser, activeTab]);
@@ -1094,7 +1095,7 @@ export default function App() {
     // SAFETY CHECK: If re-selecting the EXACT SAME tournament that is already active, DO NOT reset state!
     if (activeHistoryId && activeHistoryId === targetId) {
       if (targetId) {
-        setActiveTab(resolvedTargetTab);
+        setActiveTab(resolvedTargetTab as any);
       }
       return;
     }
@@ -1158,7 +1159,7 @@ export default function App() {
 
     setActiveHistoryId(targetId);
     if (targetId) {
-      setActiveTab(resolvedTargetTab);
+      setActiveTab(resolvedTargetTab as any);
     }
   };
 
@@ -1230,7 +1231,7 @@ export default function App() {
   }, []);
 
   const changeTab = (targetTab: string) => {
-    setActiveTab(targetTab);
+    setActiveTab(targetTab as any);
   };
 
   const changeExitTournament = async (filter: "all" | "all_list" | "active" | "followed" = "all") => {
@@ -1514,6 +1515,11 @@ export default function App() {
       description = isEng
         ? "Manage your credentials, host new online championships, authorize sub-admins, and oversee referee activities."
         : "Trang cá nhân của Ban tổ chức. Tạo giải đấu online mới, phân quyền trợ lý, giám sát trọng tài và chỉnh sửa thông tin.";
+    } else if (activeTab === "vsc_system_directory") {
+      title = isEng ? "VSC | National Athletes Database Directory" : "VSC | Danh Sách VĐV Hệ Thống Quốc Gia";
+      description = isEng
+        ? "Official verified database of professional slingshot competitors with long-term profiles and match histories."
+        : "Cơ sở dữ liệu chính thức lưu giữ chỉ số chuyên môn, định mức phân cấp và hồ sơ thành tích thi đấu của toàn bộ các vận động viên Ná cao su chuyên nghiệp VSC Việt Nam.";
     }
 
     // Set Document Title
@@ -3129,7 +3135,7 @@ export default function App() {
     // Handle any pending tab changes instantly
     if (pendingTabTarget) {
       if (pendingTabTarget.type === "tab") {
-        setActiveTab(pendingTabTarget.value || "dashboard");
+        setActiveTab((pendingTabTarget.value as any) || "dashboard");
       } else if (pendingTabTarget.type === "exit") {
         handleExitTournament((pendingTabTarget.value as any) || "all");
       } else if (pendingTabTarget.type === "select_tour") {
@@ -4539,6 +4545,18 @@ export default function App() {
                 </>
               )}
 
+              <button
+                onClick={() => {
+                  changeTab("vsc_system_directory");
+                }}
+                className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                  activeTab === "vsc_system_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                }`}
+              >
+                <Users className="w-4 h-4 text-amber-300" />
+                {language === "en" ? "System Athletes" : "VĐV Hệ Thống"}
+              </button>
+
               {activeHistoryId && (
                 <button
                   onClick={() => changeTab("dashboard")}
@@ -4997,6 +5015,22 @@ export default function App() {
                   >
                     <Heart className="w-4 h-4 shrink-0 text-rose-500 fill-rose-500/10" />
                     <span>{language === "en" ? "Followed Tournaments" : "Giải Đang Theo Dõi"}</span>
+                  </button>
+
+                  {/* VSC System Athletes Directory */}
+                  <button
+                    onClick={() => {
+                      changeTab("vsc_system_directory");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "vsc_system_directory"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>{language === "en" ? "System Athletes" : "VĐV Hệ Thống VSC"}</span>
                   </button>
 
                   {/* Create Tournament */}
@@ -6129,6 +6163,16 @@ export default function App() {
             />
           )}
 
+          {/* TAB 7: VSC SYSTEM ATHLETES DIRECTORY PORTAL */}
+          {activeTab === "vsc_system_directory" && (
+            <VscSystemDirectory
+              currentUser={currentUser}
+              userRole={userRole}
+              history={history}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            />
+          )}
+
         </div>
 
       </main>
@@ -6807,7 +6851,7 @@ export default function App() {
 
                   if (pendingTabTarget) {
                     if (pendingTabTarget.type === "tab") {
-                      setActiveTab(pendingTabTarget.value || "dashboard");
+                      setActiveTab((pendingTabTarget.value as any) || "dashboard");
                     } else if (pendingTabTarget.type === "exit") {
                       handleExitTournament((pendingTabTarget.value as any) || "all");
                     } else if (pendingTabTarget.type === "select_tour") {

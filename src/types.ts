@@ -34,6 +34,7 @@ export interface Athlete {
   status?: string; // "Thi đấu" | "Bỏ thi"
   email?: string; // Cloud Account email
   calledBy?: string; // Email of referee who called / is scoring this athlete
+  nameEditCount?: number; // Number of times the name has been edited in system
 }
 
 export interface MatchHistoryItem {
