@@ -31,6 +31,45 @@ import {
 } from "lucide-react";
 import { AVATAR_MALE, AVATAR_FEMALE } from "./AthleteManagement";
 
+const compressImage = (base64Str: string, maxWidth = 180, maxHeight = 180): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith("data:image")) {
+      resolve(base64Str);
+      return;
+    }
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
+
 interface VscSystemDirectoryProps {
   currentUser: any;
   userRole: string;
@@ -75,6 +114,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
   const [formAvatarUrl, setFormAvatarUrl] = useState(AVATAR_MALE);
   const [formEmail, setFormEmail] = useState("");
   const [formValidationError, setFormValidationError] = useState("");
+  const [isCompressingAvatar, setIsCompressingAvatar] = useState(false);
 
   const isNameEditDisabled = useMemo(() => {
     if (formMode !== "edit") return false;
@@ -297,6 +337,16 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       }
     }
 
+    // Ensure avatar image is compressed before saving to avoid payload limit
+    let finalAvatarUrl = formAvatarUrl;
+    if (finalAvatarUrl && finalAvatarUrl.startsWith("data:image")) {
+      try {
+        finalAvatarUrl = await compressImage(finalAvatarUrl, 180, 180);
+      } catch (e) {
+        console.warn("Avatar compression before save skipped:", e);
+      }
+    }
+
     // Build saved athlete object
     const updatedAthlete: Athlete = {
       id: trimmedId,
@@ -309,7 +359,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       province: formProvince.trim(),
       country: "Việt Nam",
       countryCode: "VN",
-      avatarUrl: formAvatarUrl,
+      avatarUrl: finalAvatarUrl,
       email: formEmail.trim().toLowerCase(),
       status: "Thi đấu",
       scores: {}, // Empty baseline scores for system profile template
@@ -464,15 +514,43 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
     };
   }, [selectedAthlete, history]);
 
-  // Image upload handling
+  // Image upload handling with compression (prevents Firestore payload size limit errors)
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 15 * 1024 * 1024) {
+      setFormValidationError(
+        language === "en" 
+          ? "Image file is too large (maximum 15MB)." 
+          : "Tệp ảnh quá lớn (tối đa 15MB)."
+      );
+      return;
+    }
+
+    setIsCompressingAvatar(true);
+    setFormValidationError("");
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setFormAvatarUrl(base64);
+    reader.onload = async (event) => {
+      try {
+        const rawBase64 = event.target?.result as string;
+        const compressedBase64 = await compressImage(rawBase64, 180, 180);
+        setFormAvatarUrl(compressedBase64);
+      } catch (err) {
+        console.error("Failed to compress avatar:", err);
+        setFormValidationError(
+          language === "en" ? "Failed to process image file." : "Không thể xử lý tệp ảnh này."
+        );
+      } finally {
+        setIsCompressingAvatar(false);
+      }
+    };
+    reader.onerror = () => {
+      setIsCompressingAvatar(false);
+      setFormValidationError(
+        language === "en" ? "Error reading image file." : "Lỗi khi đọc tệp ảnh."
+      );
     };
     reader.readAsDataURL(file);
   };
@@ -1266,12 +1344,22 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                         </div>
                         
                         {/* Image Upload Input */}
-                        <label className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-center cursor-pointer shadow-xs max-w-[150px]">
-                          📁 Tải ảnh lên...
+                        <label className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg text-center cursor-pointer shadow-xs max-w-[170px] inline-flex items-center justify-center gap-1.5">
+                          {isCompressingAvatar ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 animate-spin text-[#9c0c13]" />
+                              <span>{language === "en" ? "Compressing..." : "Đang nén..."}</span>
+                            </>
+                          ) : (
+                            <>
+                              📁 {language === "en" ? "Upload avatar..." : "Tải ảnh lên..."}
+                            </>
+                          )}
                           <input
                             type="file"
                             accept="image/*"
                             onChange={handleAvatarFileChange}
+                            disabled={isCompressingAvatar}
                             className="hidden"
                           />
                         </label>
