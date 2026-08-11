@@ -1523,10 +1523,34 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 <th className="p-3 text-center w-[130px]">
                   {language === "en" ? "Status" : "Trạng thái"}
                 </th>
-                <th className="p-3 text-center">
-                  {isPointModeActive 
-                    ? (language === "en" ? "Round Details (Points / Max)" : "Chi tiết cự ly (Điểm / Tối đa)") 
-                    : (language === "en" ? "Round Details (Hits / Shots)" : "Chi tiết cự ly (Trúng / Lượt)")}
+                <th className="p-3 text-left">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-center w-full mb-1 block">
+                      {isPointModeActive 
+                        ? (language === "en" ? "Round Details (Points / Max)" : "Chi tiết cự ly (Điểm / Tối đa)") 
+                        : (language === "en" ? "Round Details (Hits / Shots)" : "Chi tiết cự ly (Trúng / Lượt)")}
+                    </span>
+                    {shotsCount > 1 && (
+                      <div className="flex items-center gap-2 mt-1.5 border-t border-gray-200/60 dark:border-slate-700/60 pt-1.5">
+                        <div className="w-20 sm:w-24 shrink-0 text-[10px] uppercase font-bold text-gray-400 dark:text-slate-500 text-left">
+                          {language === "en" ? "Distance" : "Cự ly"}
+                        </div>
+                        <div 
+                          className="grid gap-1"
+                          style={{ gridTemplateColumns: `repeat(${Math.min(10, shotsCount)}, minmax(0, 1fr))` }}
+                        >
+                          {Array.from({ length: Math.min(10, shotsCount) }).map((_, idx) => (
+                            <div 
+                              key={idx} 
+                              className="w-[22px] text-[10px] font-black font-mono text-gray-500 dark:text-slate-400 text-center"
+                            >
+                              V{idx + 1}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </th>
                 <th className="p-3 text-center cursor-pointer hover:bg-gray-200/50 dark:hover:bg-slate-750/50" onClick={() => handleSort("accuracy")}>
                   <div className="flex items-center justify-center gap-1">
@@ -1745,7 +1769,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   
                     {/* Detailed points per distance */}
                     <td className={`${cellPaddingClass} ${individualCellBorderClass}`}>
-                      <div className="flex flex-wrap justify-center gap-1.5">
+                      <div className="flex flex-col gap-2 w-full text-left min-w-[280px]">
                         {(() => {
                           const shotQualifiedRows = athlete.breakdown.filter((row) => {
                             if (!row.isQualified) return false;
@@ -1768,7 +1792,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
                           if (shownBreakdown.length === 0) {
                             return (
-                              <span className="text-gray-400 dark:text-slate-500 italic text-xs py-0.5 select-none font-medium">
+                              <span className="text-gray-400 dark:text-slate-500 italic text-xs py-0.5 select-none font-medium text-center block w-full">
                                 {language === "en" ? "no data" : "chưa có dữ liệu"}
                               </span>
                             );
@@ -1777,79 +1801,142 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                           return shownBreakdown.map((row, index) => {
                             const distConfig = distances.find(d => d.id === row.distanceId) || distances.find(d => d.distance === row.distanceName);
                             const rIdx = distConfig ? distances.findIndex(d => d.id === distConfig.id) : -1;
-                            const vPrefix = rIdx !== -1 ? `V${rIdx + 1} - ` : "";
+                            const vPrefix = rIdx !== -1 ? `V${rIdx + 1}` : "";
                             const soloVal = distConfig && athlete.soloHits?.[distConfig.id];
+
+                            if (!row.isQualified) {
+                              return (
+                                <div 
+                                  key={row.distanceId || row.distanceName || index}
+                                  className="flex items-center gap-2 border-b border-gray-100 dark:border-slate-800/60 last:border-0 pb-1.5 last:pb-0 mb-1 last:mb-0 opacity-50"
+                                >
+                                  <div className="w-20 sm:w-24 shrink-0 flex flex-col justify-center min-w-0">
+                                    <span className="text-[11px] font-bold text-red-500 line-through truncate">
+                                      {vPrefix ? `${vPrefix}: ` : ""}{row.distanceName}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] font-bold uppercase text-red-500 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900/40">
+                                    {language === "en" ? "Eliminated" : "Bị loại"}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (shotsCount === 1) {
+                              return (
+                                <div 
+                                  key={row.distanceId || row.distanceName || index}
+                                  className="flex items-center justify-between gap-3 w-full border-b border-gray-100 dark:border-slate-800/60 last:border-0 pb-1.5 last:pb-0 mb-1 last:mb-0"
+                                >
+                                  <span className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+                                    {vPrefix ? `${vPrefix}: ` : ""}{row.distanceName}
+                                  </span>
+                                  <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-md border border-blue-200 dark:border-blue-900/60 font-black font-mono text-xs shadow-xs min-w-[50px] text-center">
+                                    {row.hitCount}{isPointModeActive ? "đ" : "v"}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            const athleteScores = athlete.scores[row.distanceId] || [];
+
                             return (
                               <div 
                                 key={row.distanceId || row.distanceName || index}
-                                className={`text-xs px-2 py-1 rounded flex items-center gap-1.5 font-mono shadow-sm border ${
-                                  !row.isQualified 
-                                    ? "bg-red-50 text-red-500 border-red-200 line-through opacity-70"
-                                    : isTop1
-                                      ? "bg-amber-500/[0.02] text-amber-900 border-amber-300/30"
-                                      : "bg-slate-100 text-slate-850 border-transparent text-gray-700 bg-gray-100"
-                                }`}
-                                title={!row.isQualified 
-                                  ? (language === "en" ? "Eliminated, not allowed in this distance" : "Bị loại, không có quyền tham gia cự ly này") 
-                                  : (language === "en" ? `Multiplier: x${row.multiplier}` : `Hệ số: x${row.multiplier}`)}
+                                className="flex items-start gap-2 border-b border-gray-100 dark:border-slate-800/60 last:border-0 pb-1.5 last:pb-0 mb-1 last:mb-0"
                               >
-                                <span className="font-semibold text-gray-650 font-sans">{vPrefix}{row.distanceName}:</span>
-                                {!row.isQualified ? (
-                                  <span className="text-[10px] font-bold uppercase text-red-500">Out</span>
-                                ) : (
-                                  <>
-                                    <span className="font-bold text-indigo-700">{row.hitCount}</span>
-                                    <span className="text-gray-400">/</span>
-                                    <span className="text-gray-500">{row.maxHits}{isPointModeActive ? (language === "en" ? "pts" : "đ") : (language === "en" ? "sh" : "v")}</span>
-                                    <span className="bg-indigo-50 px-1 rounded text-[10px] font-bold text-indigo-600">
-                                      +{row.score}{language === "en" ? "pts" : "đ"}
+                                {/* Left part: label of same width as header */}
+                                <div className="w-20 sm:w-24 shrink-0 flex flex-col justify-center min-w-0">
+                                  <span className="text-[11px] font-bold text-gray-800 dark:text-slate-200 truncate">
+                                    {vPrefix ? `${vPrefix}: ` : ""}{row.distanceName}
+                                  </span>
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 font-mono">
+                                      {row.hitCount}/{row.maxHits}{isPointModeActive ? "đ" : "v"}
                                     </span>
-                                    {(() => {
-                                      if (!distConfig || !distConfig.isSolo) {
-                                        return null;
-                                      }
-                                      const hasSoloValue = athlete.soloHits?.[distConfig.id] !== undefined && athlete.soloHits?.[distConfig.id] !== null;
-                                      if (!hasSoloValue) {
-                                        return null;
-                                      }
-                                      const rawRounds = athlete.soloRounds?.[distConfig.id];
-                                      const rounds = Array.isArray(rawRounds)
-                                        ? rawRounds
-                                        : (rawRounds && typeof rawRounds === 'object' ? Object.values(rawRounds) : null);
-                                      if (rounds && rounds.length > 0) {
-                                        return rounds.map((rVal: any, idx) => {
-                                          let hitCount = 0;
-                                          if (Array.isArray(rVal)) {
-                                            hitCount = rVal.filter(v => v === true || v === 'true').length;
-                                          } else if (rVal && typeof rVal === 'object') {
-                                            hitCount = Object.values(rVal).filter(v => v === true || v === 'true').length;
-                                          } else if (typeof rVal === 'number') {
-                                            hitCount = rVal;
-                                          }
-                                          return (
-                                            <span 
-                                              key={idx} 
-                                              className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-[9px] font-black border border-purple-200 whitespace-nowrap" 
-                                              title={language === "en" ? `Solo Round ${idx + 1} Score` : `Điểm Solo Lần ${idx + 1}`}
-                                            >
-                                              🎯S{idx + 1}:{hitCount}
-                                            </span>
-                                          );
-                                        });
-                                      } else if (soloVal !== undefined && soloVal !== null) {
-                                        return (
-                                          <span 
-                                            className="bg-purple-100 text-purple-700 px-1 py-0.5 rounded text-[9px] font-black border border-purple-200 whitespace-nowrap" 
-                                            title={language === "en" ? "Solo Shootout Score" : "Điểm Solo Shootout"}
-                                          >
-                                            🎯S:{soloVal}
-                                          </span>
-                                        );
-                                      }
+                                    <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold font-mono">
+                                      +{row.score}đ
+                                    </span>
+                                  </div>
+
+                                  {/* Solo shootout hits if any */}
+                                  {(() => {
+                                    if (!distConfig || !distConfig.isSolo) {
                                       return null;
-                                    })()}
-                                  </>
-                                )}
+                                    }
+                                    const hasSoloValue = athlete.soloHits?.[distConfig.id] !== undefined && athlete.soloHits?.[distConfig.id] !== null;
+                                    if (!hasSoloValue) {
+                                      return null;
+                                    }
+                                    const rawRounds = athlete.soloRounds?.[distConfig.id];
+                                    const rounds = Array.isArray(rawRounds)
+                                      ? rawRounds
+                                      : (rawRounds && typeof rawRounds === 'object' ? Object.values(rawRounds) : null);
+                                    
+                                    return (
+                                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                        {rounds && rounds.length > 0 ? (
+                                          rounds.map((rVal: any, idx) => {
+                                            let hitCount = 0;
+                                            if (Array.isArray(rVal)) {
+                                              hitCount = rVal.filter(v => v === true || v === 'true').length;
+                                            } else if (rVal && typeof rVal === 'object') {
+                                              hitCount = Object.values(rVal).filter(v => v === true || v === 'true').length;
+                                            } else if (typeof rVal === 'number') {
+                                              hitCount = rVal;
+                                            }
+                                            return (
+                                              <span 
+                                                key={idx} 
+                                                className="bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-0.5 py-0.2 rounded text-[8px] font-black border border-purple-200 dark:border-purple-900 whitespace-nowrap" 
+                                                title={language === "en" ? `Solo Round ${idx + 1} Score` : `Điểm Solo Lần ${idx + 1}`}
+                                              >
+                                                🎯S{idx + 1}:{hitCount}
+                                              </span>
+                                            );
+                                          })
+                                        ) : (
+                                          soloVal !== undefined && soloVal !== null && (
+                                            <span 
+                                              className="bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-0.5 py-0.2 rounded text-[8px] font-black border border-purple-200 dark:border-purple-900 whitespace-nowrap" 
+                                              title={language === "en" ? "Solo Shootout Score" : "Điểm Solo Shootout"}
+                                            >
+                                              🎯S:{soloVal}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+
+                                {/* Right part: grid of shot boxes */}
+                                <div 
+                                  className="grid gap-1 shrink-0"
+                                  style={{ gridTemplateColumns: `repeat(${Math.min(10, shotsCount)}, minmax(0, 1fr))` }}
+                                >
+                                  {Array.from({ length: shotsCount }).map((_, shotIdx) => {
+                                    const shotVal = athleteScores[shotIdx];
+                                    const isHit = shotVal === true;
+                                    const isMiss = shotVal === false;
+
+                                    return (
+                                      <div 
+                                        key={shotIdx}
+                                        className={`w-[22px] h-[22px] rounded flex items-center justify-center font-bold text-[10px] font-mono select-none border shadow-xs/5 transition-all duration-150 ${
+                                          isHit 
+                                            ? "bg-blue-600 border-blue-700 text-white dark:bg-blue-700 dark:border-blue-800" 
+                                            : isMiss
+                                              ? "bg-rose-600 border-rose-700 text-white dark:bg-rose-700 dark:border-rose-800"
+                                              : "bg-gray-100 border-gray-200 text-gray-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
+                                        }`}
+                                        title={language === "en" ? `Shot ${shotIdx + 1}` : `Viên ${shotIdx + 1}`}
+                                      >
+                                        {isHit ? "V" : isMiss ? "X" : "-"}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             );
                           });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList } from "../types";
-import { Settings, Plus, Edit2, Trash2, Calendar, FileDown, FileUp, RefreshCw, Trophy, Bolt, PlusCircle, Smartphone, CheckCircle, Users, Lock, Unlock, X, AlertTriangle, Shield } from "lucide-react";
+import { Settings, Plus, Edit2, Trash2, Calendar, FileDown, FileUp, RefreshCw, Trophy, Target, PlusCircle, Smartphone, CheckCircle, Users, Lock, Unlock, X, AlertTriangle, Shield } from "lucide-react";
 import { getHitCount } from "../utils/qualification";
 import { auth } from "../firebase";
 import { createOnlineTournament, updateOnlineTournament } from "../lib/firebaseService";
@@ -1348,7 +1348,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       {tournamentType !== "team" && (
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-950 dark:text-white flex items-center gap-2 border-b pb-2 mb-1 uppercase tracking-wide">
-          <Bolt className="w-4.5 h-4.5 text-blue-600" />
+          <Target className="w-4.5 h-4.5 text-blue-600" />
           {language === "en" ? "Individual Distance" : "Cự Ly Cá Nhân"}
         </h3>
 
