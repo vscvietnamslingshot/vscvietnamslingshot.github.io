@@ -4,7 +4,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { Athlete, MatchHistoryItem } from "../types";
 import { 
   subscribeToVscSystemAthletes, 
-  saveVscSystemAthletes 
+  saveVscSystemAthletes,
+  updateUserProfile
 } from "../lib/firebaseService";
 import { 
   Search, 
@@ -377,6 +378,24 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
 
     try {
       await saveVscSystemAthletes(newSystemList);
+
+      // Sync with Control Panel User Profile if the email belongs to the current user
+      if (currentUser && currentUser.email && updatedAthlete.email.trim().toLowerCase() === currentUser.email.trim().toLowerCase()) {
+        try {
+          await updateUserProfile(currentUser.uid, {
+            displayName: updatedAthlete.name,
+            cccd: updatedAthlete.idCard,
+            birthDate: updatedAthlete.dob,
+            address: updatedAthlete.hometown,
+            province: updatedAthlete.province,
+            club: updatedAthlete.team,
+            avatarUrl: updatedAthlete.avatarUrl
+          });
+        } catch (syncErr) {
+          console.warn("Failed to sync profile back to Control Panel user doc:", syncErr);
+        }
+      }
+
       setIsFormOpen(false);
       // If editing currently viewed biography, update it too
       if (selectedAthlete && selectedAthlete.id.toLowerCase() === updatedAthlete.id.toLowerCase()) {

@@ -6,6 +6,8 @@ import {
   createOnlineTournament,
   getUserProfile,
   updateUserProfile,
+  getVscSystemAthletes,
+  saveVscSystemAthletes,
   TournamentData 
 } from "../lib/firebaseService";
 import { auth } from "../firebase";
@@ -466,6 +468,37 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       }
 
       await updateUserProfile(currentUser.uid, payload);
+      
+      // Sync to VSC System Athletes list
+      try {
+        const athletes = await getVscSystemAthletes();
+        const userEmailLower = currentUser.email?.trim().toLowerCase();
+        if (userEmailLower) {
+          const existingIndex = athletes.findIndex(
+            (a) => a.email && a.email.trim().toLowerCase() === userEmailLower
+          );
+
+          if (existingIndex !== -1) {
+            // Update existing profile
+            const existingAthlete = athletes[existingIndex];
+            const finalNameEditCount = (existingAthlete.nameEditCount || 0) + (isNameChanged ? 1 : 0);
+            athletes[existingIndex] = {
+              ...existingAthlete,
+              name: dispName.trim(),
+              idCard: idCard.trim(),
+              dob: birthDate,
+              hometown: address.trim(),
+              province: province.trim(),
+              team: clubName.trim() || existingAthlete.team || (language === "en" ? "Independent" : "Tự do"),
+              avatarUrl: avatarUrl,
+              nameEditCount: finalNameEditCount
+            };
+            await saveVscSystemAthletes(athletes);
+          }
+        }
+      } catch (syncErr) {
+        console.error("Failed to sync profile to VSC system directory:", syncErr);
+      }
       
       // Update local profile representation
       setProfile((prev: any) => ({
