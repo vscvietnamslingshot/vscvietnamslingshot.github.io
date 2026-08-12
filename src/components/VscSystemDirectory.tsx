@@ -75,6 +75,7 @@ interface VscSystemDirectoryProps {
   currentUser: any;
   userRole: string;
   history: MatchHistoryItem[];
+  onlineTournaments?: any[];
   onOpenAuthModal: () => void;
 }
 
@@ -82,6 +83,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
   currentUser,
   userRole,
   history,
+  onlineTournaments = [],
   onOpenAuthModal
 }) => {
   const { language } = useLanguage();
@@ -432,9 +434,10 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
   const athleteStats = useMemo(() => {
     if (!selectedAthlete) return null;
     const athleteIdLower = selectedAthlete.id.trim().toLowerCase();
+    const athleteNameLower = selectedAthlete.name.trim().toLowerCase();
     const athleteEmailLower = selectedAthlete.email?.trim().toLowerCase() || "";
 
-    // Gather all matching participations across historical tournaments
+    // Gather all matching participations across online tournaments
     const participations: {
       matchName: string;
       date: string;
@@ -448,22 +451,49 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
     let totalMatchHits = 0;
     let highestRank = 9999;
 
-    history.forEach((match) => {
-      // Find matches where this athlete participated
-      const isSoloMatch = match.athletes || [];
-      const isTeamMatch = match.teamAthletes || [];
-      
-      const foundInSolo = isSoloMatch.find(
-        (a) => a.id.trim().toLowerCase() === athleteIdLower ||
-               (athleteEmailLower && a.email?.trim().toLowerCase() === athleteEmailLower)
-      );
+    const getTournamentDateString = (tour: any, lang: string) => {
+      if (tour.date) return tour.date;
+      if (tour.startDate) return tour.startDate;
+      if (tour.createdAt) {
+        try {
+          const dateObj = typeof tour.createdAt.toDate === "function" 
+            ? tour.createdAt.toDate() 
+            : (tour.createdAt.seconds ? new Date(tour.createdAt.seconds * 1000) : new Date(tour.createdAt));
+          return dateObj.toLocaleDateString(lang === "en" ? "en-US" : "vi-VN");
+        } catch (e) {
+          return "---";
+        }
+      }
+      return "---";
+    };
 
-      const foundInTeam = isTeamMatch.find(
-        (a) => a.id.trim().toLowerCase() === athleteIdLower ||
-               (athleteEmailLower && a.email?.trim().toLowerCase() === athleteEmailLower)
-      );
+    const seenMatchKeys = new Set<string>();
+    const allMatches = onlineTournaments || [];
 
-      const targetAthleteData = foundInSolo || foundInTeam;
+    allMatches.forEach((match) => {
+      if (!match) return;
+      const matchDateStr = getTournamentDateString(match, language || "vi");
+      const compositeKey = `${match.id || ""}-${match.matchName || ""}-${matchDateStr}`.trim().toLowerCase();
+      if (seenMatchKeys.has(compositeKey)) return;
+      seenMatchKeys.add(compositeKey);
+
+      const soloList = match.athletes || [];
+      const teamList = match.teamAthletes || [];
+      const masterSoloList = match.masterAthletes || [];
+      const masterTeamList = match.teamMasterAthletes || [];
+
+      const findAthlete = (list: any[]) => {
+        return list.find(
+          (a: any) => a.id.trim().toLowerCase() === athleteIdLower
+        );
+      };
+
+      const foundSolo = findAthlete(soloList);
+      const foundTeam = findAthlete(teamList);
+      const foundMasterSolo = findAthlete(masterSoloList);
+      const foundMasterTeam = findAthlete(masterTeamList);
+
+      const targetAthleteData = foundSolo || foundTeam || foundMasterSolo || foundMasterTeam;
 
       if (targetAthleteData) {
         // Calculate shots and hits in this tournament
@@ -481,11 +511,15 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
         }
 
         // Calculate rank in this tournament
-        // We can sort athletes in this match to find rank
         let rank = 1;
-        const allAthletesInMatch = foundInSolo ? isSoloMatch : isTeamMatch;
-        const sortedScores = allAthletesInMatch
-          .map((ath) => {
+        let rankPool: any[] = [];
+        if (foundSolo) rankPool = soloList;
+        else if (foundTeam) rankPool = teamList;
+        else if (foundMasterSolo) rankPool = masterSoloList;
+        else if (foundMasterTeam) rankPool = masterTeamList;
+
+        const sortedScores = rankPool
+          .map((ath: any) => {
             let hits = 0;
             if (ath.scores) {
               Object.values(ath.scores).forEach((arr: any) => {
@@ -494,11 +528,13 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                 }
               });
             }
-            return { id: ath.id, hits };
+            return { id: ath.id, name: ath.name, hits };
           })
-          .sort((a, b) => b.hits - a.hits);
+          .sort((a: any, b: any) => b.hits - a.hits);
 
-        const matchRankIdx = sortedScores.findIndex((x) => x.id === targetAthleteData.id);
+        const matchRankIdx = sortedScores.findIndex(
+          (x: any) => x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase()
+        );
         if (matchRankIdx !== -1) {
           rank = matchRankIdx + 1;
         }
@@ -512,7 +548,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
 
         participations.push({
           matchName: match.matchName,
-          date: match.date || "---",
+          date: matchDateStr,
           totalShots: matchShots,
           totalHits: matchHits,
           hitRate: matchShots > 0 ? Math.round((matchHits / matchShots) * 100) : 0,
@@ -531,7 +567,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       overallHitRate,
       highestRank: highestRank === 9999 ? null : highestRank
     };
-  }, [selectedAthlete, history]);
+  }, [selectedAthlete, onlineTournaments, language]);
 
   // Image upload handling with compression (prevents Firestore payload size limit errors)
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

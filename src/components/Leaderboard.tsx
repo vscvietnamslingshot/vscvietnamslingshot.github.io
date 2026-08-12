@@ -1689,28 +1689,50 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
                     {/* Name with Avatar on the Left (Right of third column rank) */}
                     <td className={`${cellPaddingClass} ${individualCellBorderClass}`}>
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={athlete.avatarUrl || AVATAR_MALE} 
-                          alt={athlete.name} 
-                          className={`rounded-full object-cover border shadow-sm shrink-0 ${
-                            isTop1 
-                              ? "w-11 h-11 border-amber-300 ring-2 ring-amber-200" 
-                              : isTop2 
-                                ? "w-10 h-10 border-slate-300 ring-1 ring-slate-200"
-                                : isTop3
-                                  ? "w-9.5 h-9.5 border-amber-500/30 ring-1 ring-amber-100/50"
-                                  : "w-9 h-9 border-slate-200"
-                          }`}
-                          referrerPolicy="no-referrer"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className={nameFontClass}>{athlete.name}</span>
+                      {(() => {
+                        const isSysAth = (window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name);
+                        const handleViewProfile = () => {
+                          if (isSysAth) {
+                            (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+                          }
+                        };
+                        return (
+                          <div 
+                            className={`flex items-center gap-3 ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                            onClick={handleViewProfile}
+                          >
+                            <div className="relative shrink-0">
+                              <img 
+                                src={athlete.avatarUrl || AVATAR_MALE} 
+                                alt={athlete.name} 
+                                className={`rounded-full object-cover border shadow-sm shrink-0 aspect-square ${
+                                  isTop1 
+                                    ? "w-11 h-11 border-amber-300 ring-2 ring-amber-200" 
+                                    : isTop2 
+                                      ? "w-10 h-10 border-slate-300 ring-1 ring-slate-200"
+                                      : isTop3
+                                        ? "w-[38px] h-[38px] border-amber-500/30 ring-1 ring-amber-100/50"
+                                        : "w-9 h-9 border-slate-200"
+                                } ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                                referrerPolicy="no-referrer"
+                              />
+                              {isSysAth && (
+                                <span className="absolute bottom-0 right-0 bg-blue-600 text-white w-3.5 h-3.5 rounded-full border border-white text-[8px] font-bold flex items-center justify-center shadow-sm">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`${nameFontClass} ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline transition-colors" : ""}`}>
+                                  {athlete.name}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-400 font-mono mt-0.5">Mã số: {athlete.id}</div>
+                            </div>
                           </div>
-                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">Mã số: {athlete.id}</div>
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </td>
   
                     {/* Team */}

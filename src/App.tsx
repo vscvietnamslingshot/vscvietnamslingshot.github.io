@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { 
   Plus, 
@@ -52,7 +52,8 @@ import { VSCLogo, SlingshotIcon } from "./components/VSCLogo";
 
 // Firebase imports
 import { auth, db, doc, onSnapshot } from "./firebase";
-import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub, getFriendlyErrorMessage } from "./lib/firebaseService";
+import { subscribeToTournamentDoc, updateOnlineTournament, TournamentData, subscribeToTournamentsList, createOnlineTournament, subscribeToVscSystemClubs, saveVscSystemClub, deleteVscSystemClub, getFriendlyErrorMessage, subscribeToVscSystemAthletes } from "./lib/firebaseService";
+import { AthleteProfileModal } from "./components/AthleteProfileModal";
 import { AuthModal } from "./components/AuthModal";
 import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
@@ -771,6 +772,10 @@ export default function App() {
   const [draftPreviewItem, setDraftPreviewItem] = useState<MatchHistoryItem | null>(null);
   const [isPublishDraftModalOpen, setIsPublishDraftModalOpen] = useState(false);
   const [onlineTournaments, setOnlineTournaments] = useState<TournamentData[]>([]);
+
+  // VSC System Athletes & Profile Modal States
+  const [vscSystemAthletes, setVscSystemAthletes] = useState<Athlete[]>([]);
+  const [globalAthleteProfile, setGlobalAthleteProfile] = useState<Athlete | null>(null);
 
   const [isShareCopied, setIsShareCopied] = useState(false);
 
@@ -1904,6 +1909,48 @@ export default function App() {
     };
   }, [currentUser]);
 
+  // Subscribe to real-time system athletes
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = subscribeToVscSystemAthletes((remoteAthletes) => {
+        if (remoteAthletes) {
+          setVscSystemAthletes(remoteAthletes);
+        }
+      });
+    } catch (err) {
+      console.warn("Could not subscribe to VSC system athletes:", err);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Expose a global handler to open the athlete profile modal from anywhere
+  useEffect(() => {
+    (window as any).triggerViewAthleteProfile = (athleteIdOrName: string) => {
+      if (!athleteIdOrName) return;
+      const lower = athleteIdOrName.trim().toLowerCase();
+      const match = vscSystemAthletes.find(
+        (a) => a.id.toLowerCase() === lower || a.name.toLowerCase() === lower
+      );
+      if (match) {
+        setGlobalAthleteProfile(match);
+      }
+    };
+    (window as any).isVscSystemAthlete = (athleteIdOrName: string) => {
+      if (!athleteIdOrName) return false;
+      const lower = athleteIdOrName.trim().toLowerCase();
+      return vscSystemAthletes.some(
+        (a) => a.id.toLowerCase() === lower || a.name.toLowerCase() === lower
+      );
+    };
+    return () => {
+      delete (window as any).triggerViewAthleteProfile;
+      delete (window as any).isVscSystemAthlete;
+    };
+  }, [vscSystemAthletes]);
+
   // Subscribe to real-time online document shifts
   useEffect(() => {
     // Reset previous doc/role states immediately to avoid stale role bleed-through
@@ -2991,10 +3038,31 @@ export default function App() {
   // Delete an input athlete
   const handleDeleteInputAthlete = (athleteId: string) => {
     setHasUnsavedChanges(true);
+    let nextList: Athlete[] = [];
+    const currentList = competitionMode === "individual" ? inputAthletes : teamInputAthletes;
+    const athleteObj = currentList.find((a) => a.id === athleteId);
+
     if (competitionMode === "individual") {
-      setInputAthletes((prev) => prev.filter((a) => a.id !== athleteId));
+      nextList = inputAthletes.filter((a) => a.id !== athleteId);
+      setInputAthletes(nextList);
+      deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(nextList));
+      if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+        updateOnlineTournament(activeHistoryId, { inputAthletes: stripBase64Avatars(nextList) });
+      }
     } else {
-      setTeamInputAthletes((prev) => prev.filter((a) => a.id !== athleteId));
+      nextList = teamInputAthletes.filter((a) => a.id !== athleteId);
+      setTeamInputAthletes(nextList);
+      deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(nextList));
+      if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+        updateOnlineTournament(activeHistoryId, { teamInputAthletes: stripBase64Avatars(nextList) });
+      }
+    }
+
+    if (athleteObj) {
+      handleAddAuditLog(language === "en"
+        ? `Released/Unlocked athlete: ${athleteObj.name} (ID: ${athleteObj.id})`
+        : `Đã giải phóng/Mở khóa cho VĐV: ${athleteObj.name} (Mã VĐV: ${athleteObj.id})`
+      );
     }
   };
 
@@ -3155,6 +3223,11 @@ export default function App() {
 
     // Asynchronously perform background Firestore update
     if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+      const athleteNames = activeInputList.map((a) => `${a.name} (Mã: ${a.id})`).join(", ");
+      handleAddAuditLog(language === "en"
+        ? `Saved scores for athletes: ${athleteNames}`
+        : `Đã lưu và đồng bộ điểm cho các VĐV: ${athleteNames}`
+      );
       updateOnlineTournament(activeHistoryId, {
         athletes: nextAthletes,
         teamAthletes: nextTeamAthletes,
@@ -3255,6 +3328,10 @@ export default function App() {
 
     // Asynchronously perform background Firestore update
     if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+      handleAddAuditLog(language === "en"
+        ? `Saved scores for athlete: ${target.name} (ID: ${target.id})`
+        : `Đã lưu và đồng bộ điểm cho VĐV: ${target.name} (Mã VĐV: ${target.id})`
+      );
       updateOnlineTournament(activeHistoryId, {
         athletes: nextAthletes,
         teamAthletes: nextTeamAthletes,
@@ -3320,6 +3397,24 @@ export default function App() {
     }
     setIsAddingAthleteToTournament(true);
   };
+
+  // Add message to tournament auditLog
+  const handleAddAuditLog = useCallback(async (msg: string) => {
+    if (!activeHistoryId || !activeHistoryId.startsWith("tour-")) return;
+    const timeStr = new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+    const userIdentifier = currentUser?.email || currentUser?.uid || "Unknown";
+    const newEntry = `[${timeStr}] ${userIdentifier}: ${msg}\n`;
+    
+    // Read current log
+    const currentLog = currentTournamentDoc?.auditLog || "";
+    const updatedLog = newEntry + currentLog;
+    
+    try {
+      await updateOnlineTournament(activeHistoryId, { auditLog: updatedLog });
+    } catch (err) {
+      console.error("Failed to append audit log:", err);
+    }
+  }, [activeHistoryId, currentUser, currentTournamentDoc]);
 
   // --- Handlers for Settings & Administration Actions ---
 
@@ -4285,6 +4380,11 @@ export default function App() {
                       setInputAthletes(updated);
                       deviceStorage.set("slingshot_input_athletes", stripBase64Avatars(updated));
                       if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                        const addedNames = validToAdd.map((m) => `${m.name} (Mã: ${m.id})`).join(", ");
+                        handleAddAuditLog(language === "en"
+                          ? `Called and locked athletes for scoring: ${addedNames}`
+                          : `Đã gọi và khóa vận động viên để chấm điểm: ${addedNames}`
+                        );
                         updateOnlineTournament(activeHistoryId, { inputAthletes: stripBase64Avatars(updated) });
                       }
                     } else {
@@ -4292,6 +4392,11 @@ export default function App() {
                       setTeamInputAthletes(updated);
                       deviceStorage.set("slingshot_team_input_athletes", stripBase64Avatars(updated));
                       if (activeHistoryId && activeHistoryId.startsWith("tour-")) {
+                        const addedNames = validToAdd.map((m) => `${m.name} (Mã: ${m.id})`).join(", ");
+                        handleAddAuditLog(language === "en"
+                          ? `Called and locked athletes for scoring: ${addedNames}`
+                          : `Đã gọi và khóa vận động viên để chấm điểm: ${addedNames}`
+                        );
                         updateOnlineTournament(activeHistoryId, { teamInputAthletes: stripBase64Avatars(updated) });
                       }
                     }
@@ -6102,6 +6207,8 @@ export default function App() {
                   setActiveTab={setActiveTab}
                   onExitTournament={() => handleExitTournament()}
                   userRole={userRole}
+                  auditLog={currentTournamentDoc?.auditLog || ""}
+                  onAddAuditLog={handleAddAuditLog}
                 />
               ) : (
                 <AthleteManagement
@@ -6169,6 +6276,7 @@ export default function App() {
               currentUser={currentUser}
               userRole={isGlobalAdmin ? "admin" : "user"}
               history={history}
+              onlineTournaments={onlineTournaments}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
             />
           )}
@@ -6514,6 +6622,17 @@ export default function App() {
       )}
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      <AthleteProfileModal
+        athlete={globalAthleteProfile}
+        isOpen={!!globalAthleteProfile}
+        onClose={() => setGlobalAthleteProfile(null)}
+        history={history}
+        onlineTournaments={onlineTournaments}
+        currentUser={currentUser}
+        isGlobalAdmin={isGlobalAdmin}
+        language={language}
+      />
 
       {draftPreviewItem && (
         <PublishDraftModal

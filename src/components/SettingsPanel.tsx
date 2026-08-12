@@ -4,7 +4,7 @@ import { DistanceConfig, Athlete, MatchHistoryItem, StoredAthleteList } from "..
 import { Settings, Plus, Edit2, Trash2, Calendar, FileDown, FileUp, RefreshCw, Trophy, Target, PlusCircle, Smartphone, CheckCircle, Users, Lock, Unlock, X, AlertTriangle, Shield } from "lucide-react";
 import { getHitCount } from "../utils/qualification";
 import { auth } from "../firebase";
-import { createOnlineTournament, updateOnlineTournament } from "../lib/firebaseService";
+import { createOnlineTournament, updateOnlineTournament, getVscSystemAthletes } from "../lib/firebaseService";
 import { useLanguage } from "../context/LanguageContext";
 
 interface SettingsPanelProps {
@@ -55,6 +55,8 @@ interface SettingsPanelProps {
   onUpdateReferees?: (refList: string[]) => void;
   subAdmins?: string[];
   onUpdateSubAdmins?: (subList: string[]) => void;
+  auditLog?: string;
+  onAddAuditLog?: (actionText: string) => void;
   isNewTournamentModalOpen?: boolean;
   setIsNewTournamentModalOpen?: (open: boolean) => void;
   setInputAthletes?: (athletes: Athlete[]) => void;
@@ -155,6 +157,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onUpdateReferees,
   subAdmins,
   onUpdateSubAdmins,
+  auditLog,
+  onAddAuditLog,
   isNewTournamentModalOpen: externalIsNewTournamentModalOpen,
   setIsNewTournamentModalOpen: externalSetIsNewTournamentModalOpen,
   setInputAthletes,
@@ -227,6 +231,158 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [snapshotTeamShotsCount, setSnapshotTeamShotsCount] = useState<number>(5);
   const [isConfirmLockModalOpen, setIsConfirmLockModalOpen] = useState(false);
   const [lockPendingChanges, setLockPendingChanges] = useState<string[]>([]);
+
+  const [isResolvingSubAdmin, setIsResolvingSubAdmin] = useState(false);
+  const [isResolvingReferee, setIsResolvingReferee] = useState(false);
+
+  const handleResolveAndAddSubAdmin = async () => {
+    const inputEl = document.getElementById("subadmin-email-input") as HTMLInputElement;
+    const rawVal = inputEl?.value?.trim();
+    if (!rawVal) {
+      alert(language === "en" ? "Please enter email, Athlete ID, or Athlete Name!" : "Vui lòng nhập Email, Mã VĐV, hoặc Tên VĐV!");
+      return;
+    }
+
+    setIsResolvingSubAdmin(true);
+    try {
+      const systemAthletes = await getVscSystemAthletes();
+      const cleanVal = rawVal.toLowerCase().trim();
+      let found = systemAthletes.find(a => a.id && a.id.trim().toLowerCase() === cleanVal);
+      if (!found) {
+        found = systemAthletes.find(a => a.name && a.name.trim().toLowerCase() === cleanVal);
+      }
+      if (!found && cleanVal.startsWith("vsc-")) {
+        const numPart = cleanVal.replace("vsc-", "");
+        found = systemAthletes.find(a => a.id && a.id.trim().toLowerCase().endsWith(numPart));
+      }
+      if (!found) {
+        found = systemAthletes.find(a => a.email && a.email.trim().toLowerCase() === cleanVal);
+      }
+
+      let emailToAdd = "";
+      if (found) {
+        if (found.email && found.email.trim()) {
+          emailToAdd = found.email.trim().toLowerCase();
+        } else {
+          alert(language === "en" 
+            ? `Found athlete "${found.name}" (${found.id}) but they have not linked an email account yet!` 
+            : `Tìm thấy VĐV "${found.name}" (${found.id}) nhưng chưa liên kết email tài khoản!`);
+          setIsResolvingSubAdmin(false);
+          return;
+        }
+      } else {
+        if (cleanVal.includes("@")) {
+          emailToAdd = cleanVal;
+        } else {
+          alert(language === "en"
+            ? `Could not find any VSC System Athlete with ID/Name: "${rawVal}" and it is not a valid email!`
+            : `Không tìm thấy VĐV Hệ thống nào có ID/Tên: "${rawVal}" và đây không phải là email hợp lệ!`);
+          setIsResolvingSubAdmin(false);
+          return;
+        }
+      }
+
+      if (onUpdateSubAdmins) {
+        const currentSubAdmins = subAdmins || [];
+        const lowercasedSubAdmins = currentSubAdmins.map(s => s.toLowerCase());
+        if (lowercasedSubAdmins.includes(emailToAdd)) {
+          alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
+          setIsResolvingSubAdmin(false);
+          return;
+        }
+        onUpdateSubAdmins([...currentSubAdmins, emailToAdd]);
+        inputEl.value = "";
+        
+        if (found) {
+          onAddAuditLog?.(language === "en" 
+            ? `Added Sub Admin: ${found.name} (${found.id}) via linked email: ${emailToAdd}`
+            : `Đã thêm Sub Admin: ${found.name} (${found.id}) qua email liên kết: ${emailToAdd}`);
+        } else {
+          onAddAuditLog?.(language === "en" 
+            ? `Added Sub Admin email: ${emailToAdd}`
+            : `Đã thêm email Sub Admin: ${emailToAdd}`);
+        }
+      }
+    } catch (err) {
+      console.error("Resolve Sub Admin failed:", err);
+    } finally {
+      setIsResolvingSubAdmin(false);
+    }
+  };
+
+  const handleResolveAndAddReferee = async () => {
+    const inputEl = document.getElementById("referee-email-input") as HTMLInputElement;
+    const rawVal = inputEl?.value?.trim();
+    if (!rawVal) {
+      alert(language === "en" ? "Please enter email, Athlete ID, or Athlete Name!" : "Vui lòng nhập Email, Mã VĐV, hoặc Tên VĐV!");
+      return;
+    }
+
+    setIsResolvingReferee(true);
+    try {
+      const systemAthletes = await getVscSystemAthletes();
+      const cleanVal = rawVal.toLowerCase().trim();
+      let found = systemAthletes.find(a => a.id && a.id.trim().toLowerCase() === cleanVal);
+      if (!found) {
+        found = systemAthletes.find(a => a.name && a.name.trim().toLowerCase() === cleanVal);
+      }
+      if (!found && cleanVal.startsWith("vsc-")) {
+        const numPart = cleanVal.replace("vsc-", "");
+        found = systemAthletes.find(a => a.id && a.id.trim().toLowerCase().endsWith(numPart));
+      }
+      if (!found) {
+        found = systemAthletes.find(a => a.email && a.email.trim().toLowerCase() === cleanVal);
+      }
+
+      let emailToAdd = "";
+      if (found) {
+        if (found.email && found.email.trim()) {
+          emailToAdd = found.email.trim().toLowerCase();
+        } else {
+          alert(language === "en" 
+            ? `Found athlete "${found.name}" (${found.id}) but they have not linked an email account yet!` 
+            : `Tìm thấy VĐV "${found.name}" (${found.id}) nhưng chưa liên kết email tài khoản!`);
+          setIsResolvingReferee(false);
+          return;
+        }
+      } else {
+        if (cleanVal.includes("@")) {
+          emailToAdd = cleanVal;
+        } else {
+          alert(language === "en"
+            ? `Could not find any VSC System Athlete with ID/Name: "${rawVal}" and it is not a valid email!`
+            : `Không tìm thấy VĐV Hệ thống nào có ID/Tên: "${rawVal}" và đây không phải là email hợp lệ!`);
+          setIsResolvingReferee(false);
+          return;
+        }
+      }
+
+      if (onUpdateReferees && referees) {
+        const lowercasedReferees = referees.map(r => r.toLowerCase());
+        if (lowercasedReferees.includes(emailToAdd)) {
+          alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
+          setIsResolvingReferee(false);
+          return;
+        }
+        onUpdateReferees([...referees, emailToAdd]);
+        inputEl.value = "";
+        
+        if (found) {
+          onAddAuditLog?.(language === "en" 
+            ? `Added Referee: ${found.name} (${found.id}) via linked email: ${emailToAdd}`
+            : `Đã thêm Trọng tài: ${found.name} (${found.id}) qua email liên kết: ${emailToAdd}`);
+        } else {
+          onAddAuditLog?.(language === "en" 
+            ? `Added Referee email: ${emailToAdd}`
+            : `Đã thêm email Trọng tài: ${emailToAdd}`);
+        }
+      }
+    } catch (err) {
+      console.error("Resolve referee failed:", err);
+    } finally {
+      setIsResolvingReferee(false);
+    }
+  };
 
   // States for Tournament Configuration
   const [tournamentId, setTournamentId] = useState<string>(() => {
@@ -1168,53 +1324,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <Shield className="w-4 h-4" /> {language === "en" ? "MANAGE SUB ADMINS (CLOUD)" : "QUẢN LÝ SUB ADMIN (CLOUD)"}
                 </span>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                  {language === "en" ? "Enter Sub Admin email to grant full administration rights for this online tournament." : "Nhập email của Sub Admin để cấp toàn quyền quản trị cho giải đấu trực tuyến này."}
+                  {language === "en" ? "Enter email, Athlete ID, or Athlete Name to grant full administration rights for this online tournament." : "Nhập email, Mã VĐV, hoặc Tên VĐV hệ thống để cấp toàn quyền quản trị cho giải đấu trực tuyến này."}
                 </p>
                 <div className="flex gap-1.5 font-sans">
                   <input
-                    type="email"
-                    placeholder="email@subadmin.com"
+                    type="text"
+                    placeholder={language === "en" ? "email@domain.com, ID, or Name" : "Email, Mã VĐV, hoặc Tên VĐV..."}
                     id="subadmin-email-input"
-                    className="flex-1 px-2.5 py-1.5 text-xs bg-slate-55 dark:bg-slate-800 border border-slate-205 dark:border-slate-700/80 rounded focus:outline-none"
+                    disabled={isResolvingSubAdmin}
+                    className="flex-1 px-2.5 py-1.5 text-xs bg-slate-55 dark:bg-slate-800 border border-slate-205 dark:border-slate-700/80 rounded focus:outline-none disabled:opacity-50"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        const inputEl = document.getElementById("subadmin-email-input") as HTMLInputElement;
-                        const emailStr = inputEl?.value?.trim()?.toLowerCase();
-                        if (emailStr && onUpdateSubAdmins) {
-                          const currentSubAdmins = subAdmins || [];
-                          const lowercasedSubAdmins = currentSubAdmins.map(s => s.toLowerCase());
-                          if (lowercasedSubAdmins.includes(emailStr)) {
-                            alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
-                            return;
-                          }
-                          onUpdateSubAdmins([...currentSubAdmins, emailStr]);
-                          inputEl.value = "";
-                        }
+                        handleResolveAndAddSubAdmin();
                       }
                     }}
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const inputEl = document.getElementById("subadmin-email-input") as HTMLInputElement;
-                      const emailStr = inputEl?.value?.trim()?.toLowerCase();
-                      if (emailStr && onUpdateSubAdmins) {
-                        const currentSubAdmins = subAdmins || [];
-                        const lowercasedSubAdmins = currentSubAdmins.map(s => s.toLowerCase());
-                        if (lowercasedSubAdmins.includes(emailStr)) {
-                          alert(language === "en" ? "This Sub Admin email already exists." : "Email Sub Admin này đã tồn tại.");
-                          return;
-                        }
-                        onUpdateSubAdmins([...currentSubAdmins, emailStr]);
-                        inputEl.value = "";
-                      } else if (!emailStr) {
-                        alert(language === "en" ? "Please enter a valid email!" : "Vui lòng nhập email hợp lệ!");
-                      }
-                    }}
-                    className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer"
+                    onClick={handleResolveAndAddSubAdmin}
+                    disabled={isResolvingSubAdmin}
+                    className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center justify-center min-w-[60px] disabled:opacity-50"
                   >
-                    {language === "en" ? "Add" : "Thêm"}
+                    {isResolvingSubAdmin ? (
+                      <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
+                    ) : (
+                      language === "en" ? "Add" : "Thêm"
+                    )}
                   </button>
                 </div>
                 {subAdmins && subAdmins.length > 0 ? (
@@ -1227,6 +1363,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           onClick={() => {
                             if (onUpdateSubAdmins) {
                               onUpdateSubAdmins(subAdmins.filter(s => s !== email));
+                              onAddAuditLog?.(language === "en" 
+                                ? `Removed Sub Admin email: ${email}`
+                                : `Đã xóa email Sub Admin: ${email}`);
                             }
                           }}
                           className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
@@ -1243,79 +1382,85 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
 
               {/* REFEREE MANAGER */}
-              <span className="text-[11px] font-black text-indigo-500 uppercase tracking-widest block flex items-center gap-1">
-                <Users className="w-4 h-4" /> {language === "en" ? "MANAGE REFEREES (CLOUD)" : "QUẢN LÝ TRỌNG TÀI (CLOUD)"}
-              </span>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {language === "en" ? "Enter referee email to grant scoring permissions for this online tournament." : "Nhập email của trọng tài để cấp quyền nhập và ghi điểm cho giải đấu trực tuyến này."}
-              </p>
-              <div className="flex gap-1.5 font-sans">
-                <input
-                  type="email"
-                  placeholder="email@trongtai.com"
-                  id="referee-email-input"
-                  className="flex-1 px-2.5 py-1.5 text-xs bg-slate-55 dark:bg-slate-800 border border-slate-205 dark:border-slate-700/80 rounded focus:outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const inputEl = document.getElementById("referee-email-input") as HTMLInputElement;
-                      const emailStr = inputEl?.value?.trim()?.toLowerCase();
-                      if (emailStr && referees && onUpdateReferees) {
-                        const lowercasedReferees = referees.map(r => r.toLowerCase());
-                        if (lowercasedReferees.includes(emailStr)) {
-                          alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
-                          return;
-                        }
-                        onUpdateReferees([...referees, emailStr]);
-                        inputEl.value = "";
+              <div className="flex flex-col gap-3 pb-4">
+                <span className="text-[11px] font-black text-indigo-500 uppercase tracking-widest block flex items-center gap-1">
+                  <Users className="w-4 h-4" /> {language === "en" ? "MANAGE REFEREES (CLOUD)" : "QUẢN LÝ TRỌNG TÀI (CLOUD)"}
+                </span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {language === "en" ? "Enter email, Athlete ID, or Athlete Name to grant scoring permissions for this online tournament." : "Nhập email, Mã VĐV, hoặc Tên VĐV hệ thống để cấp quyền nhập và ghi điểm cho giải đấu trực tuyến này."}
+                </p>
+                <div className="flex gap-1.5 font-sans">
+                  <input
+                    type="text"
+                    placeholder={language === "en" ? "email@domain.com, ID, or Name" : "Email, Mã VĐV, hoặc Tên VĐV..."}
+                    id="referee-email-input"
+                    disabled={isResolvingReferee}
+                    className="flex-1 px-2.5 py-1.5 text-xs bg-slate-55 dark:bg-slate-800 border border-slate-205 dark:border-slate-700/80 rounded focus:outline-none disabled:opacity-50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleResolveAndAddReferee();
                       }
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const inputEl = document.getElementById("referee-email-input") as HTMLInputElement;
-                    const emailStr = inputEl?.value?.trim()?.toLowerCase();
-                    if (emailStr && referees && onUpdateReferees) {
-                      const lowercasedReferees = referees.map(r => r.toLowerCase());
-                      if (lowercasedReferees.includes(emailStr)) {
-                        alert(language === "en" ? "This referee email already exists." : "Email trọng tài này đã tồn tại.");
-                        return;
-                      }
-                      onUpdateReferees([...referees, emailStr]);
-                      inputEl.value = "";
-                    } else if (!emailStr) {
-                      alert(language === "en" ? "Please enter a valid email!" : "Vui lòng nhập email hợp lệ!");
-                    }
-                  }}
-                  className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer"
-                >
-                  {language === "en" ? "Add" : "Thêm"}
-                </button>
-              </div>
-              {referees && referees.length > 0 ? (
-                <div className="flex flex-col gap-1 max-h-36 overflow-y-auto mt-1 border border-slate-100 dark:border-slate-800 p-2 rounded bg-slate-50/50 dark:bg-slate-950/20">
-                  {referees.map((email) => (
-                    <div key={email} className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300">
-                      <span className="truncate max-w-[200px] font-mono select-all">{email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onUpdateReferees) {
-                            onUpdateReferees(referees.filter(r => r !== email));
-                          }
-                        }}
-                        className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
-                        title={language === "en" ? "Delete Referee" : "Xóa trọng tài"}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleResolveAndAddReferee}
+                    disabled={isResolvingReferee}
+                    className="px-3 bg-indigo-600 hover:bg-indigo-750 text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center justify-center min-w-[60px] disabled:opacity-50"
+                  >
+                    {isResolvingReferee ? (
+                      <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
+                    ) : (
+                      language === "en" ? "Add" : "Thêm"
+                    )}
+                  </button>
                 </div>
-              ) : (
-                <p className="text-[10px] text-slate-405 italic">{language === "en" ? "No referees assigned yet" : "Chưa chỉ định trọng tài nào"}</p>
+                {referees && referees.length > 0 ? (
+                  <div className="flex flex-col gap-1 max-h-36 overflow-y-auto mt-1 border border-slate-100 dark:border-slate-800 p-2 rounded bg-slate-50/50 dark:bg-slate-950/20">
+                    {referees.map((email) => (
+                      <div key={email} className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300 font-sans">
+                        <span className="truncate max-w-[200px] font-mono select-all">{email}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onUpdateReferees) {
+                              onUpdateReferees(referees.filter(r => r !== email));
+                              onAddAuditLog?.(language === "en" 
+                                ? `Removed Referee email: ${email}`
+                                : `Đã xóa email Trọng tài: ${email}`);
+                            }
+                          }}
+                          className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
+                          title={language === "en" ? "Delete Referee" : "Xóa trọng tài"}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-405 italic">{language === "en" ? "No referees assigned yet" : "Chưa chỉ định trọng tài nào"}</p>
+                )}
+              </div>
+
+              {/* AUDIT LOG DISPLAY */}
+              {activeHistoryId && activeHistoryId.startsWith("tour-") && (
+                <div className="border-t border-gray-150 dark:border-slate-800/60 pt-4 flex flex-col gap-3">
+                  <span className="text-[11px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest block flex items-center gap-1">
+                    <Smartphone className="w-4 h-4 text-amber-500" /> {language === "en" ? "SCORING AUDIT LOG" : "NHẬT KÝ THAY ĐỔI & GHI ĐIỂM"}
+                  </span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {language === "en" ? "Real-time records of referee scoring and athlete calling operations." : "Nhật ký ghi lại theo thời gian thực các thao tác nhập điểm và gọi vận động viên của trọng tài."}
+                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 max-h-60 overflow-y-auto font-mono text-[10px] text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed select-text">
+                    {auditLog && auditLog.trim() ? (
+                      auditLog
+                    ) : (
+                      <span className="italic text-slate-400">{language === "en" ? "No actions logged yet" : "Chưa có thao tác nào được ghi lại"}</span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           ) : (
@@ -1331,7 +1476,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </span>
                   {language === "en" ? "Cloud Referee Feature" : "Tính năng Trọng tài Đám mây (Cloud)"}
                 </div>
-                <p className="text-[11px] text-slate-501 dark:text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-510 dark:text-slate-400 leading-relaxed">
                   {language === "en" ? "To allow referees to enter scores from different phones/tablets, you need to publish this tournament online." : "Để cấp quyền cho trọng tài nhập điểm từ các máy điện thoại/máy tính bảng khác nhau, bạn cần đưa giải đấu này trực tuyến."}
                 </p>
                 <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">

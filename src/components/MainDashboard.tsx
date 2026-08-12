@@ -2227,103 +2227,160 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           {/* 3D Athlete Podium UI representation */}
           <div className="mt-8 flex items-end justify-center select-none pt-6 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-950/10 rounded-2xl pb-2 px-2 border border-dashed border-gray-100/50 min-h-[280px]">
             {/* 2nd PLACE INDIVIDUAL - SILVER PODIUM (LEFT) */}
-            <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
-              {/* Profile & Avatar */}
-              <div className="text-center mb-1.5 px-1 flex flex-col items-center w-full">
-                <div className="relative">
-                  <img
-                    src={currentTop3Athletes[1].avatarUrl || AVATAR_MALE}
-                    alt={currentTop3Athletes[1].name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-slate-300 shadow-sm bg-slate-100"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute -top-1.5 -right-1.5 bg-slate-200 text-slate-800 rounded-full w-5 h-5 flex items-center justify-center border border-white text-[10px] font-black font-sans shadow-sm">
-                    2
+            {(() => {
+              const athlete = currentTop3Athletes[1];
+              const isSysAth = athlete && ((window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name));
+              const handleViewProfile = () => {
+                if (isSysAth && athlete) {
+                  (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+                }
+              };
+              return (
+                <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
+                  {/* Profile & Avatar */}
+                  <div 
+                    className={`text-center mb-1.5 px-1 flex flex-col items-center w-full ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                    onClick={handleViewProfile}
+                  >
+                    <div className="relative">
+                      <img
+                        src={athlete.avatarUrl || AVATAR_MALE}
+                        alt={athlete.name}
+                        className={`w-12 h-12 rounded-full object-cover border-2 border-slate-300 shadow-sm bg-slate-100 aspect-square shrink-0 ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute -top-1.5 -right-1.5 bg-slate-200 text-slate-800 rounded-full w-5 h-5 flex items-center justify-center border border-white text-[10px] font-black font-sans shadow-sm">
+                        2
+                      </div>
+                      {isSysAth && (
+                        <span className="absolute bottom-0 left-0 bg-blue-600 text-white w-3 h-3 rounded-full border border-white text-[7px] font-bold flex items-center justify-center shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline" : ""}`} title={athlete.name}>
+                      {athlete.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={athlete.team}>
+                      {athlete.team || (language === "en" ? "Independent" : "Tự Do")}
+                    </span>
+                    <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
+                      {athlete.displayScore} {language === "en" ? "pts" : "đ"}
+                    </span>
+                  </div>
+                  {/* Podium Column Box */}
+                  <div className="w-full bg-gradient-to-t from-slate-250 via-slate-150 to-slate-100/90 dark:from-slate-800 dark:to-slate-700/80 border-t-2 border-slate-300 h-24 rounded-t-xl shadow-lg flex items-center justify-center relative">
+                    <span className="font-black text-5xl font-mono text-slate-400/30">2</span>
+                    <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">{language === "en" ? "2nd Place" : "Hạng Nhì"}</span>
                   </div>
                 </div>
-                <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center" title={currentTop3Athletes[1].name}>
-                  {currentTop3Athletes[1].name}
-                </span>
-                <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={currentTop3Athletes[1].team}>
-                  {currentTop3Athletes[1].team || (language === "en" ? "Independent" : "Tự Do")}
-                </span>
-                <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
-                  {currentTop3Athletes[1].displayScore} {language === "en" ? "pts" : "đ"}
-                </span>
-              </div>
-              {/* Podium Column Box */}
-              <div className="w-full bg-gradient-to-t from-slate-250 via-slate-150 to-slate-100/90 dark:from-slate-800 dark:to-slate-700/80 border-t-2 border-slate-300 h-24 rounded-t-xl shadow-lg flex items-center justify-center relative">
-                <span className="font-black text-5xl font-mono text-slate-400/30">2</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-slate-500">{language === "en" ? "2nd Place" : "Hạng Nhì"}</span>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* 1st PLACE INDIVIDUAL - GOLD PODIUM (CENTER, TALLEST) */}
-            <div className="flex flex-col items-center flex-1 max-w-[155px] z-20 -mx-1">
-              {/* Profile & Avatar */}
-              <div className="text-center mb-3 px-1 flex flex-col items-center w-full">
-                <div className="relative">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-amber-500 drop-shadow-sm scale-110">👑</div>
-                  <img
-                    src={currentTop3Athletes[0].avatarUrl || AVATAR_MALE}
-                    alt={currentTop3Athletes[0].name}
-                    className="w-16 h-16 rounded-full object-cover border-4 border-amber-400 shadow-md bg-slate-100"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-amber-950 rounded-full w-6 h-6 flex items-center justify-center border border-white text-xs font-black font-sans shadow-md">
-                    1
+            {(() => {
+              const athlete = currentTop3Athletes[0];
+              const isSysAth = athlete && ((window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name));
+              const handleViewProfile = () => {
+                if (isSysAth && athlete) {
+                  (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+                }
+              };
+              return (
+                <div className="flex flex-col items-center flex-1 max-w-[155px] z-20 -mx-1">
+                  {/* Profile & Avatar */}
+                  <div 
+                    className={`text-center mb-3 px-1 flex flex-col items-center w-full ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                    onClick={handleViewProfile}
+                  >
+                    <div className="relative">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-amber-500 drop-shadow-sm scale-110">👑</div>
+                      <img
+                        src={athlete.avatarUrl || AVATAR_MALE}
+                        alt={athlete.name}
+                        className={`w-16 h-16 rounded-full object-cover border-4 border-amber-400 shadow-md bg-slate-100 aspect-square shrink-0 ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-amber-950 rounded-full w-6 h-6 flex items-center justify-center border border-white text-xs font-black font-sans shadow-md">
+                        1
+                      </div>
+                      {isSysAth && (
+                        <span className="absolute bottom-0 left-0 bg-blue-600 text-white w-4 h-4 rounded-full border border-white text-[8px] font-bold flex items-center justify-center shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-black text-slate-900 dark:text-slate-101 block truncate leading-tight tracking-tight mt-2 w-full text-center ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline" : ""}`} title={athlete.name}>
+                      {athlete.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[120px] text-center" title={athlete.team}>
+                      {athlete.team || (language === "en" ? "Independent" : "Tự Do")}
+                    </span>
+                    <span className="font-mono text-sm font-extrabold text-amber-600 block leading-tight mt-1">
+                      {athlete.displayScore} {language === "en" ? "pts" : "đ"}
+                    </span>
+                  </div>
+                  {/* Podium Column Box */}
+                  <div className="w-full bg-gradient-to-t from-amber-400/90 via-amber-300/85 to-amber-200/90 border-t-4 border-amber-400 h-36 rounded-t-2xl shadow-xl flex items-center justify-center relative ring-4 ring-amber-500/10">
+                    <span className="font-black text-6xl font-mono text-amber-600/40">1</span>
+                    <span className="absolute bottom-2 text-[10px] sm:text-xs font-black uppercase text-amber-700 flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" /> {language === "en" ? "Champion" : "Quán Quân"} <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
+                    </span>
                   </div>
                 </div>
-                <span className="text-sm font-black text-slate-900 dark:text-slate-101 block truncate leading-tight tracking-tight mt-2 w-full text-center" title={currentTop3Athletes[0].name}>
-                  {currentTop3Athletes[0].name}
-                </span>
-                <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[120px] text-center" title={currentTop3Athletes[0].team}>
-                  {currentTop3Athletes[0].team || (language === "en" ? "Independent" : "Tự Do")}
-                </span>
-                <span className="font-mono text-sm font-extrabold text-amber-600 block leading-tight mt-1">
-                  {currentTop3Athletes[0].displayScore} {language === "en" ? "pts" : "đ"}
-                </span>
-              </div>
-              {/* Podium Column Box */}
-              <div className="w-full bg-gradient-to-t from-amber-400/90 via-amber-300/85 to-amber-200/90 border-t-4 border-amber-400 h-36 rounded-t-2xl shadow-xl flex items-center justify-center relative ring-4 ring-amber-500/10">
-                <span className="font-black text-6xl font-mono text-amber-600/40">1</span>
-                <span className="absolute bottom-2 text-[10px] sm:text-xs font-black uppercase text-amber-700 flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" /> {language === "en" ? "Champion" : "Quán Quân"} <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
-                </span>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* 3rd PLACE INDIVIDUAL - BRONZE PODIUM (RIGHT, SHORTEST) */}
-            <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
-              {/* Profile & Avatar */}
-              <div className="text-center mb-1 px-1 flex flex-col items-center w-full">
-                <div className="relative">
-                  <img
-                    src={currentTop3Athletes[2].avatarUrl || AVATAR_MALE}
-                    alt={currentTop3Athletes[2].name}
-                    className="w-11 h-11 rounded-full object-cover border-2 border-amber-700/50 shadow-sm bg-slate-100"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute -top-1.5 -right-1.5 bg-amber-700 text-white rounded-full w-5 h-5 flex items-center justify-center border border-white text-[10px] font-black font-sans shadow-sm">
-                    3
+            {(() => {
+              const athlete = currentTop3Athletes[2];
+              const isSysAth = athlete && ((window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name));
+              const handleViewProfile = () => {
+                if (isSysAth && athlete) {
+                  (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+                }
+              };
+              return (
+                <div className="flex flex-col items-center flex-1 max-w-[130px] z-10">
+                  {/* Profile & Avatar */}
+                  <div 
+                    className={`text-center mb-1 px-1 flex flex-col items-center w-full ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                    onClick={handleViewProfile}
+                  >
+                    <div className="relative">
+                      <img
+                        src={athlete.avatarUrl || AVATAR_MALE}
+                        alt={athlete.name}
+                        className={`w-11 h-11 rounded-full object-cover border-2 border-amber-700/50 shadow-sm bg-slate-100 aspect-square shrink-0 ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute -top-1.5 -right-1.5 bg-amber-700 text-white rounded-full w-5 h-5 flex items-center justify-center border border-white text-[10px] font-black font-sans shadow-sm">
+                        3
+                      </div>
+                      {isSysAth && (
+                        <span className="absolute bottom-0 left-0 bg-blue-600 text-white w-3 h-3 rounded-full border border-white text-[7px] font-bold flex items-center justify-center shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline" : ""}`} title={athlete.name}>
+                      {athlete.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={athlete.team}>
+                      {athlete.team || (language === "en" ? "Independent" : "Tự Do")}
+                    </span>
+                    <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
+                      {athlete.displayScore} {language === "en" ? "pts" : "đ"}
+                    </span>
+                  </div>
+                  {/* Podium Column Box */}
+                  <div className="w-full bg-gradient-to-t from-amber-800/15 via-amber-700/10 to-amber-600/10 dark:from-slate-850 dark:to-slate-800/80 border-t-2 border-amber-700/30 h-16 rounded-t-xl shadow-lg flex items-center justify-center relative">
+                    <span className="font-black text-4xl font-mono text-amber-700/20">3</span>
+                    <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">{language === "en" ? "3rd Place" : "Hạng Ba"}</span>
                   </div>
                 </div>
-                <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 block truncate leading-tight mt-1.5 w-full text-center" title={currentTop3Athletes[2].name}>
-                  {currentTop3Athletes[2].name}
-                </span>
-                <span className="text-[10px] text-gray-400 block truncate leading-none mt-0.5 max-w-[100px] text-center" title={currentTop3Athletes[2].team}>
-                  {currentTop3Athletes[2].team || (language === "en" ? "Independent" : "Tự Do")}
-                </span>
-                <span className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 block mt-1">
-                  {currentTop3Athletes[2].displayScore} {language === "en" ? "pts" : "đ"}
-                </span>
-              </div>
-              {/* Podium Column Box */}
-              <div className="w-full bg-gradient-to-t from-amber-800/15 via-amber-700/10 to-amber-600/10 dark:from-slate-850 dark:to-slate-800/80 border-t-2 border-amber-700/30 h-16 rounded-t-xl shadow-lg flex items-center justify-center relative">
-                <span className="font-black text-4xl font-mono text-amber-700/20">3</span>
-                <span className="absolute bottom-2 text-[10px] font-black uppercase text-amber-800/60 font-sans">{language === "en" ? "3rd Place" : "Hạng Ba"}</span>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           <div className="mt-4 text-center">
@@ -2517,13 +2574,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               pagedAthletes.map((athlete, index) => {
                 const rank = athlete.status === "Bỏ thi" ? "-" : (athlete as any).dashboardRank || ((currentPage - 1) * 25 + index + 1);
                 const hasScore = athlete.displayScore > 0;
+                const isSysAth = (window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name);
+                const handleViewProfile = () => {
+                  if (isSysAth) {
+                    (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+                  }
+                };
                 
                 return (
                   <div 
                     key={`dash-ath-${athlete.id || "ath"}-${index}`}
                     className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-slate-800 bg-white hover:bg-slate-50/50 transition-colors shadow-sm gap-4"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div 
+                      className={`flex items-center gap-3 min-w-0 ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                      onClick={handleViewProfile}
+                    >
                       {/* Rank indicators */}
                       <span className={`w-6 h-6 text-xs font-black font-sans rounded-full flex items-center justify-center shrink-0 ${
                         rank === 1 && hasScore
@@ -2538,18 +2604,27 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
                       </span>
 
                       {/* Avatar */}
-                      <img
-                        src={athlete.avatarUrl || AVATAR_MALE}
-                        alt={athlete.name}
-                        className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                        referrerPolicy="no-referrer"
-                      />
+                      <div className="relative shrink-0">
+                        <img
+                          src={athlete.avatarUrl || AVATAR_MALE}
+                          alt={athlete.name}
+                          className={`w-9 h-9 rounded-full object-cover border border-slate-200 aspect-square shrink-0 ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                          referrerPolicy="no-referrer"
+                        />
+                        {isSysAth && (
+                          <span className="absolute bottom-0 right-0 bg-blue-600 text-white w-3 h-3 rounded-full border border-white text-[7px] font-bold flex items-center justify-center shadow-xs">
+                            ✓
+                          </span>
+                        )}
+                      </div>
 
                       {/* Info */}
                       <div className="min-w-0">
-                        <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 block truncate leading-tight">
-                          {athlete.name}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 block truncate leading-tight ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline transition-colors" : ""}`}>
+                            {athlete.name}
+                          </span>
+                        </div>
                         
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-gray-400 mt-0.5">
                           <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded font-bold text-slate-650">{language === "en" ? "ID:" : "Mã số:"} {athlete.id}</span>

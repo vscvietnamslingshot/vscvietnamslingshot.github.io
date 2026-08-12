@@ -1211,6 +1211,12 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                     const memberRank = memberIdx + 1;
                     const originAth = athletes.find(a => a.id === member.id);
                     const isBackup = originAth && !originAth.isPrimaryTeam;
+                    const isSysAth = (window as any).isVscSystemAthlete?.(member.id) || (window as any).isVscSystemAthlete?.(member.name);
+                    const handleViewProfile = () => {
+                      if (isSysAth) {
+                        (window as any).triggerViewAthleteProfile?.(member.id || member.name);
+                      }
+                    };
 
                     return (
                       <div 
@@ -1219,7 +1225,10 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                           memberIdx === 0 ? "bg-amber-500/5 dark:bg-amber-500/10 font-medium rounded-lg" : ""
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div 
+                          className={`flex items-center gap-2 min-w-0 ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                          onClick={handleViewProfile}
+                        >
                           <span className={`w-5 h-5 text-[10px] font-mono font-bold rounded-full flex items-center justify-center shrink-0 ${
                             memberRank === 1 
                               ? "bg-amber-100 dark:bg-amber-955/40 text-amber-800 dark:text-amber-300"
@@ -1229,14 +1238,14 @@ export const TeamLeaderboard: React.FC<TeamLeaderboardProps> = ({
                           </span>
 
                           <div className="min-w-0">
-                            <span className="font-bold text-gray-800 dark:text-slate-100 flex items-center gap-1.5 truncate" title={member.name}>
-                              <span className="truncate">{member.name}</span>
+                            <div className="font-bold text-gray-800 dark:text-slate-101 flex items-center gap-1.5 truncate" title={member.name}>
+                              <span className={`truncate ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline transition-colors" : ""}`}>{member.name}</span>
                               {isBackup && (
                                 <span className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold px-1 py-0.5 bg-amber-55 dark:bg-amber-950/40 rounded shrink-0">
                                   {language === "en" ? "Backup" : "Dự bị"}
                                 </span>
                               )}
-                            </span>
+                            </div>
                             <span className="text-[9px] font-mono text-gray-400 block">
                               {language === "en" ? "Athlete ID" : "Mã số VĐV"}: {member.id}
                             </span>

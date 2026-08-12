@@ -56,6 +56,7 @@ export interface TournamentData {
   viewCount?: number;
   laneCapacity?: number;
   clubs?: Club[];
+  auditLog?: string;
 }
 
 export enum OperationType {

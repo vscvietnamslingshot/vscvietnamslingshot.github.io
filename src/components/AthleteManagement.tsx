@@ -1224,36 +1224,50 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           ) : (
             filteredAthletes.map((ath, idx) => {
               const isActive = selectedAthlete && selectedAthlete.id === ath.id;
+              const isSysAth = (window as any).isVscSystemAthlete?.(ath.id) || (window as any).isVscSystemAthlete?.(ath.name);
+              const handleViewProfile = (e: React.MouseEvent) => {
+                if (isSysAth) {
+                  e.stopPropagation();
+                  (window as any).triggerViewAthleteProfile?.(ath.id || ath.name);
+                }
+              };
+
               return (
                 <div
-                  key={`ath-${ath.id || "idx"}-${idx}`}
-                  onClick={() => handleSelectAthlete(ath)}
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, ath.id)}
-                  onDragOver={(e) => handleDragOver(e, ath.id)}
-                  onDrop={(e) => handleDrop(e, ath.id)}
-                  onDragEnd={handleDragEnd}
-                  className={`p-2.5 rounded-lg flex items-center justify-between gap-3 cursor-grab active:cursor-grabbing transition-all border ${
-                    isActive 
-                      ? "border-blue-500 bg-blue-50/50" 
-                      : dragOverId === ath.id
-                      ? "border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20"
-                      : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                  } ${draggedId === ath.id ? "opacity-45" : ""}`}
+                  key={ath.id}
+                  onClick={() => setSelectedAthlete(ath)}
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                    isActive
+                      ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 shadow-sm"
+                      : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 cursor-grab" />
 
-                    <img 
-                      src={ath.avatarUrl || AVATAR_MALE} 
-                      alt={ath.name}
-                      referrerPolicy="no-referrer"
-                      className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
-                    />
+                    <div className="relative shrink-0">
+                      <img 
+                        src={ath.avatarUrl || AVATAR_MALE} 
+                        alt={ath.name}
+                        referrerPolicy="no-referrer"
+                        className={`w-10 h-10 rounded-full object-cover border border-slate-200 aspect-square shrink-0 ${isSysAth ? "cursor-pointer hover:scale-105 transition-transform" : ""}`}
+                        onClick={handleViewProfile}
+                      />
+                      {isSysAth && (
+                        <span className="absolute bottom-0 right-0 bg-blue-600 text-white w-3.5 h-3.5 rounded-full border border-white text-[8px] font-bold flex items-center justify-center shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </div>
 
                     <div className="min-w-0">
                       <div className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5 flex-wrap">
-                        <span className="truncate">{ath.name}</span>
+                        <span 
+                          className={`truncate ${isSysAth ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors" : ""}`}
+                          onClick={handleViewProfile}
+                        >
+                          {ath.name}
+                        </span>
                         <span className="text-[10px] font-mono text-gray-400 shrink-0">({ath.id})</span>
                         {ath.isPrimaryTeam && (
                           <span className="px-1 text-[8.5px] font-extrabold uppercase bg-indigo-50 text-indigo-700 rounded border border-indigo-200 shadow-xs shrink-0 select-none">

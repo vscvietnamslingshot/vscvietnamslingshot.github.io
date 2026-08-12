@@ -167,40 +167,60 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <img 
-              src={athlete.avatarUrl || AVATAR_MALE} 
-              alt={athlete.name} 
-              className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm shrink-0"
-              referrerPolicy="no-referrer"
-            />
-            <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                  ID: {athlete.id}
-                </span>
-                <span className="text-base font-extrabold text-gray-900 font-sans">
-                  {athlete.name}
-                </span>
+          (() => {
+            const isSysAth = (window as any).isVscSystemAthlete?.(athlete.id) || (window as any).isVscSystemAthlete?.(athlete.name);
+            const handleViewProfile = () => {
+              if (isSysAth) {
+                (window as any).triggerViewAthleteProfile?.(athlete.id || athlete.name);
+              }
+            };
+            return (
+              <div 
+                className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${isSysAth ? "cursor-pointer group select-none" : ""}`}
+                onClick={handleViewProfile}
+              >
+                <div className="relative shrink-0">
+                  <img 
+                    src={athlete.avatarUrl || AVATAR_MALE} 
+                    alt={athlete.name} 
+                    className={`w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm shrink-0 aspect-square ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
+                    referrerPolicy="no-referrer"
+                  />
+                  {isSysAth && (
+                    <span className="absolute bottom-0 right-0 bg-blue-600 text-white w-3.5 h-3.5 rounded-full border border-white text-[8px] font-bold flex items-center justify-center shadow-sm">
+                      ✓
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                      ID: {athlete.id}
+                    </span>
+                    <span className={`text-base font-extrabold text-gray-900 font-sans ${isSysAth ? "group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:underline transition-colors" : ""}`}>
+                      {athlete.name}
+                    </span>
+                  </div>
+                  {athlete.team && (
+                    <span className="text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full font-bold self-start sm:self-auto">
+                      {athlete.team}
+                    </span>
+                  )}
+                  {athlete.status === "Bỏ thi" && (
+                    <span className="text-xs text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full font-extrabold self-start sm:self-auto border border-rose-200">
+                      ⚠️ {language === "en" ? "WITHDRAWN" : "BỎ THI"}
+                    </span>
+                  )}
+                  {isLockedByOtherReferee && (
+                    <span className="text-[11px] text-amber-700 dark:text-amber-350 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full font-extrabold border border-amber-200 dark:border-amber-900/40 shrink-0 self-start sm:self-auto flex items-center gap-1.5 leading-none shadow-sm animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      🔒 {language === "en" ? "SCORING IN PROGRESS BY REFEREE" : "ĐANG GHI ĐIỂM BỞI TRỌNG TÀI"}: {lockedByRefereeEmail}
+                    </span>
+                  )}
+                </div>
               </div>
-              {athlete.team && (
-                <span className="text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full font-bold self-start sm:self-auto">
-                  {athlete.team}
-                </span>
-              )}
-              {athlete.status === "Bỏ thi" && (
-                <span className="text-xs text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full font-extrabold self-start sm:self-auto border border-rose-200">
-                  ⚠️ {language === "en" ? "WITHDRAWN" : "BỎ THI"}
-                </span>
-              )}
-              {isLockedByOtherReferee && (
-                <span className="text-[11px] text-amber-700 dark:text-amber-350 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full font-extrabold border border-amber-200 dark:border-amber-900/40 shrink-0 self-start sm:self-auto flex items-center gap-1.5 leading-none shadow-sm animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  🔒 {language === "en" ? "SCORING IN PROGRESS BY REFEREE" : "ĐANG GHI ĐIỂM BỞI TRỌNG TÀI"}: {lockedByRefereeEmail}
-                </span>
-              )}
-            </div>
-          </div>
+            );
+          })()
         )}
 
         <div className="flex items-center gap-1.5 ml-auto">
