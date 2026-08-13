@@ -7,6 +7,7 @@ import {
   saveVscSystemAthletes,
   updateUserProfile
 } from "../lib/firebaseService";
+import { VIETNAM_PROVINCES } from "../utils/provinces";
 import { 
   Search, 
   Plus, 
@@ -1330,13 +1331,33 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Tỉnh thành</label>
-                      <input
-                        type="text"
-                        value={formProvince}
-                        onChange={(e) => setFormProvince(e.target.value)}
+                      <select
+                        value={formProvince && !VIETNAM_PROVINCES.includes(formProvince) ? "Khác" : formProvince}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "Khác") {
+                            setFormProvince("Nước Ngoài");
+                          } else {
+                            setFormProvince(val);
+                          }
+                        }}
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                        placeholder="Thanh Hóa, Hà Nội..."
-                      />
+                      >
+                        <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                        {VIETNAM_PROVINCES.map((prov) => (
+                          <option key={prov} value={prov}>{prov}</option>
+                        ))}
+                        <option value="Khác">Khác (Tự nhập)</option>
+                      </select>
+                      {(formProvince === "Khác" || (formProvince && !VIETNAM_PROVINCES.includes(formProvince))) && (
+                        <input
+                          type="text"
+                          value={formProvince === "Khác" ? "" : formProvince}
+                          onChange={(e) => setFormProvince(e.target.value)}
+                          placeholder="Nhập tỉnh thành khác..."
+                          className="mt-1.5 w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Quê quán</label>

@@ -11,6 +11,7 @@ import {
   TournamentData 
 } from "../lib/firebaseService";
 import { auth } from "../firebase";
+import { VIETNAM_PROVINCES } from "../utils/provinces";
 import { 
   Trophy, 
   Users, 
@@ -749,13 +750,33 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
                               Tỉnh / Thành phố:
                             </label>
-                            <input
-                              type="text"
-                              value={province}
-                              onChange={(e) => setProvince(e.target.value)}
-                              placeholder="Hà Nội, Nam Định..."
-                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-white"
-                            />
+                            <select
+                              value={province && !VIETNAM_PROVINCES.includes(province) ? "Khác" : province}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "Khác") {
+                                  setProvince("Nước Ngoài");
+                                } else {
+                                  setProvince(val);
+                                }
+                              }}
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-900 dark:text-white"
+                            >
+                              <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                              {VIETNAM_PROVINCES.map((prov) => (
+                                <option key={prov} value={prov}>{prov}</option>
+                              ))}
+                              <option value="Khác">Khác (Tự nhập)</option>
+                            </select>
+                            {(province === "Khác" || (province && !VIETNAM_PROVINCES.includes(province))) && (
+                              <input
+                                type="text"
+                                value={province === "Khác" ? "" : province}
+                                onChange={(e) => setProvince(e.target.value)}
+                                placeholder="Nhập tỉnh thành khác..."
+                                className="mt-2 w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-white font-bold"
+                              />
+                            )}
                           </div>
 
                           {/* Address Contact */}

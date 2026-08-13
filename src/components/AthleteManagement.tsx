@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { Athlete, DistanceConfig, StoredAthleteList, Club, VSC_DEFAULT_LOGO } from "../types";
 import { getUserProfileByEmail, saveVscSystemAthletes, subscribeToVscSystemAthletes, saveVscSystemClub, deleteVscSystemClub } from "../lib/firebaseService";
+import { VIETNAM_PROVINCES } from "../utils/provinces";
 import * as XLSX from "xlsx";
 import { 
   User, 
@@ -1059,161 +1060,165 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         </div>
 
         {/* Import/Export Data Panel */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-              {language === "en" ? "Roster File Manager" : "Quản Lý File VĐV"}
-            </span>
-            <span className="text-[9px] text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold font-mono">XLSX & JSON</span>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            {/* Excel Group */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                <FileSpreadsheet className="w-3 h-3 text-emerald-600" /> {language === "en" ? "Excel Table (.xlsx)" : "Bảng Excel (.xlsx)"}
+        {!isVscTab && (
+          <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                {language === "en" ? "Roster File Manager" : "Quản Lý File VĐV"}
               </span>
-              <div className="flex gap-1">
-                <label 
-                  className="flex-1 text-center bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-emerald-950/20 text-emerald-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-emerald-200 dark:border-emerald-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
-                  title={language === "en" ? "Choose Excel file to import athlete list" : "Chọn file Excel để tải danh sách vận động viên"}
-                >
-                  <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    onChange={handleExcelImport}
-                    className="hidden"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={exportToExcel}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                  title={language === "en" ? "Download Excel file containing current athletes" : "Tải về file Excel chứa danh sách VĐV hiện hành"}
-                >
-                  <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
-                </button>
-              </div>
+              <span className="text-[9px] text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold font-mono">XLSX & JSON</span>
             </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {/* Excel Group */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
+                  <FileSpreadsheet className="w-3 h-3 text-emerald-600" /> {language === "en" ? "Excel Table (.xlsx)" : "Bảng Excel (.xlsx)"}
+                </span>
+                <div className="flex gap-1">
+                  <label 
+                    className="flex-1 text-center bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-emerald-950/20 text-emerald-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-emerald-200 dark:border-emerald-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
+                    title={language === "en" ? "Choose Excel file to import athlete list" : "Chọn file Excel để tải danh sách vận động viên"}
+                  >
+                    <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleExcelImport}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={exportToExcel}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
+                    title={language === "en" ? "Download Excel file containing current athletes" : "Tải về file Excel chứa danh sách VĐV hiện hành"}
+                  >
+                    <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
+                  </button>
+                </div>
+              </div>
 
-            {/* JSON Group */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                <span className="text-violet-600 font-mono font-black text-xs leading-none">{"{}"}</span> {language === "en" ? "JSON Data (.json)" : "Dữ liệu JSON (.json)"}
-              </span>
-              <div className="flex gap-1">
-                <label 
-                  className="flex-1 text-center bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 text-violet-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-violet-200 dark:border-violet-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
-                  title={language === "en" ? "Choose JSON file to import athletes" : "Chọn file JSON để tải lên đầy đủ VĐV và điểm số"}
-                >
-                  <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleJsonImport}
-                    className="hidden"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={exportToJson}
-                  className="flex-1 bg-violet-600 hover:bg-violet-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                  title={language === "en" ? "Download JSON file" : "Tải về file JSON"}
-                >
-                  <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
-                </button>
+              {/* JSON Group */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
+                  <span className="text-violet-600 font-mono font-black text-xs leading-none">{"{}"}</span> {language === "en" ? "JSON Data (.json)" : "Dữ liệu JSON (.json)"}
+                </span>
+                <div className="flex gap-1">
+                  <label 
+                    className="flex-1 text-center bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 text-violet-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-violet-200 dark:border-violet-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
+                    title={language === "en" ? "Choose JSON file to import athletes" : "Chọn file JSON để tải lên đầy đủ VĐV và điểm số"}
+                  >
+                    <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleJsonImport}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={exportToJson}
+                    className="flex-1 bg-violet-600 hover:bg-violet-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
+                    title={language === "en" ? "Download JSON file" : "Tải về file JSON"}
+                  >
+                    <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Add New & Reset list options */}
-        <div className="pt-1.5 flex flex-col gap-1.5 border-b border-gray-150 dark:border-slate-800/60 pb-2.5">
-          <div className="flex gap-2 items-center">
-            <button
-              type="button"
-              onClick={handleStartCreate}
-              className="flex-1 py-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
-              title={isVscTab 
-                ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
-                : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
-            >
-              <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
-            </button>
-
-            {currentRoster.length > 0 && resetConfirmStep === 0 && (
+        {!isVscTab && (
+          <div className="pt-1.5 flex flex-col gap-1.5 border-b border-gray-150 dark:border-slate-800/60 pb-2.5">
+            <div className="flex gap-2 items-center">
               <button
                 type="button"
-                onClick={() => setResetConfirmStep(1)}
-                className="flex-1 py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
+                onClick={handleStartCreate}
+                className="flex-1 py-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                title={isVscTab 
+                  ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
+                  : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
               >
-                <Trash2 className="w-3.5 h-3.5" /> 
-                Xóa tất cả ({currentRoster.length})
+                <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
               </button>
+
+              {currentRoster.length > 0 && resetConfirmStep === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setResetConfirmStep(1)}
+                  className="flex-1 py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 
+                  Xóa tất cả ({currentRoster.length})
+                </button>
+              )}
+            </div>
+
+            {currentRoster.length > 0 && resetConfirmStep === 1 && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-amber-900 dark:text-amber-300 animate-fadeIn font-extrabold shadow-sm">
+                <span className="text-center font-bold text-[10px] text-amber-800 dark:text-amber-400 leading-snug">
+                  ⚠️ XÁC NHẬN LẦN 1: Bạn có chắc chắn muốn xóa hết {currentRoster.length} VĐV?
+                </span>
+                <div className="flex gap-1.5 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setResetConfirmStep(2)}
+                    className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-sm transition-colors"
+                  >
+                    Xác nhận lần 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetConfirmStep(0)}
+                    className="py-1 px-3 bg-gray-250 text-slate-700 dark:text-slate-350 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {currentRoster.length > 0 && resetConfirmStep === 2 && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-red-900 dark:text-red-300 animate-fadeIn font-extrabold shadow-sm">
+                <span className="text-center font-bold text-[10.5px] text-red-700 dark:text-red-400 leading-snug">
+                  🚨 XÁC NHẬN LẦN 2 (CẢNH BÁO): Chắc chắn xóa VĨNH VIỄN?
+                </span>
+                <div className="flex gap-1.5 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isVscTab) {
+                        updateVscSystemAthletesAndKeepSync([]);
+                      } else {
+                        setAthletes([]);
+                      }
+                      setResetConfirmStep(0);
+                      setNotification({
+                        type: "success",
+                        message: "Đã reset sạch sẽ danh sách vận động viên!"
+                      });
+                      setTimeout(() => setNotification(null), 3500);
+                    }}
+                    className="flex-1 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-md transition-colors"
+                  >
+                    CÓ, XÓA TOÀN BỘ VĐV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetConfirmStep(0)}
+                    className="py-1.5 px-3 bg-gray-250 text-slate-700 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-
-          {currentRoster.length > 0 && resetConfirmStep === 1 && (
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-amber-900 dark:text-amber-300 animate-fadeIn font-extrabold shadow-sm">
-              <span className="text-center font-bold text-[10px] text-amber-800 dark:text-amber-400 leading-snug">
-                ⚠️ XÁC NHẬN LẦN 1: Bạn có chắc chắn muốn xóa hết {currentRoster.length} VĐV?
-              </span>
-              <div className="flex gap-1.5 w-full">
-                <button
-                  type="button"
-                  onClick={() => setResetConfirmStep(2)}
-                  className="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-sm transition-colors"
-                >
-                  Xác nhận lần 1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setResetConfirmStep(0)}
-                  className="py-1 px-3 bg-gray-250 text-slate-700 dark:text-slate-350 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          )}
-
-          {currentRoster.length > 0 && resetConfirmStep === 2 && (
-            <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-900 p-2.5 rounded-xl flex flex-col gap-1.5 text-xs text-red-900 dark:text-red-300 animate-fadeIn font-extrabold shadow-sm">
-              <span className="text-center font-bold text-[10.5px] text-red-700 dark:text-red-400 leading-snug">
-                🚨 XÁC NHẬN LẦN 2 (CẢNH BÁO): Chắc chắn xóa VĨNH VIỄN?
-              </span>
-              <div className="flex gap-1.5 w-full">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isVscTab) {
-                      updateVscSystemAthletesAndKeepSync([]);
-                    } else {
-                      setAthletes([]);
-                    }
-                    setResetConfirmStep(0);
-                    setNotification({
-                      type: "success",
-                      message: "Đã reset sạch sẽ danh sách vận động viên!"
-                    });
-                    setTimeout(() => setNotification(null), 3500);
-                  }}
-                  className="flex-1 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded font-black text-[10.5px] cursor-pointer shadow-md transition-colors"
-                >
-                  CÓ, XÓA TOÀN BỘ VĐV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setResetConfirmStep(0)}
-                  className="py-1.5 px-3 bg-gray-250 text-slate-700 rounded font-bold text-[10.5px] cursor-pointer transition-colors"
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Athletes roster */}
         <div className="flex-1 overflow-y-auto space-y-1 my-1 max-h-[500px] pr-1">
@@ -2557,13 +2562,33 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
                     Tỉnh / Thành phố hiện tại:
                   </label>
-                  <input
-                    type="text"
-                    value={formProvince}
-                    onChange={(e) => setFormProvince(e.target.value)}
-                    placeholder="Nam Định"
-                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
+                  <select
+                    value={formProvince && !VIETNAM_PROVINCES.includes(formProvince) ? "Khác" : formProvince}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "Khác") {
+                        setFormProvince("Nước Ngoài");
+                      } else {
+                        setFormProvince(val);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                  >
+                    <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                    {VIETNAM_PROVINCES.map((prov) => (
+                      <option key={prov} value={prov}>{prov}</option>
+                    ))}
+                    <option value="Khác">Khác (Tự nhập)</option>
+                  </select>
+                  {(formProvince === "Khác" || (formProvince && !VIETNAM_PROVINCES.includes(formProvince))) && (
+                    <input
+                      type="text"
+                      value={formProvince === "Khác" ? "" : formProvince}
+                      onChange={(e) => setFormProvince(e.target.value)}
+                      placeholder="Nhập tỉnh thành khác..."
+                      className="mt-2 w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                    />
+                  )}
                 </div>
 
                 {/* Country with mini flag selector */}
@@ -2676,18 +2701,23 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
 
               {/* Action buttons */}
               <div className="flex flex-wrap items-center gap-2 ml-auto sm:ml-0 self-end sm:self-center">
-                {isConfirmingDelete ? (
+                {isVscTab ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAddVscToTournament(selectedAthlete)}
+                    className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
+                    title={language === "en" ? "Add this athlete to the current active tournament roster" : "Thêm VĐV này vào danh sách giải thi đấu hiện tại"}
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Active" : "Thêm vào giải"}
+                  </button>
+                ) : isConfirmingDelete ? (
                   <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 p-1 px-1.5 rounded-lg animate-fadeIn text-[11px] font-bold text-rose-800">
                     <span className="uppercase tracking-wider mr-1 text-[10px]">Xác nhận xóa?</span>
                     <button
                       type="button"
                       onClick={() => {
-                        if (isVscTab) {
-                          updateVscSystemAthletesAndKeepSync(vscSystemAthletes.filter((a) => a.id !== selectedAthlete.id));
-                        } else {
-                          setAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
-                          setCurrentActiveAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
-                        }
+                        setAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
+                        setCurrentActiveAthletes((prev) => prev.filter((a) => a.id !== selectedAthlete.id));
                         setSelectedAthlete(null);
                         setIsEditing(false);
                         setIsCreating(false);
@@ -2707,17 +2737,6 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   </div>
                 ) : (
                   <>
-                    {isVscTab && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddVscToTournament(selectedAthlete)}
-                        className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
-                        title={language === "en" ? "Add this athlete to the current active tournament roster" : "Thêm VĐV này vào danh sách giải thi đấu hiện tại"}
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Active" : "Thêm vào giải hiện hành"}
-                      </button>
-                    )}
-                    
                     <button
                       type="button"
                       onClick={() => handleStartEdit(selectedAthlete)}
