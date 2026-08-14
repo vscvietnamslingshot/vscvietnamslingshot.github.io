@@ -8,11 +8,21 @@ import {
   updateUserProfile,
   getVscSystemAthletes,
   saveVscSystemAthletes,
-  TournamentData 
+  TournamentData,
+  createSystemClub,
+  requestToJoinClub,
+  cancelJoinRequest,
+  handleClubJoinRequest,
+  leaveClub,
+  kickClubMember,
+  addClubMemberDirectly,
+  transferClubLeadership,
+  updateClubProfile
 } from "../lib/firebaseService";
 import { auth } from "../firebase";
 import { VIETNAM_PROVINCES } from "../utils/provinces";
 import { 
+  Activity,
   Trophy, 
   Users, 
   Calendar, 
@@ -38,9 +48,11 @@ import {
   HelpCircle,
   Clock,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  LogOut
 } from "lucide-react";
-import { Athlete, DistanceConfig } from "../types";
+import { Athlete, DistanceConfig, SystemClub } from "../types";
 import { getHitCount } from "../utils/qualification";
 import { useLanguage } from "../context/LanguageContext";
 import { Club } from "../types";
@@ -50,7 +62,11 @@ interface ControlPanelProps {
   onSelectTournament: (id: string, tournament: TournamentData) => void;
   activeHistoryId: string | null;
   onOpenAuthModal: () => void;
-  forceSubTab?: "profile" | "created" | "referee";
+  forceSubTab?: "profile" | "club" | "created" | "referee";
+  systemClubs?: SystemClub[];
+  vscSystemAthletes?: Athlete[];
+  onlineTournaments?: TournamentData[];
+  onChangeActiveTab?: (tab: "home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel" | "qltv" | "vsc_system_directory" | "vsc_clubs_directory") => void;
 }
 
 export const resolveTournamentType = (tour: TournamentData): "individual" | "team" | "combined" => {
@@ -76,12 +92,98 @@ const getTournamentModeLabel = (tour: TournamentData, lang: "vi" | "en" = "vi"):
   }
 };
 
+export const getClubStats = (club: SystemClub, tournamentsList: any[]) => {
+  let totalShots = 0;
+  let totalHits = 0;
+  let podiums = 0;
+
+  const memberEmails = new Set(club.members?.map(m => m.email?.toLowerCase().trim()).filter(Boolean) || []);
+  const memberAthleteIds = new Set(club.members?.map(m => m.athleteId?.toLowerCase().trim()).filter(Boolean) || []);
+
+  tournamentsList.forEach(tour => {
+    const allAthletes = [
+      ...(tour.masterAthletes || []),
+      ...(tour.inputAthletes || []),
+      ...(tour.athletes || [])
+    ];
+
+    const tournamentMembers = allAthletes.filter(ath => {
+      const emailMatch = ath.email && memberEmails.has(ath.email.toLowerCase().trim());
+      const idMatch = ath.id && memberAthleteIds.has(ath.id.toLowerCase().trim());
+      return emailMatch || idMatch;
+    });
+
+    tournamentMembers.forEach(ath => {
+      const distances = tour.distances || [];
+      distances.forEach((dist: any) => {
+        const hits = ath.scores?.[dist.id] || [];
+        const hitCount = getHitCount(hits);
+        const shotsCount = tour.shotsCount || 10;
+        
+        if (hits.length > 0) {
+          totalShots += shotsCount;
+          totalHits += hitCount;
+        }
+      });
+    });
+
+    if (tour.distances && tour.distances.length > 0) {
+      const activeAthletes = allAthletes.filter(a => a.status !== "Bỏ thi");
+      const standings = activeAthletes.map(athlete => {
+        let totalScore = 0;
+        tour.distances.forEach((dist: any) => {
+          const hits = athlete.scores?.[dist.id] || [];
+          const hitCount = getHitCount(hits);
+          totalScore += hitCount * dist.multiplier;
+        });
+        return { ...athlete, totalScore };
+      }).sort((a, b) => b.totalScore - a.totalScore);
+
+      standings.slice(0, Math.min(3, standings.length)).forEach(ath => {
+        const isMember = (ath.email && memberEmails.has(ath.email.toLowerCase().trim())) ||
+                         (ath.id && memberAthleteIds.has(ath.id.toLowerCase().trim()));
+        if (isMember) {
+          podiums++;
+        }
+      });
+    }
+
+    const teamsList = tour.teamAthletes || [];
+    if (teamsList.length > 0) {
+      const teamStandings = [...teamsList].sort((a, b) => {
+        const scoreA = typeof a.score === "number" ? a.score : 0;
+        const scoreB = typeof b.score === "number" ? b.score : 0;
+        return scoreB - scoreA;
+      });
+
+      teamStandings.slice(0, Math.min(3, teamStandings.length)).forEach(team => {
+        if (team.name && team.name.toLowerCase().trim() === club.name.toLowerCase().trim()) {
+          podiums++;
+        }
+      });
+    }
+  });
+
+  const hitRate = totalShots > 0 ? (totalHits / totalShots) * 100 : 0;
+
+  return {
+    totalShots,
+    totalHits,
+    hitRate,
+    podiums
+  };
+};
+
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   isGlobalAdmin,
   onSelectTournament,
   activeHistoryId,
   onOpenAuthModal,
-  forceSubTab
+  forceSubTab,
+  systemClubs = [],
+  vscSystemAthletes = [],
+  onlineTournaments = [],
+  onChangeActiveTab
 }) => {
   const { language } = useLanguage();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
@@ -180,8 +282,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
   
-  // Tab can be profile (hồ sơ của tôi), created (giải tôi tạo), referee (giải tôi trọng tài)
-  const [subTab, setSubTab] = useState<"profile" | "created" | "referee">("profile");
+  // Tab can be profile (hồ sơ của tôi), club (câu lạc bộ), created (giải tôi tạo), referee (giải tôi trọng tài)
+  const [subTab, setSubTab] = useState<"profile" | "club" | "created" | "referee">("profile");
 
   // Sync subtab if forceSubTab changes
   useEffect(() => {
@@ -195,6 +297,28 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [profileLoading, setProfileLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
+  // Club Management states
+  const [newClubName, setNewClubName] = useState("");
+  const [newClubProvince, setNewClubProvince] = useState("");
+  const [newClubLogoUrl, setNewClubLogoUrl] = useState("");
+  const [newClubDesc, setNewClubDesc] = useState("");
+  const [isCreatingClub, setIsCreatingClub] = useState(false);
+
+  const [editClubName, setEditClubName] = useState("");
+  const [editClubProvince, setEditClubProvince] = useState("");
+  const [editClubLogoUrl, setEditClubLogoUrl] = useState("");
+  const [editClubDesc, setEditClubDesc] = useState("");
+  const [isUpdatingClub, setIsUpdatingClub] = useState(false);
+  const [isEditingClubProfile, setIsEditingClubProfile] = useState(false);
+
+  const [clubSearchQuery, setClubSearchQuery] = useState("");
+  const [isSubmittingJoinRequest, setIsSubmittingJoinRequest] = useState(false);
+  const [directAthleteId, setDirectAthleteId] = useState("");
+  const [isAddingDirectMember, setIsAddingDirectMember] = useState(false);
+  const [transferTargetUserId, setTransferTargetUserId] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+
   // Profile fields state
   const [dispName, setDispName] = useState("");
   const [idCard, setIdCard] = useState("");
@@ -203,6 +327,32 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [province, setProvince] = useState("");
   const [clubName, setClubName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+
+  // Club Memos and Stats Engine
+  const myClub = useMemo(() => {
+    if (!currentUser) return null;
+    return systemClubs.find((club) =>
+      club.members?.some((m) => m.userId === currentUser.uid)
+    ) || null;
+  }, [systemClubs, currentUser]);
+
+  const myPendingRequestClub = useMemo(() => {
+    if (!currentUser) return null;
+    return systemClubs.find((club) =>
+      club.pendingRequests?.some((r) => r.userId === currentUser.uid)
+    ) || null;
+  }, [systemClubs, currentUser]);
+
+  // Load club details for editing when myClub is available
+  useEffect(() => {
+    if (myClub) {
+      setEditClubName(myClub.name || "");
+      setEditClubProvince(myClub.province || "");
+      setEditClubLogoUrl(myClub.logoUrl || "");
+      setEditClubDesc(myClub.description || "");
+      setClubName(myClub.name || "");
+    }
+  }, [myClub]);
 
   // Track Auth changes
   useEffect(() => {
@@ -530,6 +680,227 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
 
+  // Club Operations Handlers
+  const handleCreateClubSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (!newClubName.trim()) {
+      alert(language === "en" ? "Club name cannot be empty!" : "Tên câu lạc bộ không được để trống!");
+      return;
+    }
+    if (!newClubProvince) {
+      alert(language === "en" ? "Please select a province!" : "Vui lòng chọn tỉnh thành hoạt động chính!");
+      return;
+    }
+    
+    setIsCreatingClub(true);
+    try {
+      await createSystemClub(
+        newClubName.trim(),
+        newClubLogoUrl.trim(),
+        newClubProvince,
+        currentUser.uid,
+        profile?.displayName || currentUser.email?.split("@")[0] || "Trưởng CLB",
+        currentUser.email || "",
+        newClubDesc.trim()
+      );
+      alert(language === "en" ? "Club created successfully!" : "Tạo câu lạc bộ mới thành công!");
+      setNewClubName("");
+      setNewClubProvince("");
+      setNewClubLogoUrl("");
+      setNewClubDesc("");
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error creating club: ${err.message || err}` : `Lỗi khi tạo câu lạc bộ: ${err.message || err}`);
+    } finally {
+      setIsCreatingClub(false);
+    }
+  };
+
+  const handleJoinRequestSubmit = async (clubId: string) => {
+    if (!currentUser) return;
+    setIsSubmittingJoinRequest(true);
+    try {
+      let athleteId = "";
+      try {
+        const athletes = await getVscSystemAthletes();
+        const matched = athletes.find(a => a.email?.trim().toLowerCase() === currentUser.email?.trim().toLowerCase());
+        if (matched) {
+          athleteId = matched.id;
+        }
+      } catch (e) {
+        console.warn("Could not retrieve system athlete ID for request:", e);
+      }
+
+      await requestToJoinClub(
+        clubId,
+        currentUser.uid,
+        athleteId,
+        profile?.displayName || currentUser.email?.split("@")[0] || "VĐV",
+        currentUser.email || ""
+      );
+      alert(language === "en" ? "Join request sent successfully!" : "Gửi yêu cầu gia nhập câu lạc bộ thành công!");
+    } catch (err: any) {
+      console.error(err);
+      let msg = err.message || String(err);
+      if (msg === "ALREADY_IN_CLUB") {
+        alert(language === "en" ? "You are already a member of a club!" : "Bạn hiện đã là thành viên của một câu lạc bộ khác!");
+      } else if (msg === "ALREADY_REQUESTED") {
+        alert(language === "en" ? "You have already sent a request to join a club!" : "Bạn đã có yêu cầu gia nhập đang chờ duyệt!");
+      } else {
+        alert(language === "en" ? `Error: ${msg}` : `Lỗi: ${msg}`);
+      }
+    } finally {
+      setIsSubmittingJoinRequest(false);
+    }
+  };
+
+  const handleCancelJoinRequest = async (clubId: string) => {
+    if (!currentUser) return;
+    try {
+      await cancelJoinRequest(clubId, currentUser.uid);
+      alert(language === "en" ? "Withdrew join request!" : "Đã rút lại yêu cầu gia nhập!");
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+    }
+  };
+
+  const handleUpdateClubSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myClub) return;
+    if (!editClubName.trim()) {
+      alert(language === "en" ? "Club name cannot be empty!" : "Tên câu lạc bộ không được để trống!");
+      return;
+    }
+    if (!editClubProvince) {
+      alert(language === "en" ? "Please select a province!" : "Vui lòng chọn tỉnh thành!");
+      return;
+    }
+
+    setIsUpdatingClub(true);
+    try {
+      await updateClubProfile(myClub.id, {
+        name: editClubName.trim(),
+        logoUrl: editClubLogoUrl.trim(),
+        province: editClubProvince,
+        description: editClubDesc.trim()
+      });
+      alert(language === "en" ? "Club profile updated successfully!" : "Cập nhật hồ sơ câu lạc bộ thành công!");
+      setIsEditingClubProfile(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+    } finally {
+      setIsUpdatingClub(false);
+    }
+  };
+
+  const handleLeaveClubClick = async () => {
+    if (!myClub || !currentUser) return;
+    const confirmText = language === "en"
+      ? "Are you sure you want to leave this club? You will become an independent athlete."
+      : "Bạn có chắc chắn muốn rời khỏi câu lạc bộ này? Bạn sẽ trở thành vận động viên tự do.";
+    if (!confirm(confirmText)) return;
+
+    try {
+      await leaveClub(myClub.id, currentUser.uid);
+      alert(language === "en" ? "Left club successfully!" : "Đã rời khỏi câu lạc bộ thành công!");
+    } catch (err: any) {
+      console.error(err);
+      if (err.message === "LEADER_MUST_TRANSFER") {
+        alert(language === "en"
+          ? "As the Club Leader, you must transfer leadership to another member before leaving!"
+          : "Là Trưởng CLB, bạn phải chuyển nhượng quyền trưởng câu lạc bộ cho thành viên khác trước khi rời đi!");
+      } else {
+        alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+      }
+    }
+  };
+
+  const handleKickMemberClick = async (userId: string, memberName: string) => {
+    if (!myClub) return;
+    const confirmText = language === "en"
+      ? `Are you sure you want to remove ${memberName} from the club?`
+      : `Bạn có chắc chắn muốn loại thành viên ${memberName} ra khỏi câu lạc bộ?`;
+    if (!confirm(confirmText)) return;
+
+    try {
+      await kickClubMember(myClub.id, userId);
+      alert(language === "en" ? "Member removed successfully!" : "Đã loại thành viên thành công!");
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+    }
+  };
+
+  const handleAddDirectMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myClub) return;
+    if (!directAthleteId.trim()) {
+      alert(language === "en" ? "Please enter an Athlete ID!" : "Vui lòng nhập Mã số VĐV Hệ Thống!");
+      return;
+    }
+
+    setIsAddingDirectMember(true);
+    try {
+      await addClubMemberDirectly(myClub.id, directAthleteId.trim(), vscSystemAthletes);
+      alert(language === "en" ? "Member added directly successfully!" : "Đã thêm thành viên trực tiếp thành công!");
+      setDirectAthleteId("");
+    } catch (err: any) {
+      console.error(err);
+      let msg = err.message || String(err);
+      if (msg === "ATHLETE_NOT_FOUND") {
+        alert(language === "en" ? "Athlete ID not found in system Roster!" : "Không tìm thấy Mã số VĐV này trong danh sách hệ thống!");
+      } else if (msg === "ATHLETE_ALREADY_IN_CLUB") {
+        alert(language === "en" ? "This athlete is already a member of another club!" : "Vận động viên này đã thuộc câu lạc bộ khác!");
+      } else {
+        alert(language === "en" ? `Error: ${msg}` : `Lỗi: ${msg}`);
+      }
+    } finally {
+      setIsAddingDirectMember(false);
+    }
+  };
+
+  const handleRequestAction = async (requestUserId: string, action: "approve" | "reject") => {
+    if (!myClub) return;
+    try {
+      await handleClubJoinRequest(myClub.id, requestUserId, action);
+      alert(action === "approve"
+        ? (language === "en" ? "Request approved!" : "Đã duyệt yêu cầu gia nhập!")
+        : (language === "en" ? "Request rejected!" : "Đã từ chối yêu cầu gia nhập!")
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+    }
+  };
+
+  const handleTransferLeadershipSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myClub || !transferTargetUserId) return;
+    const targetMember = myClub.members?.find(m => m.userId === transferTargetUserId);
+    if (!targetMember) return;
+
+    const confirmText = language === "en"
+      ? `Are you sure you want to transfer leadership to ${targetMember.name}? You will be demoted to a regular member.`
+      : `Bạn có chắc chắn muốn chuyển nhượng quyền Trưởng CLB cho ${targetMember.name}? Bạn sẽ tự động hạ cấp xuống thành viên thường.`;
+    if (!confirm(confirmText)) return;
+
+    setIsTransferring(true);
+    try {
+      await transferClubLeadership(myClub.id, transferTargetUserId);
+      alert(language === "en" ? "Leadership transferred successfully!" : "Đã chuyển nhượng quyền Trưởng CLB thành công!");
+      setShowTransferModal(false);
+      setTransferTargetUserId("");
+    } catch (err: any) {
+      console.error(err);
+      alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 p-2 text-slate-800 dark:text-slate-100 font-sans">
       
@@ -597,6 +968,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <UserCheck className="w-4 h-4" />
                 {language === "en" ? "My Athlete Profile" : "Hồ Sơ VĐV của Tôi"}
               </button>
+              {/* Removed My Club tab button per request */}
               <button
                 onClick={() => setSubTab("created")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap ${
@@ -738,10 +1110,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={clubName}
+                              value={myClub ? myClub.name : clubName}
                               onChange={(e) => setClubName(e.target.value)}
+                              disabled={!!myClub}
                               placeholder="Nhập tên CLB..."
-                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-900 dark:text-white"
+                              className={`w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold ${
+                                myClub
+                                  ? "bg-slate-100 dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed select-none opacity-80"
+                                  : "bg-slate-50 dark:bg-slate-955 border-gray-300 dark:border-slate-800 text-slate-900 dark:text-white"
+                              }`}
                             />
                           </div>
 
@@ -875,6 +1252,704 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {subTab === "club" && (
+                <div className="flex flex-col gap-6">
+                  {!currentUser ? (
+                    <div className="p-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center flex flex-col items-center justify-center gap-3 bg-slate-50/20 dark:bg-slate-950/10">
+                      <Users className="w-8 h-8 text-slate-400" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          {language === "en" ? "Authentication Required" : "Yêu Cầu Đăng Nhập"}
+                        </h4>
+                        <p className="text-xs text-slate-400 max-w-xs mt-1 leading-relaxed">
+                          {language === "en"
+                            ? "Please log in to your account to view your club status, search for clubs, or create a new one."
+                            : "Vui lòng đăng nhập để xem thông tin câu lạc bộ, tìm kiếm gia nhập hoặc đăng ký thành lập CLB mới."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={onOpenAuthModal}
+                        className="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl cursor-pointer shadow-md transition-all duration-200"
+                      >
+                        {language === "en" ? "Sign In / Register" : "Đăng nhập / Đăng ký"}
+                      </button>
+                    </div>
+                  ) : myClub ? (
+                    // USER HAS A CLUB
+                    <div className="flex flex-col gap-6">
+                      {/* Club Header Banner Card */}
+                      <div className="relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                        <div className="flex flex-col sm:flex-row gap-5 items-center">
+                          <img
+                            src={myClub.logoUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150"}
+                            alt={myClub.name}
+                            className="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-100 dark:border-indigo-950/40 shadow-xs"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150";
+                            }}
+                          />
+                          <div className="text-center sm:text-left">
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                              <h2 className="text-xl font-black tracking-tight text-slate-800 dark:text-white">
+                                {myClub.name}
+                              </h2>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-950">
+                                {myClub.province}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1 flex items-center justify-center sm:justify-start gap-1">
+                              <User className="w-3.5 h-3.5 text-slate-400" />
+                              {language === "en" ? "Leader:" : "Trưởng CLB:"} <strong className="text-slate-600 dark:text-slate-300">{myClub.leaderName}</strong> ({myClub.leaderEmail})
+                            </p>
+                            {myClub.description && (
+                              <p className="text-xs text-slate-500 mt-2 max-w-lg leading-relaxed italic">
+                                "{myClub.description}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+                          {onChangeActiveTab && (
+                            <button
+                              onClick={() => onChangeActiveTab("vsc_clubs_directory")}
+                              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl cursor-pointer transition-all shadow-xs"
+                            >
+                              <Building className="w-3.5 h-3.5" />
+                              {language === "en" ? "Open System Club" : "Mở Không Gian CLB"}
+                            </button>
+                          )}
+                          {myClub.leaderId === currentUser.uid ? (
+                            <>
+                              <button
+                                onClick={() => setIsEditingClubProfile(!isEditingClubProfile)}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl cursor-pointer transition-all"
+                              >
+                                <SlidersHorizontal className="w-3.5 h-3.5" />
+                                {isEditingClubProfile
+                                  ? (language === "en" ? "View Roster" : "Xem Danh Sách")
+                                  : (language === "en" ? "Edit Profile" : "Chỉnh Sửa Hồ Sơ")}
+                              </button>
+                              <button
+                                onClick={() => setShowTransferModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/40 dark:border-amber-900/40 text-xs font-bold rounded-xl cursor-pointer transition-all"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                {language === "en" ? "Transfer Leadership" : "Chuyển Trưởng CLB"}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={handleLeaveClubClick}
+                              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/40 dark:border-red-900/40 text-xs font-bold rounded-xl cursor-pointer transition-all"
+                            >
+                              <LogOut className="w-3.5 h-3.5" />
+                              {language === "en" ? "Leave Club" : "Rời Câu Lạc Bộ"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Lifetime Statistics Engine Block */}
+                      {(() => {
+                        const stats = getClubStats(myClub, onlineTournaments);
+                        return (
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 p-4 rounded-xl shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                {language === "en" ? "Total System Shots" : "Tổng Số Đường Bắn"}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Activity className="w-4 h-4 text-indigo-500" />
+                                <span className="text-xl font-black text-slate-800 dark:text-white">
+                                  {stats.totalShots}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 p-4 rounded-xl shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                {language === "en" ? "Total System Hits" : "Tổng Số Hit Đánh Trúng"}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                <span className="text-xl font-black text-slate-800 dark:text-white">
+                                  {stats.totalHits}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 p-4 rounded-xl shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                {language === "en" ? "Overall Hit Rate" : "Tỷ Lệ Trúng Trung Bình"}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Sliders className="w-4 h-4 text-amber-500" />
+                                <span className="text-xl font-black text-slate-800 dark:text-white">
+                                  {stats.hitRate.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 p-4 rounded-xl shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                {language === "en" ? "Podium Finishes" : "Số Lần Đạt Bục (Top 3)"}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Trophy className="w-4 h-4 text-yellow-500" />
+                                <span className="text-xl font-black text-slate-800 dark:text-white">
+                                  {stats.podiums}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* VSC Club Directory Navigation Banner */}
+                      {onChangeActiveTab && (
+                        <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:to-pink-500/20 border border-indigo-200/50 dark:border-indigo-800/40 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div className="flex items-start gap-3.5 text-left">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                              <Building className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white">
+                                {language === "en" ? "Interactive Club Workspace Available" : "Không Gian Câu Lạc Bộ Chuyên Nghiệp Đã Sẵn Sàng"}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed max-w-xl">
+                                {language === "en"
+                                  ? "Go to the VSC System Clubs tab to access complete details, review historical tournament rosters, approve pending shoot requests, or delete your club."
+                                  : "Truy cập ngay tab CLB Hệ Thống để quản lý đầy đủ danh sách, phê duyệt thành viên xin gia nhập, cập nhật ảnh logo/banner nén chất lượng cao, hoặc giải tán câu lạc bộ."}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onChangeActiveTab("vsc_clubs_directory")}
+                            className="w-full sm:w-auto px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black cursor-pointer shadow-md flex items-center justify-center gap-2 whitespace-nowrap transition-colors"
+                          >
+                            <span>{language === "en" ? "Go to System Clubs" : "Truy Cập Hệ Thống CLB"}</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* EDIT PROFILE PANEL */}
+                      {isEditingClubProfile && myClub.leaderId === currentUser.uid ? (
+                        <form
+                          onSubmit={handleUpdateClubSubmit}
+                          className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-4"
+                        >
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                            {language === "en" ? "Edit Club Information" : "Chỉnh Sửa Thông Tin Câu Lạc Bộ"}
+                          </h3>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {language === "en" ? "Club Name *" : "Tên Câu Lạc Bộ *"}
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={editClubName}
+                                onChange={(e) => setEditClubName(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {language === "en" ? "Primary Province *" : "Tỉnh Thành Hoạt Động *"}
+                              </label>
+                              <select
+                                required
+                                value={editClubProvince}
+                                onChange={(e) => setEditClubProvince(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                              >
+                                <option value="">-- {language === "en" ? "Select Province" : "Chọn Tỉnh Thành"} --</option>
+                                {VIETNAM_PROVINCES.map((p) => (
+                                  <option key={p} value={p}>
+                                    {p}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {language === "en" ? "Club Logo URL (HTTPS)" : "Đường Dẫn Logo (Ảnh HTTPS)"}
+                            </label>
+                            <input
+                              type="url"
+                              value={editClubLogoUrl}
+                              onChange={(e) => setEditClubLogoUrl(e.target.value)}
+                              placeholder="https://example.com/logo.png"
+                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {language === "en" ? "Club Motto / Description" : "Giới Thiệu / Tôn Chỉ Hoạt Động"}
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={editClubDesc}
+                              onChange={(e) => setEditClubDesc(e.target.value)}
+                              placeholder={language === "en" ? "Brief club motto or description..." : "Giới thiệu ngắn gọn về câu lạc bộ..."}
+                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingClubProfile(false)}
+                              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 cursor-pointer"
+                            >
+                              {language === "en" ? "Cancel" : "Hủy Bỏ"}
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isUpdatingClub}
+                              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <Save className="w-3.5 h-3.5" />
+                              {isUpdatingClub
+                                ? (language === "en" ? "Saving..." : "Đang lưu...")
+                                : (language === "en" ? "Save Changes" : "Lưu Thay Đổi")}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        // ROSTER AND MANAGEMENT BLOCKS
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          {/* Official Members Roster */}
+                          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                              <span className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-indigo-500" />
+                                {language === "en" ? "Club Roster" : "Thành Viên Chính Thức"}
+                              </span>
+                              <span className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-850">
+                                {myClub.members?.length || 0} VĐV
+                              </span>
+                            </h3>
+
+                            <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/50">
+                              {myClub.members?.map((member) => (
+                                <div key={member.userId} className="py-3 flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 flex items-center justify-center font-bold text-xs text-indigo-600">
+                                      {member.name ? member.name.charAt(0).toUpperCase() : "M"}
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                                          {member.name}
+                                        </span>
+                                        {member.role === "leader" && (
+                                          <span className="inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[9px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-950">
+                                            {language === "en" ? "Leader" : "Trưởng CLB"}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-slate-400 mt-0.5">
+                                        <span>{member.email}</span>
+                                        {member.athleteId && (
+                                          <>
+                                            <span className="text-slate-200 dark:text-slate-800">•</span>
+                                            <span className="font-extrabold text-indigo-500">{member.athleteId}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {myClub.leaderId === currentUser.uid && member.userId !== currentUser.uid && (
+                                      <button
+                                        onClick={() => handleKickMemberClick(member.userId, member.name)}
+                                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-500 rounded-lg transition-all cursor-pointer"
+                                        title={language === "en" ? "Remove Member" : "Loại khỏi CLB"}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Leader Management Panel */}
+                          <div className="flex flex-col gap-6">
+                            {myClub.leaderId === currentUser.uid && (
+                              <>
+                                {/* Direct Invitation / Member Link Add */}
+                                <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex flex-col gap-3">
+                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                                    {language === "en" ? "Add Athlete Directly" : "Thêm Thành Viên Trực Tiếp"}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                                    {language === "en"
+                                      ? "Enter an official System Athlete ID (e.g. VSC-0001) to link and add them to your club roster."
+                                      : "Nhập Mã số VĐV Hệ Thống (VSC-xxxx) để thêm trực tiếp vận động viên đã có hồ sơ vào câu lạc bộ của bạn."}
+                                  </p>
+
+                                  <form onSubmit={handleAddDirectMemberSubmit} className="flex gap-2 mt-1">
+                                    <input
+                                      type="text"
+                                      value={directAthleteId}
+                                      onChange={(e) => setDirectAthleteId(e.target.value)}
+                                      placeholder="vd: VSC-0001"
+                                      className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                                    />
+                                    <button
+                                      type="submit"
+                                      disabled={isAddingDirectMember}
+                                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center"
+                                    >
+                                      {isAddingDirectMember ? (
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <Plus className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  </form>
+                                </div>
+
+                                {/* Pending Join Requests */}
+                                <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex flex-col gap-3">
+                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                    <span>{language === "en" ? "Pending Requests" : "Yêu Cầu Gia Nhập"}</span>
+                                    {myClub.pendingRequests && myClub.pendingRequests.length > 0 && (
+                                      <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] animate-pulse">
+                                        {myClub.pendingRequests.length}
+                                      </span>
+                                    )}
+                                  </h4>
+
+                                  {(!myClub.pendingRequests || myClub.pendingRequests.length === 0) ? (
+                                    <div className="py-6 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1 bg-slate-50/20 dark:bg-slate-950/10 rounded-xl border border-dashed border-slate-100 dark:border-slate-800">
+                                      <Inbox className="w-5 h-5 text-slate-300" />
+                                      <span>{language === "en" ? "No pending requests" : "Không có yêu cầu nào chờ duyệt"}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                                      {myClub.pendingRequests.map((req) => (
+                                        <div key={req.userId} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl flex flex-col gap-2">
+                                          <div>
+                                            <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                              {req.name}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 mt-0.5">
+                                              {req.email} {req.athleteId && <span className="text-indigo-500 font-extrabold ml-1">({req.athleteId})</span>}
+                                            </div>
+                                          </div>
+                                          <div className="flex justify-end gap-1">
+                                            <button
+                                              onClick={() => handleRequestAction(req.userId, "reject")}
+                                              className="px-2.5 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg cursor-pointer transition-all"
+                                            >
+                                              {language === "en" ? "Reject" : "Từ Chối"}
+                                            </button>
+                                            <button
+                                              onClick={() => handleRequestAction(req.userId, "approve")}
+                                              className="px-3 py-1 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg cursor-pointer transition-all shadow-xs"
+                                            >
+                                              {language === "en" ? "Approve" : "Duyệt"}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : myPendingRequestClub ? (
+                    // USER HAS A PENDING REQUEST
+                    <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-xs max-w-lg mx-auto text-center flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center">
+                        <Clock className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                          {language === "en" ? "Join Request Pending" : "Yêu Cầu Gia Nhập Đang Chờ Duyệt"}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                          {language === "en"
+                            ? "You have submitted a request to join the following club. The leader will review and approve your membership soon."
+                            : "Yêu cầu gia nhập của bạn đã được gửi thành công. Trưởng câu lạc bộ sẽ duyệt hồ sơ của bạn sớm."}
+                        </p>
+                      </div>
+
+                      <div className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-850 p-4 rounded-xl flex items-center gap-3 text-left">
+                        <img
+                          src={myPendingRequestClub.logoUrl}
+                          className="w-12 h-12 rounded-xl object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150";
+                          }}
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-white">{myPendingRequestClub.name}</div>
+                          <div className="text-[10px] text-indigo-500 mt-0.5 font-bold uppercase tracking-wider">{myPendingRequestClub.province}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">Trưởng CLB: {myPendingRequestClub.leaderName}</div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleCancelJoinRequest(myPendingRequestClub.id)}
+                        className="px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200/40 dark:border-red-900/40 text-xs font-bold rounded-xl cursor-pointer transition-all mt-2"
+                      >
+                        {language === "en" ? "Withdraw Join Request" : "Rút Lại Yêu Cầu"}
+                      </button>
+                    </div>
+                  ) : (
+                    // USER HAS NO CLUB AND NO REQUESTS -> DIRECTORY AND CREATION
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                      {/* Search and Join Directory Panel */}
+                      <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                          <Search className="w-4 h-4 text-indigo-500" />
+                          {language === "en" ? "Join a Slingshot Club" : "Gia Nhập Câu Lạc Bộ Toàn Quốc"}
+                        </h3>
+
+                        {/* Search Bar */}
+                        <div className="relative">
+                          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder={language === "en" ? "Search clubs by name or province..." : "Tìm câu lạc bộ theo tên hoặc tỉnh thành..."}
+                            value={clubSearchQuery}
+                            onChange={(e) => setClubSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                          />
+                        </div>
+
+                        {/* Directory List */}
+                        {(() => {
+                          const query = clubSearchQuery.toLowerCase().trim();
+                          const filtered = systemClubs.filter((c) =>
+                            c.name.toLowerCase().includes(query) ||
+                            c.province.toLowerCase().includes(query)
+                          );
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2 bg-slate-50/20 dark:bg-slate-950/10 border border-dashed border-slate-100 dark:border-slate-800 rounded-xl">
+                                <Inbox className="w-6 h-6 text-slate-300" />
+                                <span>{language === "en" ? "No clubs found" : "Không tìm thấy câu lạc bộ nào phù hợp"}</span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-3 max-h-120 overflow-y-auto pr-1">
+                              {filtered.map((club) => (
+                                <div
+                                  key={club.id}
+                                  className="p-4 bg-white dark:bg-slate-950 border border-slate-200/40 dark:border-slate-850 rounded-xl flex items-center justify-between gap-4 shadow-2xs hover:border-indigo-500/30 transition-all"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={club.logoUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150"}
+                                      alt={club.name}
+                                      className="w-11 h-11 rounded-xl object-cover border border-slate-100 dark:border-slate-850"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150";
+                                      }}
+                                    />
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                        <span className="text-xs font-extrabold text-slate-800 dark:text-white">
+                                          {club.name}
+                                        </span>
+                                        <span className="inline-flex text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.2 rounded-md">
+                                          {club.province}
+                                        </span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 mt-0.5">
+                                        Trưởng CLB: <strong>{club.leaderName}</strong> • {club.members?.length || 0} thành viên
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    onClick={() => handleJoinRequestSubmit(club.id)}
+                                    disabled={isSubmittingJoinRequest}
+                                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 text-[11px] font-black rounded-lg cursor-pointer transition-all"
+                                  >
+                                    {language === "en" ? "Join" : "Xin Vào"}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Create New Club Form Panel */}
+                      <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <Plus className="w-4 h-4 text-emerald-500" />
+                            {language === "en" ? "Register Slingshot Club" : "Thành Lập Câu Lạc Bộ Mới"}
+                          </h3>
+                          <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                            {language === "en"
+                              ? "Launch an official club on the national database to invite members and monitor combined performance stats."
+                              : "Đăng ký thành lập CLB mới trên hệ thống để bắt đầu quản lý thành viên, theo dõi biểu đồ phong độ và thi đấu."}
+                          </p>
+                        </div>
+
+                        <form onSubmit={handleCreateClubSubmit} className="flex flex-col gap-3.5">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "Club Name *" : "Tên Câu Lạc Bộ *"}
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="vd: 36 Slingshot Club"
+                              value={newClubName}
+                              onChange={(e) => setNewClubName(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "Primary Province *" : "Tỉnh Thành Hoạt Động *"}
+                            </label>
+                            <select
+                              required
+                              value={newClubProvince}
+                              onChange={(e) => setNewClubProvince(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                            >
+                              <option value="">-- {language === "en" ? "Select Province" : "Chọn Tỉnh Thành"} --</option>
+                              {VIETNAM_PROVINCES.map((p) => (
+                                <option key={p} value={p}>
+                                  {p}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "Club Logo URL (HTTPS Image)" : "Đường Dẫn Logo (Ảnh HTTPS)"}
+                            </label>
+                            <input
+                              type="url"
+                              placeholder="https://example.com/logo.jpg"
+                              value={newClubLogoUrl}
+                              onChange={(e) => setNewClubLogoUrl(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                              {language === "en" ? "Motto / Description" : "Mô Tả Hoạt Động / Khẩu Hiệu"}
+                            </label>
+                            <textarea
+                              rows={2}
+                              placeholder={language === "en" ? "Tập hợp các xạ thủ Sling..." : "Giới thiệu ngắn gọn..."}
+                              value={newClubDesc}
+                              onChange={(e) => setNewClubDesc(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isCreatingClub}
+                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black cursor-pointer shadow-md shadow-emerald-500/10 transition-all text-center flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            {isCreatingClub ? (language === "en" ? "Registering..." : "Đang tạo CLB...") : (language === "en" ? "Create Slingshot Club" : "Thành Lập CLB Ngay")}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Transfer Leadership Modal */}
+                  {showTransferModal && myClub && (
+                    <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl flex flex-col gap-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <UserCheck className="w-5 h-5 text-amber-500" />
+                            {language === "en" ? "Transfer Club Leadership" : "Chuyển Nhượng Quyền Trưởng CLB"}
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                            {language === "en"
+                              ? "Select an official member of the club to hand over leadership responsibility. You will be demoted to a regular member."
+                              : "Chọn một thành viên chính thức để chuyển giao vai trò Trưởng câu lạc bộ. Vai trò của bạn sẽ tự động hạ cấp xuống thành viên thường."}
+                          </p>
+                        </div>
+
+                        <form onSubmit={handleTransferLeadershipSubmit} className="flex flex-col gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {language === "en" ? "Select New Leader" : "Chọn Trưởng CLB Mới"}
+                            </label>
+                            <select
+                              required
+                              value={transferTargetUserId}
+                              onChange={(e) => setTransferTargetUserId(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                            >
+                              <option value="">-- {language === "en" ? "Select Member" : "Chọn Thành Viên"} --</option>
+                              {myClub.members
+                                ?.filter((m) => m.userId !== currentUser.uid)
+                                .map((m) => (
+                                  <option key={m.userId} value={m.userId}>
+                                    {m.name} ({m.email})
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowTransferModal(false);
+                                setTransferTargetUserId("");
+                              }}
+                              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 cursor-pointer"
+                            >
+                              {language === "en" ? "Cancel" : "Hủy Bỏ"}
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isTransferring || !transferTargetUserId}
+                              className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-50"
+                            >
+                              {isTransferring
+                                ? (language === "en" ? "Transferring..." : "Đang chuyển nhượng...")
+                                : (language === "en" ? "Confirm Transfer" : "Xác Nhận Chuyển Nhượng")}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

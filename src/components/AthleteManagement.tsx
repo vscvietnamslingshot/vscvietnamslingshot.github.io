@@ -1010,17 +1010,7 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           >
             👥 {language === "en" ? "Roster" : "VĐV giải"} ({athletes.length})
           </button>
-          <button
-            type="button"
-            onClick={() => setLeftTab("clubs")}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
-              leftTab === "clubs"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-805/80 font-extrabold"
-                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 font-medium"
-            }`}
-          >
-            🏢 {language === "en" ? "Clubs" : "Câu Lạc Bộ"} ({clubs.length})
-          </button>
+          {/* Removed Clubs tab button per request */}
           {!hideVscSystemTab && (
             <button
               type="button"

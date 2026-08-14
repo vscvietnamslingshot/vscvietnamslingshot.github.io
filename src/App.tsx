@@ -59,6 +59,7 @@ import { OnlineTournamentsPanel } from "./components/OnlineTournamentsPanel";
 import { ControlPanel } from "./components/ControlPanel";
 import { MemberManagementPanel } from "./components/MemberManagementPanel";
 import { VscSystemDirectory } from "./components/VscSystemDirectory";
+import { VscSystemClubsDirectory } from "./components/VscSystemClubsDirectory";
 import { Home, LogOut, Sliders, SlidersHorizontal, ChevronDown, Play, Heart, Menu } from "lucide-react";
 import {
   DEFAULT_DISTANCES,
@@ -809,7 +810,7 @@ export default function App() {
 
         // 2. Active Tab
         const tabParam = params.get("tab");
-        const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory"];
+        const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory", "vsc_clubs_directory"];
         if (tabParam && allowedTabs.includes(tabParam)) {
           setActiveTab(tabParam as any);
         } else {
@@ -965,11 +966,11 @@ export default function App() {
     }
   }, [masterAthletes]);
 
-  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel" | "qltv" | "vsc_system_directory">(() => {
+  const [activeTab, setActiveTab] = useState<"home" | "desktop" | "dashboard" | "scoring" | "input_scores" | "leaderboard" | "teams" | "athletes" | "settings" | "history" | "control_panel" | "qltv" | "vsc_system_directory" | "vsc_clubs_directory">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory"];
+      const allowedTabs = ["home", "desktop", "dashboard", "scoring", "input_scores", "leaderboard", "teams", "athletes", "settings", "history", "control_panel", "qltv", "vsc_system_directory", "vsc_clubs_directory"];
       if (tabParam && allowedTabs.includes(tabParam)) {
         return tabParam as any;
       }
@@ -1002,11 +1003,11 @@ export default function App() {
     }
     return "config";
   });
-  const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "created" | "referee">(() => {
+  const [controlPanelSubTab, setControlPanelSubTab] = useState<"profile" | "club" | "created" | "referee">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const subtabParam = params.get("subtab");
-      if (subtabParam === "profile" || subtabParam === "created" || subtabParam === "referee") {
+      if (subtabParam === "profile" || subtabParam === "club" || subtabParam === "created" || subtabParam === "referee") {
         return subtabParam;
       }
     }
@@ -1046,7 +1047,7 @@ export default function App() {
 
   // Keep non-logged in guests restricted to public-facing viewing tabs
   useEffect(() => {
-    if (!currentUser && !["home", "dashboard", "leaderboard", "teams", "vsc_system_directory"].includes(activeTab)) {
+    if (!currentUser && !["home", "dashboard", "leaderboard", "teams", "vsc_system_directory", "vsc_clubs_directory"].includes(activeTab)) {
       setActiveTab("home");
     }
   }, [currentUser, activeTab]);
@@ -1525,6 +1526,11 @@ export default function App() {
       description = isEng
         ? "Official verified database of professional slingshot competitors with long-term profiles and match histories."
         : "Cơ sở dữ liệu chính thức lưu giữ chỉ số chuyên môn, định mức phân cấp và hồ sơ thành tích thi đấu của toàn bộ các vận động viên Ná cao su chuyên nghiệp VSC Việt Nam.";
+    } else if (activeTab === "vsc_clubs_directory") {
+      title = isEng ? "VSC | National Slingshot Clubs Directory" : "VSC | Danh Sách CLB Hệ Thống Quốc Gia";
+      description = isEng
+        ? "Official verified database of professional slingshot clubs with long-term rosters and combined performance statistics."
+        : "Cơ sở dữ liệu chính thức lưu trữ danh sách, chỉ số chuyên môn và cơ cấu thành viên của các Câu lạc bộ Ná cao su trên toàn quốc.";
     }
 
     // Set Document Title
@@ -4662,6 +4668,18 @@ export default function App() {
                 {language === "en" ? "System Athletes" : "VĐV Hệ Thống"}
               </button>
 
+              <button
+                onClick={() => {
+                  changeTab("vsc_clubs_directory");
+                }}
+                className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                  activeTab === "vsc_clubs_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-450" />
+                {language === "en" ? "System Clubs" : "CLB Hệ Thống"}
+              </button>
+
               {activeHistoryId && (
                 <button
                   onClick={() => changeTab("dashboard")}
@@ -5136,6 +5154,23 @@ export default function App() {
                   >
                     <Users className="w-4 h-4 shrink-0 text-amber-500" />
                     <span>{language === "en" ? "System Athletes" : "VĐV Hệ Thống VSC"}</span>
+                  </button>
+
+                  {/* VSC System Clubs */}
+                  {/* VSC System Clubs */}
+                  <button
+                    onClick={() => {
+                      changeTab("vsc_clubs_directory");
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                      activeTab === "vsc_clubs_directory"
+                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 shrink-0 text-emerald-500" />
+                    <span>{language === "en" ? "System Clubs" : "CLB Hệ Thống"}</span>
                   </button>
 
                   {/* Create Tournament */}
@@ -6132,7 +6167,7 @@ export default function App() {
                   id="subtab-athletes-btn"
                 >
                   <Users className="w-4 h-4" />
-                  {language === "en" ? "Manage Athletes & Clubs" : "Quản Lý VĐV & Câu Lạc Bộ"}
+                  {language === "en" ? "Manage Tournament Athletes" : "Quản Lý VĐV Giải"}
                 </button>
               </div>
 
@@ -6259,6 +6294,7 @@ export default function App() {
               onSelectTournament={(id, tournament) => handleSelectTournament(id, tournament, "dashboard")}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               forceSubTab={controlPanelSubTab}
+              onChangeActiveTab={setActiveTab}
             />
           )}
 
@@ -6273,6 +6309,17 @@ export default function App() {
           {/* TAB 7: VSC SYSTEM ATHLETES DIRECTORY PORTAL */}
           {activeTab === "vsc_system_directory" && (
             <VscSystemDirectory
+              currentUser={currentUser}
+              userRole={isGlobalAdmin ? "admin" : "user"}
+              history={history}
+              onlineTournaments={onlineTournaments}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            />
+          )}
+
+          {/* TAB 8: VSC SYSTEM CLUBS DIRECTORY PORTAL */}
+          {activeTab === "vsc_clubs_directory" && (
+            <VscSystemClubsDirectory
               currentUser={currentUser}
               userRole={isGlobalAdmin ? "admin" : "user"}
               history={history}

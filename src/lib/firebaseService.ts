@@ -20,7 +20,7 @@ import {
   orderBy,
   serverTimestamp
 } from "../firebase";
-import { Athlete, DistanceConfig, MatchHistoryItem, Club, VSC_DEFAULT_LOGO } from "../types";
+import { Athlete, DistanceConfig, MatchHistoryItem, Club, VSC_DEFAULT_LOGO, SystemClub } from "../types";
 
 export interface TournamentData {
   id: string;
@@ -630,6 +630,418 @@ export async function deleteUserProfileAdmin(uid: string) {
     await deleteDoc(userRef);
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, `users/${uid}`);
+  }
+}
+
+// ---------------- SYSTEM CLUB OPERATIONS ----------------
+
+/**
+ * Creates a new official SystemClub in Firestore
+ */
+export async function createSystemClub(
+  name: string,
+  logoUrl: string,
+  province: string,
+  leaderId: string,
+  leaderName: string,
+  leaderEmail: string,
+  description: string = "",
+  bannerUrl: string = ""
+): Promise<string> {
+  const clubId = `club-${Date.now()}`;
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const newClub: SystemClub = {
+    id: clubId,
+    name,
+    logoUrl: logoUrl || VSC_DEFAULT_LOGO,
+    bannerUrl: bannerUrl || "",
+    province,
+    leaderId,
+    leaderName,
+    leaderEmail,
+    description,
+    createdAt: serverTimestamp(),
+    members: [
+      {
+        userId: leaderId,
+        athleteId: "",
+        name: leaderName,
+        email: leaderEmail,
+        role: "leader",
+        joinedAt: new Date().toISOString()
+      }
+    ],
+    pendingRequests: []
+  };
+
+  try {
+    const athletes = await getVscSystemAthletes();
+    const matched = athletes.find(a => a.email?.trim().toLowerCase() === leaderEmail.trim().toLowerCase());
+    if (matched) {
+      newClub.members[0].athleteId = matched.id;
+    }
+  } catch (e) {
+    console.warn("Failed to find leader athlete profile:", e);
+  }
+
+  try {
+    const sanitized = sanitizeFirestoreData(newClub);
+    await setDoc(clubRef, sanitized);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `vsc_system_clubs/${clubId}`);
+  }
+
+  try {
+    const userRef = doc(db, "users", leaderId);
+    await updateDoc(userRef, { club: name });
+  } catch (e) {
+    console.warn("Failed to update user's club in profile:", e);
+  }
+
+  return clubId;
+}
+
+/**
+ * Submits a join request to a SystemClub
+ */
+export async function requestToJoinClub(
+  clubId: string,
+  userId: string,
+  athleteId: string,
+  name: string,
+  email: string
+): Promise<void> {
+  const clubsSnap = await getDocs(collection(db, "vsc_system_clubs")).catch(err => {
+    handleFirestoreError(err, OperationType.LIST, "vsc_system_clubs");
+    throw err;
+  });
+
+  for (const d of clubsSnap.docs) {
+    const club = d.data() as SystemClub;
+    if (club.members?.some(m => m.userId === userId)) {
+      throw new Error("ALREADY_IN_CLUB");
+    }
+    if (club.pendingRequests?.some(r => r.userId === userId)) {
+      throw new Error("ALREADY_REQUESTED");
+    }
+  }
+
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  const pending = clubData.pendingRequests || [];
+
+  if (pending.some(r => r.userId === userId)) {
+    return;
+  }
+
+  pending.push({
+    userId,
+    athleteId: athleteId || "",
+    name,
+    email,
+    requestedAt: new Date().toISOString()
+  });
+
+  await updateDoc(clubRef, {
+    pendingRequests: sanitizeFirestoreData(pending)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+}
+
+/**
+ * Cancels a pending join request to a SystemClub
+ */
+export async function cancelJoinRequest(clubId: string, userId: string): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) return;
+  const clubData = clubSnap.data() as SystemClub;
+  const pending = (clubData.pendingRequests || []).filter(r => r.userId !== userId);
+  await updateDoc(clubRef, {
+    pendingRequests: sanitizeFirestoreData(pending)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+}
+
+/**
+ * Handles a join request: approves or rejects
+ */
+export async function handleClubJoinRequest(
+  clubId: string,
+  requestUserId: string,
+  action: "approve" | "reject"
+): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  const pending = clubData.pendingRequests || [];
+  const members = clubData.members || [];
+
+  const requestIndex = pending.findIndex(r => r.userId === requestUserId);
+  if (requestIndex === -1) {
+    throw new Error("REQUEST_NOT_FOUND");
+  }
+
+  const request = pending[requestIndex];
+  pending.splice(requestIndex, 1);
+
+  if (action === "approve") {
+    members.push({
+      userId: request.userId,
+      athleteId: request.athleteId,
+      name: request.name,
+      email: request.email,
+      role: "member",
+      joinedAt: new Date().toISOString()
+    });
+
+    try {
+      const userRef = doc(db, "users", request.userId);
+      await updateDoc(userRef, { club: clubData.name });
+    } catch (e) {
+      console.warn("Failed to update user profile club name:", e);
+    }
+  }
+
+  await updateDoc(clubRef, {
+    pendingRequests: sanitizeFirestoreData(pending),
+    members: sanitizeFirestoreData(members)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+}
+
+/**
+ * Voluntarily leaves a SystemClub
+ */
+export async function leaveClub(clubId: string, userId: string): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  let members = clubData.members || [];
+
+  const userMember = members.find(m => m.userId === userId);
+  if (userMember && userMember.role === "leader" && members.length > 1) {
+    throw new Error("LEADER_MUST_TRANSFER");
+  }
+
+  members = members.filter(m => m.userId !== userId);
+
+  if (members.length === 0) {
+    await deleteDoc(clubRef).catch(err => {
+      handleFirestoreError(err, OperationType.DELETE, `vsc_system_clubs/${clubId}`);
+    });
+  } else {
+    await updateDoc(clubRef, {
+      members: sanitizeFirestoreData(members)
+    }).catch(err => {
+      handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+    });
+  }
+
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, { club: "" });
+  } catch (e) {
+    console.warn("Failed to clear club from user profile:", e);
+  }
+}
+
+/**
+ * Removes a member from a SystemClub (Kick)
+ */
+export async function kickClubMember(clubId: string, userId: string): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  let members = clubData.members || [];
+  members = members.filter(m => m.userId !== userId);
+
+  await updateDoc(clubRef, {
+    members: sanitizeFirestoreData(members)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, { club: "" });
+  } catch (e) {
+    console.warn("Failed to clear club from user profile:", e);
+  }
+}
+
+/**
+ * Adds an athlete directly by system Athlete ID
+ */
+export async function addClubMemberDirectly(
+  clubId: string,
+  athleteId: string,
+  systemAthletes: Athlete[]
+): Promise<void> {
+  const athlete = systemAthletes.find(a => a.id.trim().toLowerCase() === athleteId.trim().toLowerCase());
+  if (!athlete) {
+    throw new Error("ATHLETE_NOT_FOUND");
+  }
+
+  const clubsSnap = await getDocs(collection(db, "vsc_system_clubs")).catch(err => {
+    handleFirestoreError(err, OperationType.LIST, "vsc_system_clubs");
+    throw err;
+  });
+
+  for (const d of clubsSnap.docs) {
+    const club = d.data() as SystemClub;
+    if (club.members?.some(m => m.athleteId === athlete.id || (athlete.email && m.email === athlete.email))) {
+      throw new Error("ATHLETE_ALREADY_IN_CLUB");
+    }
+  }
+
+  let targetUserId = "";
+  if (athlete.email) {
+    const q = query(collection(db, "users"), where("email", "==", athlete.email.trim().toLowerCase()));
+    const userSnap = await getDocs(q);
+    if (!userSnap.empty) {
+      targetUserId = userSnap.docs[0].id;
+    }
+  }
+
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  const members = clubData.members || [];
+
+  if (members.some(m => m.athleteId === athlete.id)) {
+    return;
+  }
+
+  members.push({
+    userId: targetUserId || `unlinked-${Date.now()}`,
+    athleteId: athlete.id,
+    name: athlete.name,
+    email: athlete.email || "",
+    role: "member",
+    joinedAt: new Date().toISOString()
+  });
+
+  await updateDoc(clubRef, {
+    members: sanitizeFirestoreData(members)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+
+  if (targetUserId) {
+    try {
+      const userRef = doc(db, "users", targetUserId);
+      await updateDoc(userRef, { club: clubData.name });
+    } catch (e) {
+      console.warn("Failed to update user profile club:", e);
+    }
+  }
+}
+
+/**
+ * Transfers ownership of the SystemClub to another official member
+ */
+export async function transferClubLeadership(clubId: string, newLeaderUserId: string): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  const members = clubData.members || [];
+
+  const currentLeader = members.find(m => m.role === "leader");
+  const newLeader = members.find(m => m.userId === newLeaderUserId);
+
+  if (!newLeader) {
+    throw new Error("MEMBER_NOT_FOUND");
+  }
+
+  if (currentLeader) {
+    currentLeader.role = "member";
+  }
+  newLeader.role = "leader";
+
+  await updateDoc(clubRef, {
+    leaderId: newLeader.userId,
+    leaderName: newLeader.name,
+    leaderEmail: newLeader.email,
+    members: sanitizeFirestoreData(members)
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+}
+
+/**
+ * Updates SystemClub profile details
+ */
+export async function updateClubProfile(
+  clubId: string,
+  updates: {
+    name: string;
+    logoUrl: string;
+    bannerUrl?: string;
+    province: string;
+    description?: string;
+  }
+): Promise<void> {
+  const clubRef = doc(db, "vsc_system_clubs", clubId);
+  const clubSnap = await getDoc(clubRef);
+  if (!clubSnap.exists()) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  const clubData = clubSnap.data() as SystemClub;
+  const oldName = clubData.name;
+  const newName = updates.name.trim();
+
+  await updateDoc(clubRef, {
+    name: newName,
+    logoUrl: updates.logoUrl || VSC_DEFAULT_LOGO,
+    bannerUrl: updates.bannerUrl || "",
+    province: updates.province,
+    description: updates.description || ""
+  }).catch(err => {
+    handleFirestoreError(err, OperationType.UPDATE, `vsc_system_clubs/${clubId}`);
+  });
+
+  if (oldName !== newName) {
+    const members = clubData.members || [];
+    for (const member of members) {
+      if (member.userId && !member.userId.startsWith("unlinked-")) {
+        try {
+          const userRef = doc(db, "users", member.userId);
+          await updateDoc(userRef, { club: newName });
+        } catch (e) {
+          console.warn(`Failed to update member ${member.userId} club name:`, e);
+        }
+      }
+    }
   }
 }
 

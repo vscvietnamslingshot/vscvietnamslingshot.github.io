@@ -73,6 +73,38 @@ export interface Club {
   creatorEmail?: string; // Email of the user who created this club
 }
 
+export interface SystemClub {
+  id: string;             // Mã số CLB (vd: club-17234567)
+  name: string;           // Tên câu lạc bộ (vd: 36 Slingshot Club)
+  logoUrl: string;        // Ảnh đại diện / Logo câu lạc bộ
+  bannerUrl?: string;     // Ảnh bìa / Banner câu lạc bộ
+  province: string;       // Tỉnh thành hoạt động chính (lấy từ Dropdown 64 tỉnh thành)
+  leaderId: string;       // UID tài khoản của Trưởng CLB
+  leaderName: string;     // Tên của Trưởng CLB
+  leaderEmail: string;    // Email liên hệ của Trưởng CLB
+  description?: string;   // Giới thiệu, tôn chỉ hoạt động
+  createdAt: any;
+  
+  // Danh sách thành viên chính thức
+  members: {
+    userId: string;       // UID tài khoản thành viên
+    athleteId: string;    // Mã số VĐV Hệ Thống (vd: VSC-0001)
+    name: string;         // Tên thành viên
+    email: string;
+    role: "leader" | "member"; // Vai trò
+    joinedAt: string;
+  }[];
+
+  // Danh sách yêu cầu đang chờ duyệt
+  pendingRequests: {
+    userId: string;
+    athleteId: string;
+    name: string;
+    email: string;
+    requestedAt: string;
+  }[];
+}
+
 export interface DeviceBackupItem {
   id: string; // "latest" or "timeline-<timestamp>"
   timestamp: number;
