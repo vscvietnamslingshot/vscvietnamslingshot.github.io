@@ -57,6 +57,7 @@ const compressImage = (base64Str: string, maxWidth = 180, maxHeight = 180): Prom
   });
 };
 import { VIETNAM_PROVINCES } from "../utils/provinces";
+import { AthleteProfileModal } from "./AthleteProfileModal";
 import { getHitCount } from "../utils/qualification";
 import { 
   Search, 
@@ -233,11 +234,151 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
   // Selected Club Details Modal state
   const [selectedClub, setSelectedClub] = useState<SystemClub | null>(null);
 
+  // Selected Athlete Profile Modal state for looking up club members
+  const [selectedAthleteProfile, setSelectedAthleteProfile] = useState<Athlete | null>(null);
+
+  // Athlete profile statistics memo (matching system directory design)
+  const athleteStats = useMemo(() => {
+    if (!selectedAthleteProfile) return null;
+    const athleteIdLower = selectedAthleteProfile.id.trim().toLowerCase();
+    const athleteEmailLower = selectedAthleteProfile.email?.trim().toLowerCase() || "";
+
+    // Gather all matching participations across online tournaments
+    const participations: {
+      matchName: string;
+      date: string;
+      totalShots: number;
+      totalHits: number;
+      hitRate: number;
+      rank: number;
+    }[] = [];
+
+    let totalMatchShots = 0;
+    let totalMatchHits = 0;
+    let highestRank = 9999;
+
+    const getTournamentDateString = (tour: any, lang: string) => {
+      if (tour.date) return tour.date;
+      if (tour.startDate) return tour.startDate;
+      if (tour.createdAt) {
+        try {
+          const dateObj = typeof tour.createdAt.toDate === "function" 
+            ? tour.createdAt.toDate() 
+            : (tour.createdAt.seconds ? new Date(tour.createdAt.seconds * 1000) : new Date(tour.createdAt));
+          return dateObj.toLocaleDateString(lang === "en" ? "en-US" : "vi-VN");
+        } catch (e) {
+          return "---";
+        }
+      }
+      return "---";
+    };
+
+    const seenMatchKeys = new Set<string>();
+    const allMatches = onlineTournaments || [];
+
+    allMatches.forEach((match) => {
+      if (!match) return;
+      const matchDateStr = getTournamentDateString(match, language || "vi");
+      const compositeKey = `${match.id || ""}-${match.matchName || ""}-${matchDateStr}`.trim().toLowerCase();
+      if (seenMatchKeys.has(compositeKey)) return;
+      seenMatchKeys.add(compositeKey);
+
+      const soloList = match.athletes || [];
+      const teamList = match.teamAthletes || [];
+      const masterSoloList = match.masterAthletes || [];
+      const masterTeamList = match.teamMasterAthletes || [];
+
+      const findAthlete = (list: any[]) => {
+        return list.find((a: any) => {
+          const idMatch = a.id && a.id.trim().toLowerCase() === athleteIdLower;
+          const emailMatch = athleteEmailLower && a.email && a.email.trim().toLowerCase() === athleteEmailLower;
+          return idMatch || emailMatch;
+        });
+      };
+
+      const foundSolo = findAthlete(soloList);
+      const foundTeam = findAthlete(teamList);
+      const foundMasterSolo = findAthlete(masterSoloList);
+      const foundMasterTeam = findAthlete(masterTeamList);
+
+      const targetAthleteData = foundSolo || foundTeam || foundMasterSolo || foundMasterTeam;
+
+      if (targetAthleteData) {
+        let matchShots = 0;
+        let matchHits = 0;
+
+        if (targetAthleteData.scores) {
+          Object.values(targetAthleteData.scores).forEach((scoreArr) => {
+            if (Array.isArray(scoreArr)) {
+              matchShots += scoreArr.length;
+              matchHits += scoreArr.filter((h) => h === true).length;
+            }
+          });
+        }
+
+        let rank = 1;
+        let rankPool: any[] = [];
+        if (foundSolo) rankPool = soloList;
+        else if (foundTeam) rankPool = teamList;
+        else if (foundMasterSolo) rankPool = masterSoloList;
+        else if (foundMasterTeam) rankPool = masterTeamList;
+
+        const sortedScores = rankPool
+          .map((ath: any) => {
+            let hits = 0;
+            if (ath.scores) {
+              Object.values(ath.scores).forEach((arr: any) => {
+                if (Array.isArray(arr)) {
+                  hits += arr.filter((h) => h === true).length;
+                }
+              });
+            }
+            return { id: ath.id, name: ath.name, hits };
+          })
+          .sort((a: any, b: any) => b.hits - a.hits);
+
+        const matchRankIdx = sortedScores.findIndex(
+          (x: any) => x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase()
+        );
+        if (matchRankIdx !== -1) {
+          rank = matchRankIdx + 1;
+        }
+
+        if (rank < highestRank) {
+          highestRank = rank;
+        }
+
+        totalMatchShots += matchShots;
+        totalMatchHits += matchHits;
+
+        participations.push({
+          matchName: match.matchName,
+          date: matchDateStr,
+          totalShots: matchShots,
+          totalHits: matchHits,
+          hitRate: matchShots > 0 ? Math.round((matchHits / matchShots) * 100) : 0,
+          rank
+        });
+      }
+    });
+
+    const overallHitRate = totalMatchShots > 0 ? Math.round((totalMatchHits / totalMatchShots) * 100) : 0;
+
+    return {
+      participations: participations.sort((a, b) => b.date.localeCompare(a.date)),
+      totalTournaments: participations.length,
+      totalShots: totalMatchShots,
+      totalHits: totalMatchHits,
+      overallHitRate,
+      highestRank: highestRank === 9999 ? null : highestRank
+    };
+  }, [selectedAthleteProfile, onlineTournaments, language]);
+
   // Subtab within Club details drawer: "overview" | "roster" | "admin"
   const [drawerTab, setDrawerTab] = useState<"overview" | "roster" | "admin">("overview");
 
   // Roster sorting state
-  const [rosterSortBy, setRosterSortBy] = useState<"role" | "shots" | "hits" | "accuracy">("role");
+  const [rosterSortBy, setRosterSortBy] = useState<"role" | "shots" | "hits" | "accuracy">("accuracy");
 
   // Form states for NEW Club creation
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -336,6 +477,32 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
     });
     return map;
   }, [clubs, onlineTournaments]);
+
+  // Handle clicking a member to view their complete Athlete Profile
+  const handleMemberClick = (m: any) => {
+    const profile = systemAthletes.find(a => 
+      (m.athleteId && a.id?.toLowerCase().trim() === m.athleteId?.toLowerCase().trim()) ||
+      (m.email && a.email?.toLowerCase().trim() === m.email?.toLowerCase().trim())
+    );
+    if (profile) {
+      setSelectedAthleteProfile(profile);
+    } else {
+      // Create a temporary Athlete profile so the biography modal can still show it beautifully!
+      setSelectedAthleteProfile({
+        id: m.athleteId || "N/A",
+        name: m.name,
+        email: m.email || "",
+        gender: "Nam",
+        dob: "---",
+        province: "---",
+        hometown: "---",
+        avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+        team: selectedClub ? selectedClub.name : "VSC Club",
+        idCard: "",
+        scores: {}
+      });
+    }
+  };
 
   // Handle Create Club Form Submit
   const handleCreateClubSubmit = async (e: React.FormEvent) => {
@@ -610,23 +777,40 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
     <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 text-slate-800 dark:text-slate-100 transition-colors">
       
       {/* HEADER PORTAL */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-red-800 to-red-950 text-white py-12 px-6 sm:px-10 text-center">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-        <div className="relative max-w-5xl mx-auto flex flex-col items-center gap-3">
-          <div className="inline-flex items-center gap-2 bg-red-900/45 border border-red-500/25 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-yellow-300">
-            <Sparkles className="w-3.5 h-3.5" />
-            VSC Vietnam Clubs Database
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="bg-gradient-to-br from-[#9c0c13] to-[#80090e] text-white rounded-2xl p-6 shadow-lg border border-red-800 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute right-0 top-0 opacity-10 shrink-0 select-none pointer-events-none transform translate-x-12 -translate-y-8">
+            <Building className="w-96 h-96" />
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight uppercase">
-            {language === "en" ? "National Slingshot Clubs Directory" : "Danh Sách CLB Hệ Thống Quốc Gia"}
-          </h1>
-          <p className="text-xs sm:text-sm text-red-100 max-w-2xl leading-relaxed font-semibold">
-            {language === "en"
-              ? "Official registry database, structural rosters, combined target precision rates, and ranking charts for accredited Slingshot clubs nationwide."
-              : "Hệ thống đăng ký, lưu trữ cơ cấu thành viên, tổng hợp chỉ số bắn chuẩn xác và bảng phong độ thi đấu của các Câu lạc bộ Ná cao su thể thao trên toàn quốc."}
-          </p>
+          <div className="space-y-2 relative z-10 text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] uppercase font-black tracking-wider text-yellow-300 border border-white/15">
+              <Sparkles className="w-3.5 h-3.5" />
+              VSC Vietnam Clubs Database
+            </div>
+            <h2 className="text-xl md:text-2xl font-black italic tracking-tight uppercase">
+              {language === "en" ? "National Slingshot Clubs Directory" : "Danh Sách CLB Hệ Thống Quốc Gia"}
+            </h2>
+            <p className="text-xs md:text-sm text-red-100 max-w-2xl leading-relaxed">
+              {language === "en"
+                ? "Official registry database, structural rosters, combined target precision rates, and ranking charts for accredited Slingshot clubs nationwide."
+                : "Hệ thống đăng ký, lưu trữ cơ cấu thành viên, tổng hợp chỉ số bắn chuẩn xác và bảng phong độ thi đấu của các Câu lạc bộ Ná cao su thể thao trên toàn quốc."}
+            </p>
+          </div>
 
-          <div className="flex gap-3 mt-4">
+          {/* Action controls */}
+          <div className="shrink-0 flex flex-wrap gap-3 relative z-10 md:self-center">
+            {/* Admin-only Button */}
+            {userRole === "admin" && (
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-yellow-400 hover:bg-yellow-450 text-slate-900 font-extrabold text-xs px-5 py-3 rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-yellow-500 uppercase tracking-wider animate-pulse-slow"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                {language === "en" ? "Create New System Club" : "Tạo CLB Hệ Thống Mới"}
+              </button>
+            )}
+
+            {/* Normal register button */}
             {!myClub && !myPendingRequestClub && (
               <button
                 onClick={() => {
@@ -636,23 +820,24 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                     onOpenAuthModal();
                   }
                 }}
-                className="px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 text-xs font-black uppercase rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                className="bg-yellow-400 hover:bg-yellow-450 text-slate-900 font-extrabold text-xs px-5 py-3 rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-yellow-500 uppercase tracking-wider"
               >
-                <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+                <Plus className="w-4 h-4 stroke-[3]" />
                 {language === "en" ? "Register Club" : "Thành Lập CLB Mới"}
               </button>
             )}
 
+            {/* My Club Space */}
             {myClub && (
               <button
                 onClick={() => {
                   setSelectedClub(myClub);
                   setDrawerTab("overview");
                 }}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-5 py-3 rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-emerald-700 uppercase tracking-wider"
               >
                 <Building className="w-4 h-4 text-white" />
-                {language === "en" ? "My Club Dashboard" : "Không Gian CLB Của Tôi"}
+                {language === "en" ? "My Club Space" : "Không Gian CLB Của Tôi"}
               </button>
             )}
           </div>
@@ -1066,21 +1251,36 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                 onClick={(e) => e.stopPropagation()}
               >
                 
-                {/* Drawer Header Panel */}
-                <div className="relative overflow-hidden bg-slate-900 text-white p-6 pb-20 shrink-0 border-b border-slate-800">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#9c0c13]/50 to-slate-950 opacity-90"></div>
+                {/* Drawer Header Panel with Club Banner backdrop */}
+                <div className="relative overflow-hidden bg-slate-950 text-white p-6 pb-16 shrink-0 border-b border-slate-800">
+                  {/* Banner image as background watermark */}
+                  <div className="absolute inset-0">
+                    <img
+                      src={club.bannerUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80"}
+                      alt={`${club.name} Banner Background`}
+                      className="w-full h-full object-cover opacity-25"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-[#9c0c13]/35 to-slate-950 opacity-95"></div>
+                  </div>
                   
-                  {/* Close and Actions toolbar */}
-                  <div className="relative flex justify-between items-center z-10 mb-4">
-                    <span className="text-[10px] uppercase font-black tracking-widest text-yellow-300 bg-red-950/65 border border-red-500/20 px-2.5 py-0.5 rounded-full">
-                      VSC Official Club Hub
-                    </span>
+                  {/* Close button positioned overlaying the banner top-right corner */}
+                  <div className="absolute top-4 right-4 z-20">
                     <button
                       onClick={() => setSelectedClub(null)}
-                      className="p-1.5 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-white"
+                      className="p-1.5 bg-black/40 hover:bg-black/60 rounded-full transition-colors cursor-pointer text-white shadow-md border border-white/10"
                     >
                       <X className="w-5 h-5" />
                     </button>
+                  </div>
+
+                  {/* Close and Actions toolbar */}
+                  <div className="relative flex justify-between items-center z-10 mb-4">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-yellow-300 bg-red-950/75 border border-red-500/20 px-2.5 py-0.5 rounded-full">
+                      VSC Official Club Hub
+                    </span>
                   </div>
 
                   {/* Club details banner */}
@@ -1236,21 +1436,48 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          {club.members?.map(m => (
-                            <span 
-                              key={m.userId}
-                              className="inline-flex items-center gap-1 px-3 py-1 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-850 rounded-lg text-xs font-bold"
-                            >
-                              <User className="w-3.5 h-3.5 text-slate-400" />
-                              {m.name}
-                              {m.role === "leader" && (
-                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1 py-0.1 rounded text-[8px] uppercase tracking-wider font-extrabold ml-1">
-                                  LDR
-                                </span>
-                              )}
-                            </span>
-                          ))}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {club.members?.map(m => {
+                            const profile = systemAthletes.find(a => 
+                              (m.athleteId && a.id?.toLowerCase().trim() === m.athleteId?.toLowerCase().trim()) ||
+                              (m.email && a.email?.toLowerCase().trim() === m.email?.toLowerCase().trim())
+                            );
+                            const avatarUrl = profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                            const athleteId = profile?.id || m.athleteId || "TMP-ID";
+                            
+                            return (
+                              <div
+                                key={m.userId}
+                                onClick={() => handleMemberClick(m)}
+                                className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-150/40 dark:border-slate-850 rounded-xl cursor-pointer transition-all"
+                              >
+                                <img
+                                  src={avatarUrl}
+                                  alt={m.name}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                                  }}
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block">
+                                      {m.name}
+                                    </span>
+                                    {m.role === "leader" && (
+                                      <span className="text-[8px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400 px-1 py-0.5 rounded font-extrabold shrink-0">
+                                        LDR
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-indigo-500 font-extrabold block">
+                                    {athleteId}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -1281,64 +1508,80 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
 
                       {/* Roster Cards List */}
                       <div className="flex flex-col gap-2">
-                        {rankedMembers.map((member, index) => (
-                          <div
-                            key={member.userId}
-                            className="bg-white dark:bg-slate-900 border border-slate-200/40 dark:border-slate-850 p-4 rounded-xl flex items-center justify-between gap-4 shadow-3xs"
-                          >
-                            <div className="flex items-center gap-3">
-                              {/* Rank position numbers if sorted by statistics */}
-                              {rosterSortBy !== "role" && (
-                                <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center font-black text-xs text-indigo-600 dark:text-indigo-400 shrink-0">
-                                  #{index + 1}
-                                </div>
-                              )}
+                        {rankedMembers.map((member, index) => {
+                          const profile = systemAthletes.find(a => 
+                            (member.athleteId && a.id?.toLowerCase().trim() === member.athleteId?.toLowerCase().trim()) ||
+                            (member.email && a.email?.toLowerCase().trim() === member.email?.toLowerCase().trim())
+                          );
+                          const avatarUrl = profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                          const athleteId = profile?.id || member.athleteId || "TMP-ID";
 
-                              <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 flex items-center justify-center font-bold text-xs text-indigo-600">
-                                {member.name ? member.name.charAt(0).toUpperCase() : "M"}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-slate-800 dark:text-white">
-                                    {member.name}
-                                  </span>
-                                  {member.role === "leader" && (
-                                    <span className="inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[8px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-950">
-                                      {language === "en" ? "Leader" : "Trưởng CLB"}
+                          return (
+                            <div
+                              key={member.userId}
+                              onClick={() => handleMemberClick(member)}
+                              className="bg-white dark:bg-slate-900 border border-slate-200/40 dark:border-slate-850 p-4 rounded-xl flex items-center justify-between gap-4 shadow-3xs hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Rank position numbers if sorted by statistics */}
+                                {rosterSortBy !== "role" && (
+                                  <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center font-black text-xs text-indigo-600 dark:text-indigo-400 shrink-0">
+                                    #{index + 1}
+                                  </div>
+                                )}
+
+                                <img
+                                  src={avatarUrl}
+                                  alt={member.name}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                                  }}
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-white">
+                                      {member.name}
                                     </span>
-                                  )}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-slate-400 mt-0.5">
-                                  <span>{member.email}</span>
-                                  {member.athleteId && (
-                                    <>
-                                      <span className="text-slate-200 dark:text-slate-800">•</span>
-                                      <span className="font-extrabold text-indigo-500">{member.athleteId}</span>
-                                    </>
-                                  )}
+                                    {member.role === "leader" && (
+                                      <span className="inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[8px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-950">
+                                        {language === "en" ? "Leader" : "Trưởng CLB"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-slate-400 mt-0.5">
+                                    <span>{member.email}</span>
+                                    {athleteId && (
+                                      <>
+                                        <span className="text-slate-200 dark:text-slate-800">•</span>
+                                        <span className="font-extrabold text-indigo-500">{athleteId}</span>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Contribution Statistics Badge */}
-                            <div className="text-right flex flex-col gap-0.5">
-                              {member.shots > 0 ? (
-                                <>
-                                  <span className="text-xs font-black text-slate-700 dark:text-slate-200">
-                                    {member.hits}/{member.shots} Hits
+                              {/* Contribution Statistics Badge */}
+                              <div className="text-right flex flex-col gap-0.5 shrink-0">
+                                {member.shots > 0 ? (
+                                  <>
+                                    <span className="text-xs font-black text-slate-700 dark:text-slate-200">
+                                      {member.hits}/{member.shots} Hits
+                                    </span>
+                                    <span className="text-[10px] text-emerald-500 font-extrabold">
+                                      {member.accuracy.toFixed(1)}% Acc
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 italic">
+                                    Chưa ra sân
                                   </span>
-                                  <span className="text-[10px] text-emerald-500 font-extrabold">
-                                    {member.accuracy.toFixed(1)}% Acc
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-[10px] text-slate-400 italic">
-                                  Chưa ra sân
-                                </span>
-                              )}
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1808,6 +2051,18 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
         })(),
         document.body
       )}
+
+      {/* 5. Biography Modal Drawer / Full Details for Selected Athlete Profile */}
+      <AthleteProfileModal
+        athlete={selectedAthleteProfile}
+        isOpen={!!selectedAthleteProfile}
+        onClose={() => setSelectedAthleteProfile(null)}
+        history={history}
+        onlineTournaments={onlineTournaments}
+        currentUser={currentUser}
+        isGlobalAdmin={userRole === "admin"}
+        language={language}
+      />
 
     </div>
   );

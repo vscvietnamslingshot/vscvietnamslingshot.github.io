@@ -363,6 +363,10 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const [editingClubProvince, setEditingClubProvince] = useState("");
   const [editingClubAvatarUrl, setEditingClubAvatarUrl] = useState("");
 
+  // Add system athletes modal states
+  const [isAddSystemAthleteModalOpen, setIsAddSystemAthleteModalOpen] = useState(false);
+  const [systemAthleteSearchTerm, setSystemAthleteSearchTerm] = useState("");
+
   const filteredAthletes = currentRoster.filter(a => {
     const q = searchTerm.toLowerCase();
     return (
@@ -391,20 +395,31 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setDuplicateSysMatch(null);
     setIsConfirmingDelete(false);
 
-    // Generate automatic unique ID string skipping any existing IDs in VSC-XXXX format
-    let nextIdNum = 1;
+    // Generate automatic unique ID string skipping any existing IDs
+    let finalIdStr = "";
     const allExistingIds = new Set([
       ...currentRoster.map((a) => a.id.trim().toLowerCase()),
       ...vscSystemAthletes.map((a) => a.id.trim().toLowerCase()),
       ...(currentActiveAthletes || []).map((a) => a.id.trim().toLowerCase()),
     ]);
-    while (
-      allExistingIds.has(`vsc-${nextIdNum.toString().padStart(4, "0")}`) ||
-      allExistingIds.has(nextIdNum.toString().padStart(4, "0"))
-    ) {
-      nextIdNum++;
+
+    if (isVscTab) {
+      let nextIdNum = 1;
+      while (
+        allExistingIds.has(`vsc-${nextIdNum.toString().padStart(4, "0")}`) ||
+        allExistingIds.has(nextIdNum.toString().padStart(4, "0"))
+      ) {
+        nextIdNum++;
+      }
+      finalIdStr = `VSC-${nextIdNum.toString().padStart(4, "0")}`;
+    } else {
+      // Create a random unique ID for non-system athletes to avoid duplicate with system athletes
+      let generatedId = "";
+      do {
+        generatedId = `VSC-L${Math.floor(10000 + Math.random() * 90000)}`;
+      } while (allExistingIds.has(generatedId.toLowerCase()));
+      finalIdStr = generatedId;
     }
-    const finalIdStr = `VSC-${nextIdNum.toString().padStart(4, "0")}`;
 
     setFormId(finalIdStr);
     setFormName("");
@@ -1049,98 +1064,33 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
           />
         </div>
 
-        {/* Import/Export Data Panel */}
-        {!isVscTab && (
-          <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                {language === "en" ? "Roster File Manager" : "Quản Lý File VĐV"}
-              </span>
-              <span className="text-[9px] text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-400 px-1.5 py-0.5 rounded font-bold font-mono">XLSX & JSON</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              {/* Excel Group */}
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                  <FileSpreadsheet className="w-3 h-3 text-emerald-600" /> {language === "en" ? "Excel Table (.xlsx)" : "Bảng Excel (.xlsx)"}
-                </span>
-                <div className="flex gap-1">
-                  <label 
-                    className="flex-1 text-center bg-white hover:bg-emerald-50 dark:bg-slate-900 dark:hover:bg-emerald-950/20 text-emerald-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-emerald-200 dark:border-emerald-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
-                    title={language === "en" ? "Choose Excel file to import athlete list" : "Chọn file Excel để tải danh sách vận động viên"}
-                  >
-                    <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      onChange={handleExcelImport}
-                      className="hidden"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={exportToExcel}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                    title={language === "en" ? "Download Excel file containing current athletes" : "Tải về file Excel chứa danh sách VĐV hiện hành"}
-                  >
-                    <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
-                  </button>
-                </div>
-              </div>
-
-              {/* JSON Group */}
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1">
-                  <span className="text-violet-600 font-mono font-black text-xs leading-none">{"{}"}</span> {language === "en" ? "JSON Data (.json)" : "Dữ liệu JSON (.json)"}
-                </span>
-                <div className="flex gap-1">
-                  <label 
-                    className="flex-1 text-center bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 text-violet-700 p-1.5 rounded-lg text-[10px] font-bold cursor-pointer border border-violet-200 dark:border-violet-900/40 transition-all flex items-center justify-center gap-0.5 shadow-sm" 
-                    title={language === "en" ? "Choose JSON file to import athletes" : "Chọn file JSON để tải lên đầy đủ VĐV và điểm số"}
-                  >
-                    <Upload className="w-3 h-3" /> {language === "en" ? "Import" : "Nhập"}
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleJsonImport}
-                      className="hidden"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={exportToJson}
-                    className="flex-1 bg-violet-600 hover:bg-violet-700 text-white p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-0.5 shadow-sm"
-                    title={language === "en" ? "Download JSON file" : "Tải về file JSON"}
-                  >
-                    <Download className="w-3 h-3" /> {language === "en" ? "Export" : "Xuất"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Add New & Reset list options */}
         {!isVscTab && (
           <div className="pt-1.5 flex flex-col gap-1.5 border-b border-gray-150 dark:border-slate-800/60 pb-2.5">
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-wrap gap-2 items-center">
               <button
                 type="button"
                 onClick={handleStartCreate}
-                className="flex-1 py-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
-                title={isVscTab 
-                  ? (language === "en" ? "Add new system athlete profile" : "Thêm lý lịch VĐV Hệ thống cố định mới") 
-                  : (language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới")}
+                className="flex-1 min-w-[100px] py-1.5 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                title={language === "en" ? "Add new tournament athlete" : "Thêm VĐV giải mới"}
               >
                 <UserPlus className="w-3.5 h-3.5" /> {language === "en" ? "Add New" : "Thêm mới"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddSystemAthleteModalOpen(true)}
+                className="flex-1 min-w-[140px] py-1.5 px-3 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                title={language === "en" ? "Add system athletes" : "Thêm VĐV từ hệ thống VSC"}
+              >
+                <UserCheck className="w-3.5 h-3.5" /> {language === "en" ? "Add System Athlete" : "Thêm VĐV Hệ Thống"}
               </button>
 
               {currentRoster.length > 0 && resetConfirmStep === 0 && (
                 <button
                   type="button"
                   onClick={() => setResetConfirmStep(1)}
-                  className="flex-1 py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
+                  className="flex-1 min-w-[100px] py-1.5 px-3 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 
                   Xóa tất cả ({currentRoster.length})
@@ -2332,7 +2282,12 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                       setDuplicateSysMatch(null);
                     }}
                     placeholder="e.g. 0004"
-                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold"
+                    disabled={!isVscTab}
+                    className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold ${
+                      !isVscTab
+                        ? "bg-slate-100 text-slate-500 border-gray-200 cursor-not-allowed select-none opacity-80"
+                        : "bg-slate-50 border border-gray-300 text-slate-900"
+                    }`}
                   />
                   {(() => {
                     if (!formId.trim()) return null;
@@ -3106,6 +3061,151 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
             </div>
           </div>
         )}
+
+      {/* Add System Athlete Modal */}
+      {isAddSystemAthleteModalOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn text-slate-800 dark:text-slate-100"
+          onClick={() => setIsAddSystemAthleteModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 animate-scaleUp flex flex-col max-h-[85vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                    {language === "en" ? "Add System Athlete" : "Thêm VĐV Hệ Thống Vào Giải"}
+                  </h3>
+                  <p className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    {language === "en" ? "Select registered athletes from VSC database to join this tournament" : "Chọn các VĐV chính thức từ cơ sở dữ liệu VSC để thêm vào giải đấu"}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAddSystemAthleteModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter Search Field */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder={language === "en" ? "Search system athletes by Name, ID, Province..." : "Tìm kiếm VĐV hệ thống theo Tên, Mã số, Tỉnh thành..."}
+                  value={systemAthleteSearchTerm}
+                  onChange={(e) => setSystemAthleteSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-slate-800 dark:text-slate-100"
+                />
+                {systemAthleteSearchTerm && (
+                  <button 
+                    onClick={() => setSystemAthleteSearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 rounded"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable List container */}
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-50/50 dark:bg-slate-950/20 max-h-[50vh] min-h-[300px] space-y-2">
+              {vscSystemAthletes.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 italic text-xs">
+                  {language === "en" ? "VSC Database is currently empty" : "Danh sách VĐV hệ thống VSC đang trống"}
+                </div>
+              ) : (() => {
+                const query = systemAthleteSearchTerm.toLowerCase().trim();
+                const filteredList = vscSystemAthletes.filter(ath => 
+                  ath.name.toLowerCase().includes(query) ||
+                  ath.id.toLowerCase().includes(query) ||
+                  (ath.province && ath.province.toLowerCase().includes(query)) ||
+                  (ath.team && ath.team.toLowerCase().includes(query))
+                );
+
+                if (filteredList.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-slate-400 italic text-xs">
+                      {language === "en" ? "No matching athletes found" : "Không tìm thấy vận động viên nào phù hợp"}
+                    </div>
+                  );
+                }
+
+                return filteredList.map(ath => {
+                  const isAdded = currentActiveAthletes.some(a => a.id.trim().toLowerCase() === ath.id.trim().toLowerCase()) ||
+                                  athletes.some(a => a.id.trim().toLowerCase() === ath.id.trim().toLowerCase());
+                  return (
+                    <div 
+                      key={ath.id} 
+                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img 
+                          src={ath.avatarUrl || AVATAR_MALE} 
+                          alt={ath.name} 
+                          className="w-11 h-11 rounded-full object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
+                            {ath.name}
+                            <span className="text-[10px] text-indigo-500 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded-lg border border-indigo-100/30">
+                              {ath.id}
+                            </span>
+                          </h4>
+                          <div className="flex items-center gap-x-2 text-[10px] text-slate-400 mt-1">
+                            <span>🛡️ {ath.team || (language === "en" ? "Independent" : "Tự do")}</span>
+                            <span>•</span>
+                            <span>📍 {ath.province || "---"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isAdded ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-450 dark:text-slate-500 text-xs font-bold rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                            <Check className="w-3.5 h-3.5" /> {language === "en" ? "Added" : "Đã thêm"}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddVscToTournament(ath)}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" />
+                            {language === "en" ? "Add" : "Thêm"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsAddSystemAthleteModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer transition-all"
+              >
+                {language === "en" ? "Close" : "Đóng"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Toast Notification for premium interactive feedback */}
       {notification && (

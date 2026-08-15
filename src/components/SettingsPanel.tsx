@@ -417,6 +417,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     localStorage.setItem("slingshot_active_tournament_lane_capacity", val.toString());
   };
 
+  // Local editing states to prevent real-time data destruction on typing/backspacing
+  const [editLaneCapacity, setEditLaneCapacity] = useState<number | "">(laneCapacity || 10);
+  const [editShotsCount, setEditShotsCount] = useState<number | "">(shotsCount || 5);
+  const [editTeamShotsCount, setEditTeamShotsCount] = useState<number | "">(teamShotsCount || 5);
+
   // Modal State for started tournament
   const [localIsNewTournamentModalOpen, setLocalIsNewTournamentModalOpen] = useState(false);
   const isNewTournamentModalOpen = externalIsNewTournamentModalOpen !== undefined ? externalIsNewTournamentModalOpen : localIsNewTournamentModalOpen;
@@ -469,8 +474,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       setSnapshotLaneCapacity(10);
       setSnapshotShotsCount(5);
       setSnapshotTeamShotsCount(5);
+      setEditLaneCapacity(laneCapacity);
+      setEditShotsCount(shotsCount);
+      setEditTeamShotsCount(teamShotsCount);
     }
-  }, [matchName, isTournamentLocked]);
+  }, [matchName, isTournamentLocked, laneCapacity, shotsCount, teamShotsCount]);
 
   const handleSaveMatchName = () => {
     const trimmed = tempMatchName.trim();
@@ -788,6 +796,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 setSnapshotLaneCapacity(laneCapacity);
                 setSnapshotShotsCount(shotsCount);
                 setSnapshotTeamShotsCount(teamShotsCount);
+                setEditLaneCapacity(laneCapacity);
+                setEditShotsCount(shotsCount);
+                setEditTeamShotsCount(teamShotsCount);
               }}
               className="w-full py-1.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-gray-300 dark:border-slate-700 text-slate-800 dark:text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98"
             >
@@ -1010,12 +1021,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{language === "en" ? "Athletes per LANE" : "Số VĐV / LANE (x)"}</label>
               <input
                 type="number"
-                min={2}
-                max={50}
-                value={laneCapacity}
+                value={editLaneCapacity}
                 onChange={(e) => {
-                  const val = Math.max(2, Math.min(50, Number(e.target.value) || 10));
-                  setLaneCapacityValue(val);
+                  const val = e.target.value;
+                  if (val === "") {
+                    setEditLaneCapacity("");
+                  } else {
+                    const parsed = parseInt(val, 10);
+                    if (!isNaN(parsed)) {
+                      setEditLaneCapacity(parsed);
+                    }
+                  }
                 }}
                 className="w-full px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-505 font-bold"
               />
@@ -1023,28 +1039,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {/* Individual Shot Count */}
             {tournamentType !== "team" && (
-              <div className={`grid grid-cols-1 ${shotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+              <div className={`grid grid-cols-1 ${editShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
                 <div>
                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
                     <span>{language === "en" ? "Individual Rounds:" : "Số lượt Cá Nhân:"}</span>
-                    <span className="text-blue-600 font-black font-mono">{shotsCount} {language === "en" ? "rds" : "lượt"}</span>
+                    <span className="text-blue-600 font-black font-mono">{editShotsCount} {language === "en" ? "rds" : "lượt"}</span>
                   </label>
                   <div className="w-full">
                     <input
                       type="number"
-                      min="1"
-                      max="30"
-                      value={shotsCount}
+                      value={editShotsCount}
                       onChange={(e) => {
-                        const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
-                        handleShotsCountChange(val);
+                        const val = e.target.value;
+                        if (val === "") {
+                          setEditShotsCount("");
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          if (!isNaN(parsed)) {
+                            setEditShotsCount(parsed);
+                          }
+                        }
                       }}
                       className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
                     />
                   </div>
                 </div>
 
-                {shotsCount === 1 && (
+                {editShotsCount === 1 && (
                   <>
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
@@ -1089,28 +1110,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {/* Team Shot Count */}
             {tournamentType !== "individual" && (
-              <div className={`grid grid-cols-1 ${teamShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+              <div className={`grid grid-cols-1 ${editTeamShotsCount === 1 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
                 <div>
                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex justify-between">
                     <span>{language === "en" ? "Team Rounds:" : "Số lượt Đồng Đội:"}</span>
-                    <span className="text-indigo-600 font-black font-mono">{teamShotsCount} {language === "en" ? "rds" : "lượt"}</span>
+                    <span className="text-indigo-600 font-black font-mono">{editTeamShotsCount} {language === "en" ? "rds" : "lượt"}</span>
                   </label>
                   <div className="w-full">
                     <input
                       type="number"
-                      min="1"
-                      max="30"
-                      value={teamShotsCount}
+                      value={editTeamShotsCount}
                       onChange={(e) => {
-                        const val = Math.max(1, Math.min(30, Number(e.target.value) || 1));
-                        handleTeamShotsCountChange(val);
+                        const val = e.target.value;
+                        if (val === "") {
+                          setEditTeamShotsCount("");
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          if (!isNaN(parsed)) {
+                            setEditTeamShotsCount(parsed);
+                          }
+                        }
                       }}
                       className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono font-bold text-center text-xs"
                     />
                   </div>
                 </div>
 
-                {teamShotsCount === 1 && (
+                {editTeamShotsCount === 1 && (
                   <>
                     <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
@@ -1172,22 +1198,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     : `Diễn giải / Luật bắn: Thay đổi nội dung`
                   );
                 }
-                if (laneCapacity !== snapshotLaneCapacity) {
+
+                // Clean and parse local input values safely before comparing or saving
+                let finalLaneCap = Number(editLaneCapacity);
+                if (isNaN(finalLaneCap) || finalLaneCap < 2) finalLaneCap = 2;
+                if (finalLaneCap > 50) finalLaneCap = 50;
+
+                let finalShots = Number(editShotsCount);
+                if (isNaN(finalShots) || finalShots < 1) finalShots = 1;
+                if (finalShots > 30) finalShots = 30;
+
+                let finalTeamShots = Number(editTeamShotsCount);
+                if (isNaN(finalTeamShots) || finalTeamShots < 1) finalTeamShots = 1;
+                if (finalTeamShots > 30) finalTeamShots = 30;
+
+                if (finalLaneCap !== snapshotLaneCapacity) {
                   changes.push(language === "en"
-                    ? `Athletes per LANE: ${snapshotLaneCapacity} ➔ ${laneCapacity}`
-                    : `Số VĐV / LANE (x): ${snapshotLaneCapacity} ➔ ${laneCapacity}`
+                    ? `Athletes per LANE: ${snapshotLaneCapacity} ➔ ${finalLaneCap}`
+                    : `Số VĐV / LANE (x): ${snapshotLaneCapacity} ➔ ${finalLaneCap}`
                   );
                 }
-                if (shotsCount !== snapshotShotsCount) {
+                if (finalShots !== snapshotShotsCount) {
                   changes.push(language === "en"
-                    ? `Individual Rounds: ${snapshotShotsCount} rds ➔ ${shotsCount} rds`
-                    : `Số lượt Cá Nhân: ${snapshotShotsCount} lượt ➔ ${shotsCount} lượt`
+                    ? `Individual Rounds: ${snapshotShotsCount} rds ➔ ${finalShots} rds`
+                    : `Số lượt Cá Nhân: ${snapshotShotsCount} lượt ➔ ${finalShots} lượt`
                   );
                 }
-                if (teamShotsCount !== snapshotTeamShotsCount) {
+                if (finalTeamShots !== snapshotTeamShotsCount) {
                   changes.push(language === "en"
-                    ? `Team Rounds: ${snapshotTeamShotsCount} rds ➔ ${teamShotsCount} rds`
-                    : `Số lượt Đồng Đội: ${snapshotTeamShotsCount} lượt ➔ ${teamShotsCount} lượt`
+                    ? `Team Rounds: ${snapshotTeamShotsCount} rds ➔ ${finalTeamShots} rds`
+                    : `Số lượt Đồng Đội: ${snapshotTeamShotsCount} lượt ➔ ${finalTeamShots} lượt`
                   );
                 }
 
@@ -1195,6 +1235,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   setLockPendingChanges(changes);
                   setIsConfirmLockModalOpen(true);
                 } else {
+                  // Apply safely anyway
+                  setLaneCapacityValue(finalLaneCap);
+                  handleShotsCountChange(finalShots);
+                  handleTeamShotsCountChange(finalTeamShots);
+                  
                   setIsTournamentLocked(true);
                   localStorage.setItem("slingshot_active_tournament_is_locked", "true");
                 }
@@ -1216,35 +1261,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           >
             <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" /> 
             {language === "en" ? "Reset All Scores" : "Reset Toàn Bộ Điểm Số"}
-          </button>
-
-          {/* Trigger the Modal Popup configuration for clean creation flow */}
-          <button
-            type="button"
-            onClick={() => {
-              if (activeHistoryId && onExitTournament) {
-                onExitTournament();
-              }
-              // Populate default fields inside the modal 
-              const todayStr = new Date().toLocaleDateString("vi-VN");
-              const currentSeqStr = localStorage.getItem("slingshot_active_tournament_seq") || "1";
-              const nextSeq = Number(currentSeqStr) + 1;
-              const nextSeqStr = nextSeq.toString().padStart(4, "0");
-              setModalTournamentId(`G-${nextSeqStr}`);
-              setModalTournamentName(`Giải Slingshot Hải Phòng ${todayStr}`);
-              setModalTournamentDesc("Bắn loại trực tiếp qua các khoảng cách. Áp dụng cơ cấu thi đấu chuẩn VSC.");
-              setModalStartDate("");
-              setModalEndDate("");
-              setModalLaneCapacity(laneCapacity);
-              setModalShotsCount(shotsCount);
-              setModalTeamShotsCount(teamShotsCount);
-              setTournamentError("");
-              setIsNewTournamentModalOpen(true);
-            }}
-            className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-rose-500/10 active:scale-95"
-          >
-            <PlusCircle className="w-4.5 h-4.5 animate-pulse" /> 
-            {language === "en" ? "Start New Tournament (Open Modal)" : "Bắt đầu giải đấu mới (Mở Modal)"}
           </button>
         </div>
 
@@ -3098,6 +3114,24 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   if (currentName && currentName !== snapshotMatchName) {
                     handleSaveMatchName();
                   }
+
+                  // Parse and apply safely when the user officially confirms
+                  let finalLaneCap = Number(editLaneCapacity);
+                  if (isNaN(finalLaneCap) || finalLaneCap < 2) finalLaneCap = 2;
+                  if (finalLaneCap > 50) finalLaneCap = 50;
+
+                  let finalShots = Number(editShotsCount);
+                  if (isNaN(finalShots) || finalShots < 1) finalShots = 1;
+                  if (finalShots > 30) finalShots = 30;
+
+                  let finalTeamShots = Number(editTeamShotsCount);
+                  if (isNaN(finalTeamShots) || finalTeamShots < 1) finalTeamShots = 1;
+                  if (finalTeamShots > 30) finalTeamShots = 30;
+
+                  setLaneCapacityValue(finalLaneCap);
+                  handleShotsCountChange(finalShots);
+                  handleTeamShotsCountChange(finalTeamShots);
+
                   setIsTournamentLocked(true);
                   localStorage.setItem("slingshot_active_tournament_is_locked", "true");
                   setIsConfirmLockModalOpen(false);

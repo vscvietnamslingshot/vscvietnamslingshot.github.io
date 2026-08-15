@@ -90,9 +90,11 @@ export const AthleteProfileModal: React.FC<AthleteProfileModalProps> = ({
       const masterTeamList = match.teamMasterAthletes || [];
 
       const findAthlete = (list: any[]) => {
-        return list.find(
-          (a: any) => a.id.trim().toLowerCase() === athleteIdLower
-        );
+        return list.find((a: any) => {
+          const idMatch = a.id && a.id.trim().toLowerCase() === athleteIdLower;
+          const emailMatch = athleteEmailLower && a.email && a.email.trim().toLowerCase() === athleteEmailLower;
+          return idMatch || emailMatch;
+        });
       };
 
       const foundSolo = findAthlete(soloList);

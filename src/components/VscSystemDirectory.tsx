@@ -8,6 +8,7 @@ import {
   updateUserProfile
 } from "../lib/firebaseService";
 import { VIETNAM_PROVINCES } from "../utils/provinces";
+import { AthleteProfileModal } from "./AthleteProfileModal";
 import { 
   Search, 
   Plus, 
@@ -484,9 +485,11 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       const masterTeamList = match.teamMasterAthletes || [];
 
       const findAthlete = (list: any[]) => {
-        return list.find(
-          (a: any) => a.id.trim().toLowerCase() === athleteIdLower
-        );
+        return list.find((a: any) => {
+          const idMatch = a.id && a.id.trim().toLowerCase() === athleteIdLower;
+          const emailMatch = athleteEmailLower && a.email && a.email.trim().toLowerCase() === athleteEmailLower;
+          return idMatch || emailMatch;
+        });
       };
 
       const foundSolo = findAthlete(soloList);
@@ -953,259 +956,16 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       )}
 
       {/* 5. Biography Modal Drawer / Full Details */}
-      {selectedAthlete && typeof document !== "undefined" && createPortal(
-        <div 
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-fadeIn text-slate-800 dark:text-slate-100" 
-          id="biography-drawer-overlay"
-          onClick={() => setSelectedAthlete(null)}
-        >
-          {/* Main Sheet panel content */}
-          <div 
-            className="relative my-auto w-full max-w-2xl bg-slate-50 dark:bg-slate-950 rounded-2xl shadow-2xl z-[170] flex flex-col text-left overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[85vh] shrink-0 animate-scaleIn"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header section with brand accent color */}
-            <div className="bg-[#9c0c13] text-white p-4 sm:p-5 flex items-center justify-between shadow-md border-b border-red-800 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/10 p-2 rounded-xl border border-white/10 shrink-0">
-                  <User className="w-5 h-5 text-yellow-300" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-yellow-300">Biographical Sheet</h3>
-                  <p className="text-[10px] text-red-100">Chi tiết Hồ sơ vận động viên VSC</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedAthlete(null)}
-                className="p-1.5 rounded-full hover:bg-black/10 text-white cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Profile Avatar & Hero Information Card */}
-            <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm text-center relative overflow-hidden">
-                <div className="absolute top-3 right-3 bg-red-50 dark:bg-red-950/25 border border-red-100 dark:border-red-900/30 text-[#9c0c13] dark:text-red-400 text-xs font-black px-2.5 py-1 rounded-lg">
-                  {selectedAthlete.id}
-                </div>
-                
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative">
-                    <img 
-                      src={selectedAthlete.avatarUrl || AVATAR_MALE} 
-                      alt={selectedAthlete.name} 
-                      className="w-24 h-24 rounded-full object-cover border-4 border-[#9c0c13]/10 bg-slate-50 shadow-md"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="absolute bottom-0 right-1.5 bg-[#9c0c13] text-white p-1 rounded-full text-[10px] shadow border-2 border-white">
-                      ✓
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center justify-center gap-1.5">
-                      {selectedAthlete.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-bold">
-                      🛡️ {selectedAthlete.team || (language === "en" ? "Independent" : "Tự do")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Personal Details Block */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-1.5 rounded-2xl p-5 shadow-xs">
-                <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-2 mb-4 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#9c0c13]" />
-                  Thông tin cá nhân
-                </h4>
-                
-                <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs">
-                  <div>
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Giới tính</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{selectedAthlete.gender || "Nam"}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Ngày sinh</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{selectedAthlete.dob || "---"}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Tỉnh thành sinh sống</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{selectedAthlete.province || "---"}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Quê quán</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{selectedAthlete.hometown || "---"}</div>
-                  </div>
-                  
-                  {/* Account detail linked email (visible only to admin or owner for privacy) */}
-                  <div className="col-span-2 border-t border-slate-50 dark:border-slate-800/20 pt-3 mt-1.5">
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Email tài khoản liên kết</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-200 break-all flex items-center gap-1.5">
-                      {selectedAthlete.email ? (
-                        <>
-                          <span className="text-emerald-600 dark:text-emerald-400">●</span> {selectedAthlete.email}
-                        </>
-                      ) : (
-                        <span className="text-slate-400 font-normal italic">Chưa liên kết email</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ID card CCCD if matching profile or admin */}
-                  {(userRole === "admin" || (currentUser && selectedAthlete.email && selectedAthlete.email.trim().toLowerCase() === currentUser.email.trim().toLowerCase())) && selectedAthlete.idCard && (
-                    <div className="col-span-2 border-t border-slate-50 dark:border-slate-800/20 pt-3">
-                      <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5 flex items-center gap-1">
-                        <Lock className="w-3 h-3 text-red-500" /> Số CCCD (Bảo mật)
-                      </div>
-                      <div className="font-extrabold text-[#9c0c13] dark:text-red-400">{selectedAthlete.idCard}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Stats and historical achievements */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-1.5 rounded-2xl p-5 shadow-xs">
-                <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-2 mb-4 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#9c0c13]" />
-                  Thống kê thành tích thi đấu
-                </h4>
-
-                {athleteStats && athleteStats.totalTournaments > 0 ? (
-                  <div className="space-y-6">
-                    {/* Key stats blocks */}
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-slate-900">
-                        <div className="text-[9px] font-extrabold text-slate-450 uppercase">Số Giải</div>
-                        <div className="text-base font-black text-[#9c0c13] mt-0.5">{athleteStats.totalTournaments}</div>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-slate-900">
-                        <div className="text-[9px] font-extrabold text-slate-450 uppercase">Tỷ Lệ Trúng</div>
-                        <div className="text-base font-black text-emerald-600 mt-0.5">{athleteStats.overallHitRate}%</div>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-slate-900">
-                        <div className="text-[9px] font-extrabold text-slate-450 uppercase">Hạng Cao Nhất</div>
-                        <div className="text-base font-black text-amber-500 mt-0.5">
-                          {athleteStats.highestRank ? `#${athleteStats.highestRank}` : "---"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Simple graphical SVG line tracking progress of hitRate over matches */}
-                    {athleteStats.participations.length > 1 && (
-                      <div className="space-y-2 text-center">
-                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center justify-between">
-                          <span>Biểu đồ tiến trình</span>
-                          <span className="font-black text-[#9c0c13]">{athleteStats.overallHitRate}% (Trung bình)</span>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-900 rounded-xl p-3 h-28 flex items-end">
-                          <svg className="w-full h-full" viewBox="0 0 300 80">
-                            {/* Horizontal guide lines */}
-                            <line x1="0" y1="10" x2="300" y2="10" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3,3" />
-                            <line x1="0" y1="40" x2="300" y2="40" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3,3" />
-                            <line x1="0" y1="70" x2="300" y2="70" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3,3" />
-                            
-                            {/* Coordinates and line generation */}
-                            {(() => {
-                              const points = [...athleteStats.participations].reverse();
-                              const widthStep = 300 / (points.length - 1 || 1);
-                              
-                              // Create points (x, y) where y matches inverted percentage (100% is y=10, 0% is y=70)
-                              const coords = points.map((p, idx) => {
-                                const x = idx * widthStep;
-                                const y = 70 - (p.hitRate / 100) * 60;
-                                return { x, y };
-                              });
-
-                              // Build path string
-                              const d = coords.reduce((acc, c, idx) => {
-                                return idx === 0 ? `M ${c.x} ${c.y}` : `${acc} L ${c.x} ${c.y}`;
-                              }, "");
-
-                              return (
-                                <>
-                                  {/* Area under the line */}
-                                  {coords.length > 1 && (
-                                    <path
-                                      d={`${d} L ${coords[coords.length-1].x} 70 L ${coords[0].x} 70 Z`}
-                                      fill="rgba(156, 12, 19, 0.05)"
-                                    />
-                                  )}
-                                  
-                                  {/* Polyline */}
-                                  <path d={d} fill="none" stroke="#9c0c13" strokeWidth="2.5" />
-                                  
-                                  {/* Circles at data points */}
-                                  {coords.map((c, idx) => (
-                                    <g key={idx} className="group/dot cursor-pointer">
-                                      <circle cx={c.x} cy={c.y} r="4" fill="#9c0c13" stroke="#fff" strokeWidth="1.5" />
-                                      <circle cx={c.x} cy={c.y} r="8" fill="#9c0c13" opacity="0" className="hover:opacity-20 transition-opacity" />
-                                    </g>
-                                  ))}
-                                </>
-                              );
-                            })()}
-                          </svg>
-                        </div>
-                        <div className="flex justify-between text-[8px] text-slate-400 uppercase font-black px-1">
-                          <span>Giải Cũ Nhất</span>
-                          <span>Giải Gần Nhất</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tournaments Participation list details */}
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-extrabold text-slate-450 uppercase">Nhật Ký Giải Đấu Chi Tiết</div>
-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                        {athleteStats.participations.map((p, idx) => (
-                          <div key={idx} className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-900/60 flex items-center justify-between text-xs font-bold gap-3">
-                            <div className="overflow-hidden">
-                              <div className="text-slate-800 dark:text-slate-200 truncate">{p.matchName}</div>
-                              <div className="text-[9px] text-slate-400 mt-0.5">{p.date}</div>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="text-right">
-                                <div className="text-[#9c0c13] dark:text-red-400 font-extrabold">{p.totalHits} Trúng</div>
-                                <div className="text-[9px] text-slate-400 mt-0.5">Tỷ lệ: {p.hitRate}%</div>
-                              </div>
-                              <div className="bg-amber-100/50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 text-[10px] px-2 py-1 rounded-md border border-amber-200 font-black">
-                                Hạng {p.rank}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-8 text-center space-y-2">
-                    <Info className="w-8 h-8 text-slate-350 mx-auto" />
-                    <p className="text-xs font-bold text-slate-550 dark:text-slate-450">
-                      Chưa có lịch sử thi đấu hệ thống
-                    </p>
-                    <p className="text-[10px] text-slate-400 max-w-xs mx-auto leading-normal">
-                      Thành tích và tỷ lệ bắn trúng của VĐV này sẽ tự động cập nhật khi tham gia thi đấu các giải chính thức trên hệ thống VSCS.ASIA.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Pinned Footer for easy closure */}
-            <div className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 flex justify-end shrink-0">
-              <button
-                type="button"
-                onClick={() => setSelectedAthlete(null)}
-                className="bg-[#9c0c13] hover:bg-red-750 text-white font-extrabold px-6 py-2 rounded-xl text-xs transition-colors cursor-pointer shadow-md border border-red-700"
-              >
-                {language === "en" ? "Close" : "Đóng"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <AthleteProfileModal
+        athlete={selectedAthlete}
+        isOpen={!!selectedAthlete}
+        onClose={() => setSelectedAthlete(null)}
+        history={history}
+        onlineTournaments={onlineTournaments}
+        currentUser={currentUser}
+        isGlobalAdmin={userRole === "admin"}
+        language={language}
+      />
 
       {/* 6. Form Modal Overlay: Create / Edit VSC Profile */}
       {isFormOpen && typeof document !== "undefined" && createPortal(
