@@ -4656,29 +4656,33 @@ export default function App() {
                 </>
               )}
 
-              <button
-                onClick={() => {
-                  changeTab("vsc_system_directory");
-                }}
-                className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                  activeTab === "vsc_system_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                }`}
-              >
-                <Users className="w-4 h-4 text-amber-300" />
-                {language === "en" ? "System Athletes" : "VĐV Hệ Thống"}
-              </button>
+              {!activeHistoryId && (
+                <>
+                  <button
+                    onClick={() => {
+                      changeTab("vsc_system_directory");
+                    }}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                      activeTab === "vsc_system_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 text-amber-300" />
+                    {language === "en" ? "System Athletes" : "VĐV Hệ Thống"}
+                  </button>
 
-              <button
-                onClick={() => {
-                  changeTab("vsc_clubs_directory");
-                }}
-                className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
-                  activeTab === "vsc_clubs_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
-                }`}
-              >
-                <Users className="w-4 h-4 text-emerald-450" />
-                {language === "en" ? "System Clubs" : "CLB Hệ Thống"}
-              </button>
+                  <button
+                    onClick={() => {
+                      changeTab("vsc_clubs_directory");
+                    }}
+                    className={`px-4.5 py-4 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-all hover:bg-black/15 flex items-center gap-1.5 ${
+                      activeTab === "vsc_clubs_directory" ? "bg-black/25 text-yellow-400 border-b-4 border-yellow-400 font-black" : "text-white"
+                    }`}
+                  >
+                    <Users className="w-4 h-4 text-emerald-450" />
+                    {language === "en" ? "System Clubs" : "CLB Hệ Thống"}
+                  </button>
+                </>
+              )}
 
               {activeHistoryId && (
                 <button
@@ -5140,38 +5144,41 @@ export default function App() {
                     <span>{language === "en" ? "Followed Tournaments" : "Giải Đang Theo Dõi"}</span>
                   </button>
 
-                  {/* VSC System Athletes Directory */}
-                  <button
-                    onClick={() => {
-                      changeTab("vsc_system_directory");
-                      setIsMobileDrawerOpen(false);
-                    }}
-                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
-                      activeTab === "vsc_system_directory"
-                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <Users className="w-4 h-4 shrink-0 text-amber-500" />
-                    <span>{language === "en" ? "System Athletes" : "VĐV Hệ Thống VSC"}</span>
-                  </button>
+                  {!activeHistoryId && (
+                    <>
+                      {/* VSC System Athletes Directory */}
+                      <button
+                        onClick={() => {
+                          changeTab("vsc_system_directory");
+                          setIsMobileDrawerOpen(false);
+                        }}
+                        className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                          activeTab === "vsc_system_directory"
+                            ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <Users className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>{language === "en" ? "System Athletes" : "VĐV Hệ Thống VSC"}</span>
+                      </button>
 
-                  {/* VSC System Clubs */}
-                  {/* VSC System Clubs */}
-                  <button
-                    onClick={() => {
-                      changeTab("vsc_clubs_directory");
-                      setIsMobileDrawerOpen(false);
-                    }}
-                    className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
-                      activeTab === "vsc_clubs_directory"
-                        ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <Users className="w-4 h-4 shrink-0 text-emerald-500" />
-                    <span>{language === "en" ? "System Clubs" : "CLB Hệ Thống"}</span>
-                  </button>
+                      {/* VSC System Clubs */}
+                      <button
+                        onClick={() => {
+                          changeTab("vsc_clubs_directory");
+                          setIsMobileDrawerOpen(false);
+                        }}
+                        className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
+                          activeTab === "vsc_clubs_directory"
+                            ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <Users className="w-4 h-4 shrink-0 text-emerald-500" />
+                        <span>{language === "en" ? "System Clubs" : "CLB Hệ Thống"}</span>
+                      </button>
+                    </>
+                  )}
 
                   {/* Create Tournament */}
                   <button

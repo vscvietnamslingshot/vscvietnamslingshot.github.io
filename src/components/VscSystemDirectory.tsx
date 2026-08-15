@@ -514,50 +514,53 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
           });
         }
 
-        // Calculate rank in this tournament
-        let rank = 1;
-        let rankPool: any[] = [];
-        if (foundSolo) rankPool = soloList;
-        else if (foundTeam) rankPool = teamList;
-        else if (foundMasterSolo) rankPool = masterSoloList;
-        else if (foundMasterTeam) rankPool = masterTeamList;
+        // Only count as participated if there are actual shots fired/recorded
+        if (matchShots > 0) {
+          // Calculate rank in this tournament
+          let rank = 1;
+          let rankPool: any[] = [];
+          if (foundSolo) rankPool = soloList;
+          else if (foundTeam) rankPool = teamList;
+          else if (foundMasterSolo) rankPool = masterSoloList;
+          else if (foundMasterTeam) rankPool = masterTeamList;
 
-        const sortedScores = rankPool
-          .map((ath: any) => {
-            let hits = 0;
-            if (ath.scores) {
-              Object.values(ath.scores).forEach((arr: any) => {
-                if (Array.isArray(arr)) {
-                  hits += arr.filter((h) => h === true).length;
-                }
-              });
-            }
-            return { id: ath.id, name: ath.name, hits };
-          })
-          .sort((a: any, b: any) => b.hits - a.hits);
+          const sortedScores = rankPool
+            .map((ath: any) => {
+              let hits = 0;
+              if (ath.scores) {
+                Object.values(ath.scores).forEach((arr: any) => {
+                  if (Array.isArray(arr)) {
+                    hits += arr.filter((h) => h === true).length;
+                  }
+                });
+              }
+              return { id: ath.id, name: ath.name, hits };
+            })
+            .sort((a: any, b: any) => b.hits - a.hits);
 
-        const matchRankIdx = sortedScores.findIndex(
-          (x: any) => x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase()
-        );
-        if (matchRankIdx !== -1) {
-          rank = matchRankIdx + 1;
+          const matchRankIdx = sortedScores.findIndex(
+            (x: any) => x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase()
+          );
+          if (matchRankIdx !== -1) {
+            rank = matchRankIdx + 1;
+          }
+
+          if (rank < highestRank) {
+            highestRank = rank;
+          }
+
+          totalMatchShots += matchShots;
+          totalMatchHits += matchHits;
+
+          participations.push({
+            matchName: match.matchName,
+            date: matchDateStr,
+            totalShots: matchShots,
+            totalHits: matchHits,
+            hitRate: Math.round((matchHits / matchShots) * 100),
+            rank
+          });
         }
-
-        if (rank < highestRank) {
-          highestRank = rank;
-        }
-
-        totalMatchShots += matchShots;
-        totalMatchHits += matchHits;
-
-        participations.push({
-          matchName: match.matchName,
-          date: matchDateStr,
-          totalShots: matchShots,
-          totalHits: matchHits,
-          hitRate: matchShots > 0 ? Math.round((matchHits / matchShots) * 100) : 0,
-          rank
-        });
       }
     });
 
