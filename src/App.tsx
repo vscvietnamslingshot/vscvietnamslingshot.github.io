@@ -1186,6 +1186,7 @@ export default function App() {
   const [showInputScoresModeSelection, setShowInputScoresModeSelection] = useState(false);
   const [showScoringModeSelection, setShowScoringModeSelection] = useState(false);
   const [showMobileRankingSelection, setShowMobileRankingSelection] = useState(false);
+  const [isMobileRankingExpanded, setIsMobileRankingExpanded] = useState(false);
 
   useEffect(() => {
     if (activeTab === "input_scores" && tournamentType === "combined") {
@@ -5256,20 +5257,93 @@ export default function App() {
                     </button>
 
                     {/* Leaderboards */}
-                    <button
-                      onClick={() => {
-                        changeTab("leaderboard");
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center gap-3 transition-all ${
-                        activeTab === "leaderboard"
-                          ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                      }`}
-                    >
-                      <Trophy className="w-4 h-4 shrink-0 text-amber-550" />
-                      <span>{language === "en" ? "Ranking Standings" : "Bảng Xếp Hạng VSC"}</span>
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => {
+                          changeTab("leaderboard");
+                          setIsMobileRankingExpanded(!isMobileRankingExpanded);
+                        }}
+                        className={`w-full px-3 py-2.5 rounded-lg text-xs font-extrabold flex items-center justify-between transition-all ${
+                          activeTab === "leaderboard"
+                            ? "bg-red-50 text-[#9c0c13] dark:bg-red-950/20 dark:text-red-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Trophy className="w-4 h-4 shrink-0 text-amber-550" />
+                          <span>{language === "en" ? "Ranking Standings" : "Bảng Xếp Hạng VSC"}</span>
+                        </div>
+                        <ChevronDown 
+                          className="w-3.5 h-3.5 transition-transform duration-200 shrink-0" 
+                          style={{ transform: isMobileRankingExpanded ? "rotate(180deg)" : "none" }}
+                        />
+                      </button>
+
+                      {/* Sub-menu options (Chẻ nhánh) */}
+                      {isMobileRankingExpanded && (
+                        <div className="pl-6 mt-1.5 flex flex-col gap-1.5 border-l-2 border-slate-200 dark:border-slate-800 ml-4.5 animate-fadeIn">
+                          {/* Option 1: Thi Đấu Cá Nhân */}
+                          <button
+                            onClick={() => {
+                              if (tournamentType === "combined") {
+                                setCompetitionMode("individual");
+                                localStorage.setItem("slingshot_competition_mode", "individual");
+                                setRankingSubTab("individual");
+                              } else if (tournamentType === "team") {
+                                setCompetitionMode("team");
+                                localStorage.setItem("slingshot_competition_mode", "team");
+                                setRankingSubTab("individual");
+                              } else {
+                                setCompetitionMode("individual");
+                                localStorage.setItem("slingshot_competition_mode", "individual");
+                                setRankingSubTab("individual");
+                              }
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsMobileDrawerOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-md text-[11px] font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                              activeTab === "leaderboard" && rankingSubTab === "individual"
+                                ? "text-amber-600 dark:text-amber-400 font-extrabold bg-amber-50 dark:bg-amber-950/10"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>{language === "en" ? "Individual Competition" : "Thi Đấu Cá Nhân"}</span>
+                          </button>
+
+                          {/* Option 2: Thi Đấu Đồng Đội */}
+                          <button
+                            onClick={() => {
+                              if (tournamentType === "combined") {
+                                setCompetitionMode("team");
+                                localStorage.setItem("slingshot_competition_mode", "team");
+                                setRankingSubTab("team");
+                              } else if (tournamentType === "team") {
+                                setCompetitionMode("team");
+                                localStorage.setItem("slingshot_competition_mode", "team");
+                                setRankingSubTab("team");
+                              } else {
+                                setCompetitionMode("individual");
+                                localStorage.setItem("slingshot_competition_mode", "individual");
+                                setRankingSubTab("team");
+                              }
+                              setIsSpectatorModeOverridden(true);
+                              changeTab("leaderboard");
+                              setIsMobileDrawerOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-md text-[11px] font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                              activeTab === "leaderboard" && rankingSubTab === "team"
+                                ? "text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50 dark:bg-blue-950/10"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            <span>{language === "en" ? "Team Competition" : "Thi Đấu Đồng Đội"}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Scoring & Entries for Admins/Referees */}
                     {(userRole === "admin" || userRole === "referee") && (
