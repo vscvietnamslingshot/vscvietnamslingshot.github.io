@@ -355,6 +355,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [transferTargetUserId, setTransferTargetUserId] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showLeaveClubModalStep, setShowLeaveClubModalStep] = useState<number>(0);
 
   // Profile fields state
   const [dispName, setDispName] = useState("");
@@ -849,18 +850,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
 
-  const handleLeaveClubClick = async () => {
+  const handleLeaveClubClick = () => {
     if (!myClub || !currentUser) return;
-    const confirmText = language === "en"
-      ? "Are you sure you want to leave this club? You will become an independent athlete."
-      : "Bạn có chắc chắn muốn rời khỏi câu lạc bộ này? Bạn sẽ trở thành vận động viên tự do.";
-    if (!confirm(confirmText)) return;
+    if (myClub.leaderId === currentUser.uid) {
+      alert(language === "en"
+        ? "As the Club Leader, you must transfer leadership to another member before leaving!"
+        : "Là Trưởng CLB, bạn phải chuyển nhượng quyền trưởng câu lạc bộ cho thành viên khác trước khi rời đi!");
+      return;
+    }
+    setShowLeaveClubModalStep(1);
+  };
 
+  const handleConfirmLeaveClubStep2 = async () => {
+    if (!myClub || !currentUser) return;
     try {
       await leaveClub(myClub.id, currentUser.uid);
+      setShowLeaveClubModalStep(0);
       alert(language === "en" ? "Left club successfully!" : "Đã rời khỏi câu lạc bộ thành công!");
     } catch (err: any) {
       console.error(err);
+      setShowLeaveClubModalStep(0);
       if (err.message === "LEADER_MUST_TRANSFER") {
         alert(language === "en"
           ? "As the Club Leader, you must transfer leadership to another member before leaving!"
@@ -1161,18 +1170,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
                               Câu lạc bộ (CLB) / Nhóm:
                             </label>
-                            <input
-                              type="text"
-                              value={myClub ? myClub.name : clubName}
-                              onChange={(e) => setClubName(e.target.value)}
-                              disabled={!!myClub}
-                              placeholder="Nhập tên CLB..."
-                              className={`w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold ${
-                                myClub
-                                  ? "bg-slate-100 dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed select-none opacity-80"
-                                  : "bg-slate-50 dark:bg-slate-955 border-gray-300 dark:border-slate-800 text-slate-900 dark:text-white"
-                              }`}
-                            />
+                            {myClub ? (
+                              <input
+                                type="text"
+                                value={myClub.name}
+                                disabled={true}
+                                className="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold bg-slate-100 dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed select-none opacity-80"
+                              />
+                            ) : (
+                              <select
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold bg-slate-50 dark:bg-slate-955 text-slate-900 dark:text-white"
+                              >
+                                <option value="">{language === "en" ? "-- Free Agent / Independent Athlete --" : "-- Vận động viên tự do --"}</option>
+                                {clubName && !systemClubs.some(c => c.name.toLowerCase().trim() === clubName.toLowerCase().trim()) && (
+                                  <option value={clubName}>{clubName} ({language === "en" ? "Legacy/Current" : "Hiện tại"})</option>
+                                )}
+                                {systemClubs.map((club) => (
+                                  <option key={club.id} value={club.name}>
+                                    {club.name} ({club.province || (language === "en" ? "Other" : "Khác")})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </div>
 
                           {/* Province / State */}
@@ -2291,6 +2312,76 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 Xác nhận Sao Chép
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 2-Step Leave Club Confirmation Modal */}
+      {showLeaveClubModalStep > 0 && myClub && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[10010] p-4 animate-fadeIn text-slate-800 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+            {showLeaveClubModalStep === 1 ? (
+              <>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-full">
+                  <AlertTriangle className="w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {language === "en" ? "Leave Club Request" : "Yêu cầu rời Câu Lạc Bộ"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  {language === "en" 
+                    ? `You are requesting to leave "${myClub.name}". Your historical scores and contributions will remain with the club, but you will no longer be an official member.`
+                    : `Bạn đang gửi yêu cầu rời khỏi câu lạc bộ "${myClub.name}". Mọi kết quả thi đấu lịch sử của bạn vẫn nằm lại CLB, nhưng bạn sẽ không còn là thành viên chính thức.`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(0)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(2)}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Continue" : "Tiếp tục"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full">
+                  <LogOut className="w-8 h-8 animate-pulse" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                  {language === "en" ? "Final Confirmation" : "Xác nhận lần cuối"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans font-bold">
+                  {language === "en"
+                    ? "This action is irreversible! You will become a Free Agent immediately. To rejoin this club, you must apply and be approved again."
+                    : "Hành động này KHÔNG THỂ HOÀN TÁC! Bạn sẽ ngay lập tức trở thành vận động viên tự do. Muốn tham gia lại câu lạc bộ này, bạn phải nộp đơn xét duyệt từ đầu."}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(1)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Back" : "Quay lại"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmLeaveClubStep2}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Confirm Leave" : "Xác nhận Rời"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>,
         document.body

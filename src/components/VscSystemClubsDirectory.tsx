@@ -92,7 +92,8 @@ import {
   PlusCircle,
   Shield,
   ArrowUpDown,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle
 } from "lucide-react";
 
 interface VscSystemClubsDirectoryProps {
@@ -445,6 +446,8 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
   const [directAthleteId, setDirectAthleteId] = useState("");
   const [isAddingDirect, setIsAddingDirect] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showLeaveClubModalStep, setShowLeaveClubModalStep] = useState<number>(0);
+  const [showDisbandClubModalStep, setShowDisbandClubModalStep] = useState<number>(0);
   const [transferTargetUserId, setTransferTargetUserId] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
 
@@ -549,7 +552,7 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
     setFormError("");
 
     // Each user can only create 1 club or join 1 club
-    if (myClub) {
+    if (myClub && userRole !== "admin") {
       setFormError(
         language === "en"
           ? "You are already a member or leader of a club. You must leave that club first."
@@ -558,7 +561,7 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
       setIsCreating(false);
       return;
     }
-    if (myPendingRequestClub) {
+    if (myPendingRequestClub && userRole !== "admin") {
       setFormError(
         language === "en"
           ? "You have a pending request to join another club. Please cancel it first."
@@ -574,16 +577,17 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
         ath => ath.email?.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()
       );
 
-      const leaderAthleteId = userAthleteProfile?.id || "";
-      const leaderName = userAthleteProfile?.name || currentUser.displayName || "Xạ Thủ VSC";
+      const isAdmin = userRole === "admin";
+      const leaderAthleteId = isAdmin ? "" : (userAthleteProfile?.id || "");
+      const leaderName = isAdmin ? "" : (userAthleteProfile?.name || currentUser.displayName || "Xạ Thủ VSC");
 
       await createSystemClub(
         newClubName.trim(),
         newClubLogoUrl.trim(),
         newClubProvince === "Khác" ? customNewClubProvince.trim() : newClubProvince,
-        currentUser.uid,
+        isAdmin ? "" : currentUser.uid,
         leaderName,
-        currentUser.email || "",
+        isAdmin ? "" : (currentUser.email || ""),
         newClubDesc.trim(),
         newClubBannerUrl.trim()
       );
@@ -624,20 +628,8 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
   };
 
   // Handle Delete Club
-  const handleDeleteClub = async () => {
-    if (!selectedClub) return;
-    const confirmText = language === "en"
-      ? "CRITICAL WARNING: Are you sure you want to permanently delete this club? This action cannot be undone and all members will be unlinked."
-      : "CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn XÓA VĨNH VIỄN câu lạc bộ này? Hành động này không thể hoàn tác và tất cả thành viên sẽ bị giải tán.";
-    
-    if (!window.confirm(confirmText)) return;
-
-    try {
-      await deleteVscSystemClub(selectedClub.id);
-      setSelectedClub(null);
-    } catch (err: any) {
-      alert(getFriendlyErrorMessage(err) || err.message);
-    }
+  const handleDeleteClub = () => {
+    handleDisbandClubClick();
   };
 
   // Join a Club Request
@@ -716,19 +708,48 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
   };
 
   // Leave club voluntarily
-  const handleLeaveClub = async () => {
+  const handleLeaveClub = () => {
     if (!selectedClub || !currentUser) return;
-    const confirmLeave = window.confirm(
-      language === "en"
-        ? "Are you sure you want to leave this club?"
-        : "Xác nhận rời khỏi câu lạc bộ này?"
-    );
-    if (!confirmLeave) return;
+    if (selectedClub.leaderId === currentUser.uid) {
+      alert(language === "en"
+        ? "As the Club Leader, you must transfer leadership to another member before leaving!"
+        : "Là Trưởng CLB, bạn phải chuyển nhượng quyền trưởng câu lạc bộ cho thành viên khác trước khi rời đi!");
+      return;
+    }
+    setShowLeaveClubModalStep(1);
+  };
 
+  const handleConfirmLeaveClubStep2 = async () => {
+    if (!selectedClub || !currentUser) return;
     try {
       await leaveClub(selectedClub.id, currentUser.uid);
+      setShowLeaveClubModalStep(0);
       setSelectedClub(null);
     } catch (err: any) {
+      setShowLeaveClubModalStep(0);
+      if (err.message === "LEADER_MUST_TRANSFER" || err.message?.includes("LEADER_MUST_TRANSFER")) {
+        alert(language === "en"
+          ? "As the Club Leader, you must transfer leadership to another member before leaving!"
+          : "Là Trưởng CLB, bạn phải chuyển nhượng quyền trưởng câu lạc bộ cho thành viên khác trước khi rời đi!");
+      } else {
+        alert(getFriendlyErrorMessage(err) || err.message);
+      }
+    }
+  };
+
+  const handleDisbandClubClick = () => {
+    setShowDisbandClubModalStep(1);
+  };
+
+  const handleConfirmDisbandClubStep2 = async () => {
+    if (!selectedClub || !currentUser) return;
+    try {
+      await deleteVscSystemClub(selectedClub.id);
+      setShowDisbandClubModalStep(0);
+      setSelectedClub(null);
+      alert(language === "en" ? "Club disbanded successfully!" : "Đã giải tán câu lạc bộ thành công!");
+    } catch (err: any) {
+      setShowDisbandClubModalStep(0);
       alert(getFriendlyErrorMessage(err) || err.message);
     }
   };
@@ -1011,7 +1032,7 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
 
                   <div className="border-t border-slate-100 dark:border-slate-850 pt-3.5 flex items-center justify-between text-[11px] text-slate-400">
                     <span className="truncate">
-                      Leader: <strong className="text-slate-600 dark:text-slate-300 font-extrabold">{club.leaderName}</strong>
+                      Leader: <strong className="text-slate-600 dark:text-slate-300 font-extrabold">{club.leaderId ? club.leaderName : (language === "en" ? "None" : "Chưa có")}</strong>
                     </span>
 
                     {/* Member Status Pill */}
@@ -1334,7 +1355,7 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-semibold flex items-center gap-1">
-                        Leader: <span className="text-slate-800 dark:text-slate-200 font-extrabold">{club.leaderName}</span>
+                        Leader: <span className="text-slate-800 dark:text-slate-200 font-extrabold">{club.leaderId ? club.leaderName : (language === "en" ? "None" : "Chưa có")}</span>
                       </p>
                     </div>
                   </div>
@@ -2004,7 +2025,7 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                 {/* Drawer Footer Actions Toolbar */}
                 <div className="p-4 bg-slate-50 dark:bg-slate-950 shrink-0 border-t border-slate-200 dark:border-slate-850 flex items-center justify-between gap-3">
                   
-                  {isMember && !isLeader && (
+                  {isMember && (
                     <button
                       onClick={handleLeaveClub}
                       className="px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-200/40 dark:border-rose-900/40 text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1"
@@ -2124,6 +2145,146 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
         isGlobalAdmin={userRole === "admin"}
         language={language}
       />
+
+      {/* 2-Step Leave Club Confirmation Modal */}
+      {showLeaveClubModalStep > 0 && selectedClub && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[10010] p-4 animate-fadeIn text-slate-800 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+            {showLeaveClubModalStep === 1 ? (
+              <>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-full">
+                  <AlertTriangle className="w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {language === "en" ? "Leave Club Request" : "Yêu cầu rời Câu Lạc Bộ"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  {language === "en" 
+                    ? `You are requesting to leave "${selectedClub.name}". Your historical scores and contributions will remain with the club, but you will no longer be an official member.`
+                    : `Bạn đang gửi yêu cầu rời khỏi câu lạc bộ "${selectedClub.name}". Mọi kết quả thi đấu lịch sử của bạn vẫn nằm lại CLB, nhưng bạn sẽ không còn là thành viên chính thức.`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(0)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(2)}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Continue" : "Tiếp tục"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full">
+                  <LogOut className="w-8 h-8 animate-pulse" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                  {language === "en" ? "Final Confirmation" : "Xác nhận lần cuối"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans font-bold">
+                  {language === "en"
+                    ? "This action is irreversible! You will become a Free Agent immediately. To rejoin this club, you must apply and be approved again."
+                    : "Hành động này KHÔNG THỂ HOÀN TÁC! Bạn sẽ ngay lập tức trở thành vận động viên tự do. Muốn tham gia lại câu lạc bộ này, bạn phải nộp đơn xét duyệt từ đầu."}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveClubModalStep(1)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Back" : "Quay lại"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmLeaveClubStep2}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Confirm Leave" : "Xác nhận Rời"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 2-Step Disband Club Confirmation Modal */}
+      {showDisbandClubModalStep > 0 && selectedClub && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[10010] p-4 animate-fadeIn text-slate-800 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+            {showDisbandClubModalStep === 1 ? (
+              <>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-full">
+                  <AlertTriangle className="w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {language === "en" ? "Disband Club Request" : "Yêu cầu giải tán Câu Lạc Bộ"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  {language === "en" 
+                    ? `You are requesting to disband "${selectedClub.name}". Disbanding the club will delete it from the system entirely. Are you sure you want to proceed?`
+                    : `Bạn đang gửi yêu cầu giải tán câu lạc bộ "${selectedClub.name}". Giải tán câu lạc bộ sẽ xóa hoàn toàn CLB khỏi hệ thống. Bạn có chắc chắn muốn tiếp tục?`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDisbandClubModalStep(0)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDisbandClubModalStep(2)}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Continue" : "Tiếp tục"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full">
+                  <Trash2 className="w-8 h-8 animate-pulse" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                  {language === "en" ? "Final Confirmation" : "Xác nhận lần cuối"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans font-bold">
+                  {language === "en"
+                    ? "This action is absolutely IRREVERSIBLE! The club will be deleted from the system and all association with it will be cleared. This cannot be undone!"
+                    : "Hành động này HOÀN TOÀN KHÔNG THỂ HOÀN TÁC! Câu lạc bộ sẽ bị xóa vĩnh viễn khỏi hệ thống và tất cả liên kết sẽ bị xóa sạch."}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDisbandClubModalStep(1)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Back" : "Quay lại"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDisbandClubStep2}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Disband Club" : "Giải Tán CLB"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

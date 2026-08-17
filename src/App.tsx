@@ -6330,6 +6330,9 @@ export default function App() {
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               forceSubTab={controlPanelSubTab}
               onChangeActiveTab={setActiveTab}
+              systemClubs={clubs}
+              vscSystemAthletes={vscSystemAthletes}
+              onlineTournaments={onlineTournaments}
             />
           )}
 

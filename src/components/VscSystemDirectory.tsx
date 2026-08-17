@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../context/LanguageContext";
-import { Athlete, MatchHistoryItem } from "../types";
+import { Athlete, MatchHistoryItem, Club } from "../types";
 import { 
   subscribeToVscSystemAthletes, 
   saveVscSystemAthletes,
-  updateUserProfile
+  updateUserProfile,
+  subscribeToVscSystemClubs
 } from "../lib/firebaseService";
 import { VIETNAM_PROVINCES } from "../utils/provinces";
 import { AthleteProfileModal } from "./AthleteProfileModal";
@@ -90,6 +91,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
 }) => {
   const { language } = useLanguage();
   const [systemAthletes, setSystemAthletes] = useState<Athlete[]>([]);
+  const [systemClubs, setSystemClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filters state
@@ -145,10 +147,11 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
   }, [selectedAthlete, isFormOpen, deletingAthleteId]);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    let unsubscribeAthletes: (() => void) | undefined;
+    let unsubscribeClubs: (() => void) | undefined;
     setLoading(true);
     try {
-      unsubscribe = subscribeToVscSystemAthletes((remoteAthletes) => {
+      unsubscribeAthletes = subscribeToVscSystemAthletes((remoteAthletes) => {
         if (remoteAthletes) {
           // Sort system athletes alphabetically by name
           const sorted = [...remoteAthletes].sort((a, b) => a.name.localeCompare(b.name, "vi"));
@@ -160,8 +163,22 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
       console.error("VSC system athletes subscription failed:", err);
       setLoading(false);
     }
+
+    try {
+      unsubscribeClubs = subscribeToVscSystemClubs((remoteClubs) => {
+        if (remoteClubs) {
+          // Sort system clubs alphabetically by name
+          const sorted = [...remoteClubs].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+          setSystemClubs(sorted);
+        }
+      });
+    } catch (err) {
+      console.error("VSC system clubs subscription failed:", err);
+    }
+
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeAthletes) unsubscribeAthletes();
+      if (unsubscribeClubs) unsubscribeClubs();
     };
   }, []);
 
@@ -1057,13 +1074,21 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                   {/* Club / Team */}
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Câu lạc bộ (Đơn vị)</label>
-                    <input
-                      type="text"
+                    <select
                       value={formTeam}
                       onChange={(e) => setFormTeam(e.target.value)}
                       className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                      placeholder="Ví dụ: 36 Slingshot Club"
-                    />
+                    >
+                      <option value="">{language === "en" ? "-- Free Agent / Independent Athlete --" : "-- Vận động viên tự do --"}</option>
+                      {formTeam && !systemClubs.some(c => c.name.toLowerCase().trim() === formTeam.toLowerCase().trim()) && (
+                        <option value={formTeam}>{formTeam} ({language === "en" ? "Legacy/Current" : "Hiện tại"})</option>
+                      )}
+                      {systemClubs.map((club) => (
+                        <option key={club.id} value={club.name}>
+                          {club.name} ({club.province || (language === "en" ? "Other" : "Khác")})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Gender, DOB */}

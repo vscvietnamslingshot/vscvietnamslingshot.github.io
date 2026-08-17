@@ -125,8 +125,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isEmailVerified() && 
                     isValidId(clubId) && 
-                    isValidClub(incoming()) && 
-                    (!('leaderId' in incoming()) || incoming().leaderId == request.auth.uid);
+                    isValidClub(incoming()) && (
+                      isAdmin() ||
+                      !('leaderId' in incoming()) ||
+                      incoming().leaderId == "" ||
+                      incoming().leaderId == request.auth.uid
+                    );
       allow update: if isEmailVerified() && 
                     isValidId(clubId) && 
                     isValidClub(incoming());
