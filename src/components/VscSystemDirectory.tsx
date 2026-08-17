@@ -133,6 +133,14 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
     return !!(originalAthlete.nameEditCount && originalAthlete.nameEditCount >= 1);
   }, [formMode, userRole, systemAthletes, targetAthleteId]);
 
+  const athleteClub = useMemo(() => {
+    if (!targetAthleteId || formMode !== "edit") return null;
+    const cleanId = targetAthleteId.trim().toLowerCase();
+    return (systemClubs as any[]).find((club) =>
+      club.members?.some((m: any) => m.athleteId?.trim().toLowerCase() === cleanId)
+    ) || null;
+  }, [systemClubs, targetAthleteId, formMode]);
+
   // Subscriptions
   useEffect(() => {
     // Prevent body background scroll when any directory modal is open
@@ -373,7 +381,7 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
     const updatedAthlete: Athlete = {
       id: trimmedId,
       name: formName.trim(),
-      team: formTeam.trim() || (language === "en" ? "Independent" : "Tự do"),
+      team: athleteClub ? athleteClub.name : (formTeam.trim() || (language === "en" ? "Independent" : "Tự do")),
       gender: formGender,
       idCard: formIdCard.trim(),
       dob: formDob,
@@ -1062,34 +1070,46 @@ export const VscSystemDirectory: React.FC<VscSystemDirectoryProps> = ({
                       required
                       disabled={isNameEditDisabled}
                       className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13] disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:opacity-75 disabled:cursor-not-allowed"
-                      placeholder="Nguyễn Văn A"
                     />
-                    {isNameEditDisabled && (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-1">
-                        ⚠️ {language === "en" ? "You have already edited your name once. Please contact an Admin for further changes." : "Bạn đã sử dụng hết lượt tự đổi tên (tối đa 1 lần). Vui lòng liên hệ Ban trọng tài/Admin nếu cần sửa đổi thêm."}
-                      </p>
-                    )}
                   </div>
 
                   {/* Club / Team */}
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-450 mb-1">Câu lạc bộ (Đơn vị)</label>
-                    <select
-                      value={formTeam}
-                      onChange={(e) => setFormTeam(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
-                    >
-                      <option value="">{language === "en" ? "-- Free Agent / Independent Athlete --" : "-- Vận động viên tự do --"}</option>
-                      {formTeam && !systemClubs.some(c => c.name.toLowerCase().trim() === formTeam.toLowerCase().trim()) && (
-                        <option value={formTeam}>{formTeam} ({language === "en" ? "Legacy/Current" : "Hiện tại"})</option>
-                      )}
-                      {systemClubs.map((club) => (
-                        <option key={club.id} value={club.name}>
-                          {club.name} ({club.province || (language === "en" ? "Other" : "Khác")})
-                        </option>
-                      ))}
-                    </select>
+                    {athleteClub ? (
+                      <div>
+                        <input
+                          type="text"
+                          value={athleteClub.name}
+                          disabled={true}
+                          className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 cursor-not-allowed select-none opacity-80"
+                        />
+                        <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-1.5 leading-relaxed font-sans">
+                          ⚠️ {language === "en" 
+                            ? `This athlete is currently an official member of "${athleteClub.name}". The Club Leader or Admin must remove them from the club's roster first in order to change their unit.` 
+                            : `VĐV này đang sinh hoạt chính thức tại CLB "${athleteClub.name}". Trưởng CLB hoặc Admin cần loại khỏi danh sách biên chế trước khi thay đổi đơn vị.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <select
+                        value={formTeam}
+                        onChange={(e) => setFormTeam(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#9c0c13]/30 focus:border-[#9c0c13]"
+                      >
+                        <option value="">{language === "en" ? "-- Free Agent / Independent Athlete --" : "-- Vận động viên tự do --"}</option>
+                        {formTeam && !systemClubs.some(c => c.name.toLowerCase().trim() === formTeam.toLowerCase().trim()) && (
+                          <option value={formTeam}>{formTeam} ({language === "en" ? "Legacy/Current" : "Hiện tại"})</option>
+                        )}
+                        {systemClubs.map((club) => (
+                          <option key={club.id} value={club.name}>
+                            {club.name} ({club.province || (language === "en" ? "Other" : "Khác")})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
+
+
 
                   {/* Gender, DOB */}
                   <div className="grid grid-cols-2 gap-3">

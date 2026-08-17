@@ -448,6 +448,9 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showLeaveClubModalStep, setShowLeaveClubModalStep] = useState<number>(0);
   const [showDisbandClubModalStep, setShowDisbandClubModalStep] = useState<number>(0);
+  const [showKickMemberModalStep, setShowKickMemberModalStep] = useState<number>(0);
+  const [kickTargetUserId, setKickTargetUserId] = useState("");
+  const [kickTargetName, setKickTargetName] = useState("");
   const [transferTargetUserId, setTransferTargetUserId] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
 
@@ -461,6 +464,21 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
     if (!currentUser) return null;
     return clubs.find(c => c.pendingRequests?.some(r => r.userId === currentUser.uid)) || null;
   }, [clubs, currentUser]);
+
+  // Real-time matching list for recruiting direct athlete
+  const matchedAthletes = useMemo(() => {
+    const queryStr = directAthleteId.trim().toLowerCase();
+    if (!queryStr) return [];
+    return systemAthletes.filter(athlete => {
+      const id = athlete.id ? athlete.id.toLowerCase() : "";
+      const name = athlete.name ? athlete.name.toLowerCase() : "";
+      const email = athlete.email ? athlete.email.toLowerCase() : "";
+      return id.includes(queryStr) || 
+             name.includes(queryStr) || 
+             email.includes(queryStr) ||
+             `vsc-${id}`.includes(queryStr);
+    }).slice(0, 8); // Top 8 results
+  }, [directAthleteId, systemAthletes]);
 
   // Subscribe to real-time clubs & athletes
   useEffect(() => {
@@ -690,19 +708,23 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
     }
   };
 
-  // Kick/remove member
-  const handleKickMember = async (userId: string, memberName: string) => {
+  // Kick/remove member trigger modal
+  const handleKickMember = (userId: string, memberName: string) => {
     if (!selectedClub) return;
-    const confirmKick = window.confirm(
-      language === "en" 
-        ? `Are you sure you want to remove ${memberName} from this club?`
-        : `Xác nhận loại bỏ vận động viên ${memberName} khỏi câu lạc bộ?`
-    );
-    if (!confirmKick) return;
+    setKickTargetUserId(userId);
+    setKickTargetName(memberName);
+    setShowKickMemberModalStep(1);
+  };
 
+  const handleConfirmKickMemberStep2 = async () => {
+    if (!selectedClub || !kickTargetUserId) return;
     try {
-      await kickClubMember(selectedClub.id, userId);
+      await kickClubMember(selectedClub.id, kickTargetUserId);
+      setShowKickMemberModalStep(0);
+      setKickTargetUserId("");
+      setKickTargetName("");
     } catch (err: any) {
+      setShowKickMemberModalStep(0);
       alert(getFriendlyErrorMessage(err) || err.message);
     }
   };
@@ -1889,15 +1911,15 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                         </div>
                       </form>
 
-                      {/* Recruting Direct Athlete Link Form */}
+                       {/* Recruting Direct Athlete Link Form */}
                       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-5 shadow-xs flex flex-col gap-3">
                         <h4 className="text-[10px] uppercase font-black text-slate-400 tracking-wider flex items-center justify-between">
                           <span>{language === "en" ? "Recruit Direct Member" : "Thêm VĐV Trực Tiếp"}</span>
                         </h4>
                         <p className="text-[11px] text-slate-400 leading-relaxed">
                           {language === "en"
-                            ? "Input an existing official VSC Athlete ID (VSC-xxxx) to register and link their performance directly to your roster."
-                            : "Nhập mã số định danh VSC-xxxx của vận động viên đã tạo hồ sơ hệ thống để đưa thẳng họ vào cơ cấu CLB."}
+                            ? "Input or search for an existing official VSC Athlete's Name, Email, or Athlete ID (VSC-xxxx) to register and link them directly to your roster."
+                            : "Nhập thông tin hoặc tìm kiếm theo Tên, Email, hay Mã số định danh VSC-xxxx của vận động viên hệ thống để đưa thẳng họ vào cơ cấu CLB."}
                         </p>
 
                         <form onSubmit={handleAddDirectMemberSubmit} className="flex gap-2">
@@ -1905,8 +1927,8 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                             type="text"
                             value={directAthleteId}
                             onChange={(e) => setDirectAthleteId(e.target.value)}
-                            placeholder="vd: VSC-0001"
-                            className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs text-slate-800 dark:text-white font-bold uppercase"
+                            placeholder={language === "en" ? "Search ID, Name or Email..." : "Tìm ID, Tên hoặc Email..."}
+                            className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs text-slate-800 dark:text-white font-bold"
                           />
                           <button
                             type="submit"
@@ -1921,6 +1943,63 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                             {language === "en" ? "Add" : "Thêm Thẳng"}
                           </button>
                         </form>
+
+                        {/* Real-time search suggestions panel */}
+                        {matchedAthletes.length > 0 && (
+                          <div className="mt-1 border border-slate-100 dark:border-slate-850 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-850 max-h-60 overflow-y-auto">
+                            <div className="bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-[9px] uppercase font-black text-slate-400 tracking-wider sticky top-0">
+                              {language === "en" ? "Matching Suggestions" : "Gợi ý vận động viên phù hợp"}
+                            </div>
+                            {matchedAthletes.map(athlete => {
+                              const isAlreadyInClub = selectedClub?.members?.some(
+                                m => m.athleteId === athlete.id || (athlete.email && m.email === athlete.email)
+                              );
+
+                              return (
+                                <div key={athlete.id} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                  <div className="flex flex-col gap-0.5 min-w-0">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                                      {athlete.name}
+                                      <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] rounded-md font-mono uppercase font-black">
+                                        {athlete.id.startsWith("VSC-") ? athlete.id : `VSC-${athlete.id}`}
+                                      </span>
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 truncate">
+                                      Email: {athlete.email || (language === "en" ? "Not set" : "Chưa có")} | CLB: {athlete.team || "Tự do"}
+                                    </span>
+                                  </div>
+                                  <div className="shrink-0">
+                                    {isAlreadyInClub ? (
+                                      <span className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg">
+                                        {language === "en" ? "In Club" : "Đã trong CLB"}
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          setIsAddingDirect(true);
+                                          try {
+                                            await addClubMemberDirectly(selectedClub.id, athlete.id, systemAthletes);
+                                            setDirectAthleteId("");
+                                            alert(language === "en" ? `Added ${athlete.name} successfully!` : `Đã thêm ${athlete.name} thành công!`);
+                                          } catch (err: any) {
+                                            alert(getFriendlyErrorMessage(err) || err.message);
+                                          } finally {
+                                            setIsAddingDirect(false);
+                                          }
+                                        }}
+                                        disabled={isAddingDirect}
+                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black rounded-lg cursor-pointer transition-colors"
+                                      >
+                                        {language === "en" ? "Add" : "Thêm thẳng"}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       {/* Applications Joining Queue */}
@@ -2277,6 +2356,80 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                     className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
                   >
                     {language === "en" ? "Disband Club" : "Giải Tán CLB"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 2-Step Kick Member Confirmation Modal */}
+      {showKickMemberModalStep > 0 && selectedClub && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[10010] p-4 animate-fadeIn text-slate-800 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+            {showKickMemberModalStep === 1 ? (
+              <>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-full">
+                  <AlertTriangle className="w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {language === "en" ? "Remove Member Warning" : "Cảnh báo loại bỏ thành viên"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  {language === "en"
+                    ? `You are requesting to remove "${kickTargetName}" from "${selectedClub.name}". Are you sure you want to proceed?`
+                    : `Bạn đang yêu cầu loại bỏ vận động viên "${kickTargetName}" khỏi câu lạc bộ "${selectedClub.name}". Bạn có chắc chắn muốn tiếp tục?`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowKickMemberModalStep(0);
+                      setKickTargetUserId("");
+                      setKickTargetName("");
+                    }}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowKickMemberModalStep(2)}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Continue" : "Tiếp tục"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full">
+                  <Trash2 className="w-8 h-8 animate-pulse" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                  {language === "en" ? "Final Confirmation" : "Xác nhận lần cuối"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans font-bold">
+                  {language === "en"
+                    ? `This action cannot be undone! "${kickTargetName}" will be completely removed from the club's roster.`
+                    : `Hành động này không thể hoàn tác! Vận động viên "${kickTargetName}" sẽ bị xóa hoàn toàn khỏi danh sách biên chế của câu lạc bộ.`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowKickMemberModalStep(1)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Back" : "Quay lại"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmKickMemberStep2}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Remove Member" : "Xác Nhận Xóa"}
                   </button>
                 </div>
               </>

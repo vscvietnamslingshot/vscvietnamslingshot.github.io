@@ -356,6 +356,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [isTransferring, setIsTransferring] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showLeaveClubModalStep, setShowLeaveClubModalStep] = useState<number>(0);
+  const [showKickMemberModalStep, setShowKickMemberModalStep] = useState<number>(0);
+  const [kickTargetUserId, setKickTargetUserId] = useState("");
+  const [kickTargetName, setKickTargetName] = useState("");
 
   // Profile fields state
   const [dispName, setDispName] = useState("");
@@ -880,17 +883,23 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     }
   };
 
-  const handleKickMemberClick = async (userId: string, memberName: string) => {
+  const handleKickMemberClick = (userId: string, memberName: string) => {
     if (!myClub) return;
-    const confirmText = language === "en"
-      ? `Are you sure you want to remove ${memberName} from the club?`
-      : `Bạn có chắc chắn muốn loại thành viên ${memberName} ra khỏi câu lạc bộ?`;
-    if (!confirm(confirmText)) return;
+    setKickTargetUserId(userId);
+    setKickTargetName(memberName);
+    setShowKickMemberModalStep(1);
+  };
 
+  const handleConfirmKickMemberStep2 = async () => {
+    if (!myClub || !kickTargetUserId) return;
     try {
-      await kickClubMember(myClub.id, userId);
+      await kickClubMember(myClub.id, kickTargetUserId);
+      setShowKickMemberModalStep(0);
+      setKickTargetUserId("");
+      setKickTargetName("");
       alert(language === "en" ? "Member removed successfully!" : "Đã loại thành viên thành công!");
     } catch (err: any) {
+      setShowKickMemberModalStep(0);
       console.error(err);
       alert(language === "en" ? `Error: ${err.message || err}` : `Lỗi: ${err.message || err}`);
     }
@@ -2378,6 +2387,80 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
                   >
                     {language === "en" ? "Confirm Leave" : "Xác nhận Rời"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 2-Step Kick Member Confirmation Modal */}
+      {showKickMemberModalStep > 0 && myClub && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-[10010] p-4 animate-fadeIn text-slate-800 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+            {showKickMemberModalStep === 1 ? (
+              <>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-full">
+                  <AlertTriangle className="w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {language === "en" ? "Remove Member Warning" : "Cảnh báo loại bỏ thành viên"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  {language === "en"
+                    ? `You are requesting to remove "${kickTargetName}" from "${myClub.name}". Are you sure you want to proceed?`
+                    : `Bạn đang yêu cầu loại bỏ vận động viên "${kickTargetName}" khỏi câu lạc bộ "${myClub.name}". Bạn có chắc chắn muốn tiếp tục?`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowKickMemberModalStep(0);
+                      setKickTargetUserId("");
+                      setKickTargetName("");
+                    }}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Hủy bỏ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowKickMemberModalStep(2)}
+                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Continue" : "Tiếp tục"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full">
+                  <Trash2 className="w-8 h-8 animate-pulse" />
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                  {language === "en" ? "Final Confirmation" : "Xác nhận lần cuối"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans font-bold">
+                  {language === "en"
+                    ? `This action cannot be undone! "${kickTargetName}" will be completely removed from the club's roster.`
+                    : `Hành động này không thể hoàn tác! Vận động viên "${kickTargetName}" sẽ bị xóa hoàn toàn khỏi danh sách biên chế của câu lạc bộ.`}
+                </p>
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowKickMemberModalStep(1)}
+                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {language === "en" ? "Back" : "Quay lại"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmKickMemberStep2}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    {language === "en" ? "Remove Member" : "Xác Nhận Xóa"}
                   </button>
                 </div>
               </>
