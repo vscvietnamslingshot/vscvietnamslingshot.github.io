@@ -282,9 +282,9 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   };
 
   const handleAddVscToTournament = (athlete: Athlete) => {
-    const exists = currentActiveAthletes.some(a => a.id === athlete.id);
+    const exists = athletes.some(a => a.id === athlete.id);
     if (exists) {
-      alert(language === "en" ? `Athlete "${athlete.name}" (ID: ${athlete.id}) is already in the current tournament!` : `Vận động viên "${athlete.name}" (ID: ${athlete.id}) đã có sẵn trong giải đấu hiện tại rồi!`);
+      alert(language === "en" ? `Athlete "${athlete.name}" (ID: ${athlete.id}) is already in the tournament roster!` : `Vận động viên "${athlete.name}" (ID: ${athlete.id}) đã có sẵn trong danh sách VĐV của giải rồi!`);
     } else {
       const freshScores: Record<string, (boolean | null)[]> = {};
       distances.forEach((dist) => {
@@ -303,15 +303,12 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         }
         return [...prev, copiedAthlete];
       });
-      setCurrentActiveAthletes(prev => {
-        const alreadyInActive = prev.some(a => a.id === athlete.id);
-        if (alreadyInActive) return prev;
-        return [...prev, copiedAthlete];
-      });
 
       setNotification({
         type: "success",
-        message: `Đã nạp thành công VĐV "${athlete.name}" vào giải đấu hiện tại!`
+        message: language === "en"
+          ? `Added "${athlete.name}" to the Tournament Roster (Not yet called to scoring board).`
+          : `Đã thêm thành công VĐV "${athlete.name}" vào Danh Sách VĐV Giải (Chưa gọi vào bảng Ghi Điểm).`
       });
       setTimeout(() => setNotification(null), 3500);
     }
@@ -1277,17 +1274,31 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                         <PlusCircle className="w-3.5 h-3.5" /> {language === "en" ? "Add to Tournament" : "Thêm vào giải"}
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(ath);
-                        }}
-                        className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold gap-0.5 shadow-sm hover:scale-105 active:scale-95"
-                        title={language === "en" ? "Delete this athlete" : "Xóa VĐV"}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> {language === "en" ? "Delete Athlete" : "Xóa VĐV"}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAthlete(ath);
+                            handleStartEdit(ath);
+                          }}
+                          className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold gap-0.5 shadow-sm hover:scale-105 active:scale-95"
+                          title={language === "en" ? "Edit Profile" : "Chỉnh sửa hồ sơ"}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> {language === "en" ? "Edit" : "Chỉnh sửa"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(ath);
+                          }}
+                          className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-bold gap-0.5 shadow-sm hover:scale-105 active:scale-95"
+                          title={language === "en" ? "Delete this athlete" : "Xóa VĐV"}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> {language === "en" ? "Delete Athlete" : "Xóa VĐV"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
