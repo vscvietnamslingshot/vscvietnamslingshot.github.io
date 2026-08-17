@@ -1183,6 +1183,25 @@ export default function App() {
   const [pendingScrollAthleteId, setPendingScrollAthleteId] = useState<string | null>(null);
 
   // Reset scoring edit authorization when switching tabs
+  const [showInputScoresModeSelection, setShowInputScoresModeSelection] = useState(false);
+  const [showScoringModeSelection, setShowScoringModeSelection] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "input_scores" && tournamentType === "combined") {
+      setShowInputScoresModeSelection(true);
+    } else {
+      setShowInputScoresModeSelection(false);
+    }
+  }, [activeTab, tournamentType]);
+
+  useEffect(() => {
+    if (activeTab === "scoring" && tournamentType === "combined") {
+      setShowScoringModeSelection(true);
+    } else {
+      setShowScoringModeSelection(false);
+    }
+  }, [activeTab, tournamentType]);
+
   useEffect(() => {
     if (activeTab !== "scoring") {
       setIsScoringEditAuthorized(false);
@@ -1951,9 +1970,18 @@ export default function App() {
         (a) => a.id.toLowerCase() === lower || a.name.toLowerCase() === lower
       );
     };
+    (window as any).getVscSystemAthleteAvatar = (athleteIdOrName: string) => {
+      if (!athleteIdOrName) return "";
+      const lower = athleteIdOrName.trim().toLowerCase();
+      const match = vscSystemAthletes.find(
+        (a) => a.id.toLowerCase() === lower || a.name.toLowerCase() === lower
+      );
+      return (match && match.avatarUrl) || "";
+    };
     return () => {
       delete (window as any).triggerViewAthleteProfile;
       delete (window as any).isVscSystemAthlete;
+      delete (window as any).getVscSystemAthleteAvatar;
     };
   }, [vscSystemAthletes]);
 
@@ -5530,14 +5558,14 @@ export default function App() {
 
               {/* Environment Switcher for Combined Tournament */}
               {tournamentType === "combined" && (
-                <div className="flex bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl self-start mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
+                <div className="flex w-full bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
                   <button
                     onClick={() => {
                       setCompetitionMode("individual");
                       localStorage.setItem("slingshot_competition_mode", "individual");
                       setIsSpectatorModeOverridden(true);
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    className={`flex-1 w-1/2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "individual"
                         ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
                         : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -5552,7 +5580,7 @@ export default function App() {
                       localStorage.setItem("slingshot_competition_mode", "team");
                       setIsSpectatorModeOverridden(true);
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    className={`flex-1 w-1/2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "team"
                         ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
                         : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -5938,14 +5966,14 @@ export default function App() {
 
               {/* Environment Switcher for Combined Tournament */}
               {tournamentType === "combined" && (
-                <div className="flex bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl self-start mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
+                <div className="flex w-full bg-gray-100 dark:bg-slate-850 p-1.5 rounded-xl mb-2 gap-1.5 border border-gray-200/50 dark:border-slate-700/50">
                   <button
                     onClick={() => {
                       setCompetitionMode("individual");
                       localStorage.setItem("slingshot_competition_mode", "individual");
                       setIsSpectatorModeOverridden(true);
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    className={`flex-1 w-1/2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "individual"
                         ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
                         : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -5960,7 +5988,7 @@ export default function App() {
                       localStorage.setItem("slingshot_competition_mode", "team");
                       setIsSpectatorModeOverridden(true);
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    className={`flex-1 w-1/2 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                       competitionMode === "team"
                         ? "bg-indigo-650 text-white shadow-md scale-[1.02]"
                         : "text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -5983,7 +6011,7 @@ export default function App() {
                     {language === "en" ? (
                       <>This is a quick score entry area for new matches or ongoing rounds. When scoring is finished, click <strong>SAVE SCORES</strong> to automatically transfer results and save these athletes permanently into the main <strong>Scoring</strong> tab.</>
                     ) : (
-                      <>Đây là khu vực nhập điểm nhanh cho tốp đấu mới hoặc các lượt thi đang diễn ra. Khi nhập điểm xong, hãy bấm nút <strong>LƯU ĐIỂM</strong> để tự động chuyển kết quả và lưu vĩnh viễn các vận động viên này sang tab <strong>Ghi Điểm</strong>.</>
+                      <>Đây là khu vực nhập điểm nhanh cho tốp đấu mới hoặc các lượt thi đang diễn ra. Khi nhập điểm xong, hãy bấm nút <strong>LƯU ĐIỂM</strong> để tự động chuyển kết quả và lưu vĩnh viễn các vận động viên này sang tab <strong>Ghi Điểm</strong>. <br/>Hướng dẫn nhập điểm: Tap 1 lần vào ô điểm để ghi Trúng, tap 2 lần để ghi Trượt, tap 3 lần để về ô trống.</>
                     )}
                   </p>
                 </div>
@@ -6452,6 +6480,150 @@ export default function App() {
         clubs={clubs}
         laneCapacity={laneCapacity}
       />
+
+      {showInputScoresModeSelection && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[10003] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-gray-250 dark:border-slate-800 shadow-2xl overflow-hidden animate-scaleIn p-6 sm:p-8">
+            <div className="text-center flex flex-col gap-2 mb-6">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                {language === "en" ? "Select Score Entry Mode" : "Chọn Chế Độ Nhập Điểm"}
+              </h3>
+              <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">
+                {language === "en" ? "Combined Tournament Configuration" : "Cơ chế Giải đấu kết hợp (Cá nhân + Đồng đội)"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                {language === "en" 
+                  ? "This tournament supports both Individual and Team matches. Please select the environment you want to enter to score/input:"
+                  : "Cài đặt giải đấu hiện tại đang ở chế độ kết hợp cả Cá nhân và Đồng đội. Vui lòng lựa chọn môi trường nhập điểm cụ thể:"
+                }
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Option 1: Individual */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCompetitionMode("individual");
+                  localStorage.setItem("slingshot_competition_mode", "individual");
+                  setIsSpectatorModeOverridden(true);
+                  setShowInputScoresModeSelection(false);
+                }}
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 dark:bg-slate-950/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-gray-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98"
+              >
+                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <User className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <span className="block font-black text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Individual" : "Cá Nhân"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block font-medium">
+                    {language === "en" ? "Single shooters" : "Nhập điểm cá nhân"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 2: Team */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCompetitionMode("team");
+                  localStorage.setItem("slingshot_competition_mode", "team");
+                  setIsSpectatorModeOverridden(true);
+                  setShowInputScoresModeSelection(false);
+                }}
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 dark:bg-slate-950/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-gray-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98"
+              >
+                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <span className="block font-black text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Team" : "Đồng Đội"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block font-medium">
+                    {language === "en" ? "Club standings" : "Nhập điểm đồng đội"}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showScoringModeSelection && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[10003] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-gray-250 dark:border-slate-800 shadow-2xl overflow-hidden animate-scaleIn p-6 sm:p-8">
+            <div className="text-center flex flex-col gap-2 mb-6">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                {language === "en" ? "Select Scoring Board Mode" : "Chọn Chế Độ Ghi Điểm"}
+              </h3>
+              <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">
+                {language === "en" ? "Combined Tournament Configuration" : "Cơ chế Giải đấu kết hợp (Cá nhân + Đồng đội)"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                {language === "en" 
+                  ? "This tournament supports both Individual and Team matches. Please select the environment you want to view to score:"
+                  : "Cài đặt giải đấu hiện tại đang ở chế độ kết hợp cả Cá nhân và Đồng đội. Vui lòng lựa chọn môi trường ghi điểm cụ thể:"
+                }
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Option 1: Individual */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCompetitionMode("individual");
+                  localStorage.setItem("slingshot_competition_mode", "individual");
+                  setIsSpectatorModeOverridden(true);
+                  setShowScoringModeSelection(false);
+                }}
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 dark:bg-slate-950/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-gray-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98"
+              >
+                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <User className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <span className="block font-black text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Individual" : "Cá Nhân"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block font-medium">
+                    {language === "en" ? "Single shooters" : "Ghi điểm cá nhân"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 2: Team */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCompetitionMode("team");
+                  localStorage.setItem("slingshot_competition_mode", "team");
+                  setIsSpectatorModeOverridden(true);
+                  setShowScoringModeSelection(false);
+                }}
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 dark:bg-slate-950/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-gray-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98"
+              >
+                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <span className="block font-black text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Team" : "Đồng Đội"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block font-medium">
+                    {language === "en" ? "Club standings" : "Ghi điểm đồng đội"}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showUnlockScoreModal && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-xs animate-fadeIn text-slate-800 dark:text-slate-100">

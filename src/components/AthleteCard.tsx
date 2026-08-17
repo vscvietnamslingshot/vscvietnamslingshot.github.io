@@ -113,6 +113,37 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
   // Calculate total score
   const totalScore = rowScores.reduce((sum, item) => sum + item.score, 0);
 
+  // Resolve avatar url
+  let resolvedAvatarUrl = athlete.avatarUrl || "";
+  
+  if (resolvedAvatarUrl.startsWith("local-avatar:")) {
+    const id = resolvedAvatarUrl.substring("local-avatar:".length);
+    try {
+      const savedAvatarsStr = localStorage.getItem("slingshot_avatars");
+      if (savedAvatarsStr) {
+        const avatarMap = JSON.parse(savedAvatarsStr);
+        if (avatarMap[id]) {
+          resolvedAvatarUrl = avatarMap[id];
+        }
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  // If still empty or starts with local-avatar, look up in window system avatars or mainAthletes
+  if (!resolvedAvatarUrl || resolvedAvatarUrl.startsWith("local-avatar:")) {
+    const sysAvatar = (window as any).getVscSystemAthleteAvatar?.(athlete.id) || (window as any).getVscSystemAthleteAvatar?.(athlete.name);
+    if (sysAvatar && !sysAvatar.startsWith("local-avatar:")) {
+      resolvedAvatarUrl = sysAvatar;
+    } else {
+      const match = mainAthletes.find(a => a.id === athlete.id);
+      if (match && match.avatarUrl && !match.avatarUrl.startsWith("local-avatar:")) {
+        resolvedAvatarUrl = match.avatarUrl;
+      }
+    }
+  }
+
   const handleSave = () => {
     if (editName.trim() === "") return;
     onUpdateAthlete(athlete.id, editName.trim(), editTeam.trim(), editIdString.trim());
@@ -181,7 +212,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               >
                 <div className="relative shrink-0">
                   <img 
-                    src={athlete.avatarUrl || AVATAR_MALE} 
+                    src={resolvedAvatarUrl || AVATAR_MALE} 
                     alt={athlete.name} 
                     className={`w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm shrink-0 aspect-square ${isSysAth ? "group-hover:scale-105 transition-transform" : ""}`}
                     referrerPolicy="no-referrer"
