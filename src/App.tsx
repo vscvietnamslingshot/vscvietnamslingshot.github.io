@@ -1185,6 +1185,7 @@ export default function App() {
   // Reset scoring edit authorization when switching tabs
   const [showInputScoresModeSelection, setShowInputScoresModeSelection] = useState(false);
   const [showScoringModeSelection, setShowScoringModeSelection] = useState(false);
+  const [showMobileRankingSelection, setShowMobileRankingSelection] = useState(false);
 
   useEffect(() => {
     if (activeTab === "input_scores" && tournamentType === "combined") {
@@ -4822,7 +4823,7 @@ export default function App() {
                             }`}
                           >
                             <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
-                            <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
+                            <span>{language === "en" ? "Individual Standings" : "BXH Cá Nhân"}</span>
                           </button>
                           <button
                             onClick={(e) => {
@@ -4841,7 +4842,7 @@ export default function App() {
                             }`}
                           >
                             <Users className="w-4 h-4 shrink-0 text-blue-500" />
-                            <span>{language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"}</span>
+                            <span>{language === "en" ? "Club/Team Standings TEAM" : "BXH Đồng Đội TEAM"}</span>
                           </button>
                         </>
                       ) : tournamentType === "team" ? (
@@ -4863,7 +4864,7 @@ export default function App() {
                             }`}
                           >
                             <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
-                            <span>{language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"}</span>
+                            <span>{language === "en" ? "Individual Standings TEAM" : "BXH Cá Nhân TEAM"}</span>
                           </button>
                           <button
                             onClick={(e) => {
@@ -4882,7 +4883,7 @@ export default function App() {
                             }`}
                           >
                             <Users className="w-4 h-4 shrink-0 text-blue-500" />
-                            <span>{language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"}</span>
+                            <span>{language === "en" ? "Club/Team Standings TEAM" : "BXH Đồng Đội TEAM"}</span>
                           </button>
                         </>
                       ) : (
@@ -4904,7 +4905,7 @@ export default function App() {
                             }`}
                           >
                             <Trophy className="w-4 h-4 shrink-0 text-amber-500" />
-                            <span>{language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"}</span>
+                            <span>{language === "en" ? "Individual Standings" : "BXH Cá Nhân"}</span>
                           </button>
                           <button
                             onClick={(e) => {
@@ -4923,7 +4924,7 @@ export default function App() {
                             }`}
                           >
                             <Users className="w-4 h-4 shrink-0 text-blue-500" />
-                            <span>{language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"}</span>
+                            <span>{language === "en" ? "Club/Team Standings" : "BXH Đồng Đội"}</span>
                           </button>
                         </>
                       )}
@@ -6120,9 +6121,9 @@ export default function App() {
                   <Trophy className="w-4 h-4 shrink-0" />
                   <span className="truncate">
                     {competitionMode === "team" ? (
-                      language === "en" ? "Individual Standings TEAM" : "Bảng Xếp Hạng Cá Nhân TEAM"
+                      language === "en" ? "Individual Standings TEAM" : "BXH Cá Nhân TEAM"
                     ) : (
-                      language === "en" ? "Individual Standings" : "Bảng Xếp Hạng Cá Nhân"
+                      language === "en" ? "Individual Standings" : "BXH Cá Nhân"
                     )}
                   </span>
                 </button>
@@ -6139,9 +6140,9 @@ export default function App() {
                   <Users className="w-4 h-4 shrink-0" />
                   <span className="truncate">
                     {competitionMode === "team" ? (
-                      language === "en" ? "Club/Team Standings TEAM" : "Bảng Xếp Hạng Đồng Đội TEAM"
+                      language === "en" ? "Club/Team Standings TEAM" : "BXH Đồng Đội TEAM"
                     ) : (
-                      language === "en" ? "Club/Team Standings" : "Bảng Xếp Hạng Đồng Đội"
+                      language === "en" ? "Club/Team Standings" : "BXH Đồng Đội"
                     )}
                   </span>
                 </button>
@@ -6621,6 +6622,111 @@ export default function App() {
                     {language === "en" ? "Club standings" : "Ghi điểm đồng đội"}
                   </span>
                 </div>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showMobileRankingSelection && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[10004] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-gray-250 dark:border-slate-800 shadow-2xl overflow-hidden animate-scaleIn p-6">
+            <div className="text-center flex flex-col gap-2 mb-6">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                {language === "en" ? "Leaderboard Type" : "Hình Thức Xếp Hạng"}
+              </h3>
+              <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 font-extrabold uppercase tracking-wider">
+                {language === "en" ? "Select Standings View" : "Lựa chọn hình thức hiển thị"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-medium">
+                {language === "en" 
+                  ? "Please select which leaderboard category you would like to view:"
+                  : "Vui lòng lựa chọn hình thức bảng xếp hạng bạn muốn xem:"
+                }
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {/* Option 1: THI ĐẤU CÁ NHÂN */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (tournamentType === "combined") {
+                    setCompetitionMode("individual");
+                    localStorage.setItem("slingshot_competition_mode", "individual");
+                    setRankingSubTab("individual");
+                  } else if (tournamentType === "team") {
+                    setCompetitionMode("team");
+                    localStorage.setItem("slingshot_competition_mode", "team");
+                    setRankingSubTab("individual");
+                  } else {
+                    setCompetitionMode("individual");
+                    localStorage.setItem("slingshot_competition_mode", "individual");
+                    setRankingSubTab("individual");
+                  }
+                  setIsSpectatorModeOverridden(true);
+                  changeTab("leaderboard");
+                  setShowMobileRankingSelection(false);
+                }}
+                className="w-full flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/40 hover:bg-amber-50 dark:hover:bg-amber-950/20 border border-gray-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98 text-left animate-fadeIn"
+              >
+                <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <span className="block font-black text-xs sm:text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Individual Competition" : "THI ĐẤU CÁ NHÂN"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold">
+                    {language === "en" ? "View individual shooter standings" : "Xem bảng xếp hạng cá nhân"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Option 2: THI ĐẤU ĐỒNG ĐỘI */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (tournamentType === "combined") {
+                    setCompetitionMode("team");
+                    localStorage.setItem("slingshot_competition_mode", "team");
+                    setRankingSubTab("team");
+                  } else if (tournamentType === "team") {
+                    setCompetitionMode("team");
+                    localStorage.setItem("slingshot_competition_mode", "team");
+                    setRankingSubTab("team");
+                  } else {
+                    setCompetitionMode("individual");
+                    localStorage.setItem("slingshot_competition_mode", "individual");
+                    setRankingSubTab("team");
+                  }
+                  setIsSpectatorModeOverridden(true);
+                  changeTab("leaderboard");
+                  setShowMobileRankingSelection(false);
+                }}
+                className="w-full flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/40 hover:bg-blue-50 dark:hover:bg-blue-950/20 border border-gray-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-900 rounded-2xl transition-all duration-200 group cursor-pointer shadow-sm active:scale-98 text-left animate-fadeIn"
+              >
+                <div className="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <span className="block font-black text-xs sm:text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    {language === "en" ? "Team Competition" : "THI ĐẤU ĐỒNG ĐỘI"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block font-bold">
+                    {language === "en" ? "View club/team combined standings" : "Xem bảng xếp hạng đồng đội"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowMobileRankingSelection(false)}
+                className="w-full mt-2 py-3 border border-slate-200 dark:border-slate-800 text-xs font-black rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-sm text-center uppercase tracking-wider"
+              >
+                {language === "en" ? "Close" : "Đóng"}
               </button>
             </div>
           </div>
@@ -7317,9 +7423,9 @@ export default function App() {
                   </div>
                 </button>
 
-                {/* Tab 4: Bảng xếp hạng VSC */}
+                {/* Tab 4: BXH VSC */}
                 <button
-                  onClick={() => changeTab("leaderboard")}
+                  onClick={() => setShowMobileRankingSelection(true)}
                   className="flex flex-col items-center justify-center h-full relative cursor-pointer select-none"
                 >
                   <div className={`transition-all duration-300 flex flex-col items-center ${isLeaderboardActive ? "-translate-y-3.5" : "translate-y-0"}`}>
