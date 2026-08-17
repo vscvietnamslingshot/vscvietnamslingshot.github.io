@@ -101,11 +101,36 @@ export const getClubStats = (club: SystemClub, tournamentsList: any[]) => {
   const memberAthleteIds = new Set(club.members?.map(m => m.athleteId?.toLowerCase().trim()).filter(Boolean) || []);
 
   tournamentsList.forEach(tour => {
-    const allAthletes = [
+    // To avoid double counting the same athlete (e.g. if present in both tour.athletes and tour.masterAthletes)
+    const uniqueAthletesMap = new Map<string, any>();
+    
+    // We process masterAthletes first, then overwrite/prefer inputAthletes and athletes which are the active ones with scores
+    const candidateAthletes = [
       ...(tour.masterAthletes || []),
       ...(tour.inputAthletes || []),
       ...(tour.athletes || [])
     ];
+    
+    candidateAthletes.forEach(ath => {
+      if (!ath) return;
+      const idKey = ath.id ? ath.id.trim().toLowerCase() : "";
+      const emailKey = ath.email ? ath.email.trim().toLowerCase() : "";
+      const key = idKey || emailKey || (ath.name ? ath.name.trim().toLowerCase() : "");
+      if (!key) return;
+      
+      const existing = uniqueAthletesMap.get(key);
+      if (!existing) {
+        uniqueAthletesMap.set(key, ath);
+      } else {
+        const existingScoreCount = existing.scores ? Object.keys(existing.scores).length : 0;
+        const currentScoreCount = ath.scores ? Object.keys(ath.scores).length : 0;
+        if (currentScoreCount >= existingScoreCount) {
+          uniqueAthletesMap.set(key, ath);
+        }
+      }
+    });
+    
+    const allAthletes = Array.from(uniqueAthletesMap.values());
 
     const tournamentMembers = allAthletes.filter(ath => {
       const emailMatch = ath.email && memberEmails.has(ath.email.toLowerCase().trim());
@@ -117,12 +142,24 @@ export const getClubStats = (club: SystemClub, tournamentsList: any[]) => {
       const distances = tour.distances || [];
       distances.forEach((dist: any) => {
         const hits = ath.scores?.[dist.id] || [];
-        const hitCount = getHitCount(hits);
-        const shotsCount = tour.shotsCount || 10;
+        const wasShot = Array.isArray(hits) && hits.length > 0 && hits.some(v => v !== null && v !== undefined);
         
-        if (hits.length > 0) {
-          totalShots += shotsCount;
-          totalHits += hitCount;
+        if (wasShot) {
+          const hitCount = getHitCount(hits);
+          const shotsCount = tour.shotsCount || 10;
+          const isPointMode = shotsCount === 1 && tour.directMaxPoints !== undefined && tour.directMaxPoints > 0;
+          
+          let distShots = shotsCount;
+          let distHits = hitCount;
+          
+          if (isPointMode) {
+            const mult = dist.multiplier || 1;
+            distShots = (tour.directMaxPoints || 1) * mult;
+            distHits = hitCount * mult;
+          }
+          
+          totalShots += distShots;
+          totalHits += distHits;
         }
       });
     });
@@ -460,6 +497,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const myAchievements = useMemo(() => {
     if (!currentUser || !currentUser.email) return [];
     const myEmail = currentUser.email.toLowerCase().trim();
+
+    // Dynamically retrieve user's VSC system athlete ID if possible to match by ID too
+    const mySystemAthlete = vscSystemAthletes?.find(
+      (a) => a.email && a.email.toLowerCase().trim() === myEmail
+    );
+    const myAthleteId = mySystemAthlete?.id?.toLowerCase().trim();
     
     interface AchievementItem {
       tourId: string;
@@ -473,13 +516,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
     const resultsList: AchievementItem[] = [];
 
-    // Filter cloud tournaments where this user email is registered as vđv
+    // Filter cloud tournaments where this user email or ID is registered as vđv
     tournaments.forEach(tour => {
       const isTeam = tour.competitionMode === "team";
       const athletesList = (isTeam ? tour.teamAthletes : tour.athletes) || [];
       const distancesList = (isTeam ? tour.teamDistances : tour.distances) || [];
 
-      const foundMe = athletesList.find(a => a.email && a.email.toLowerCase().trim() === myEmail);
+      const foundMe = athletesList.find(a => {
+        const emailMatch = a.email && a.email.toLowerCase().trim() === myEmail;
+        const idMatch = myAthleteId && a.id && a.id.toLowerCase().trim() === myAthleteId;
+        return emailMatch || idMatch;
+      });
+
       if (foundMe) {
         const activeAthletes = athletesList.filter(a => a.status !== "Bỏ thi");
         const playersWithScores = activeAthletes.map(p => {
@@ -489,13 +537,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             const hitCount = getHitCount(hits);
             totalScore += hitCount * dist.multiplier;
           });
-          return { id: p.id, name: p.name, score: totalScore };
+          return { id: p.id, name: p.name, email: p.email, score: totalScore };
         });
 
         playersWithScores.sort((a, b) => b.score - a.score);
         
         let rank = 1;
-        const myIdx = playersWithScores.findIndex(p => p.id === foundMe.id);
+        const myIdx = playersWithScores.findIndex(p => {
+          const emailMatch = p.email && p.email.toLowerCase().trim() === myEmail;
+          const idMatch = myAthleteId && p.id && p.id.toLowerCase().trim() === myAthleteId;
+          return emailMatch || idMatch;
+        });
+
         if (myIdx !== -1) {
           rank = myIdx + 1;
         }
@@ -517,7 +570,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     });
 
     return resultsList;
-  }, [tournaments, currentUser]);
+  }, [tournaments, currentUser, vscSystemAthletes]);
 
   // Helper athlete count stats (total registered vs active shooting)
   const getTournamentAthleteStats = (tour: TournamentData) => {

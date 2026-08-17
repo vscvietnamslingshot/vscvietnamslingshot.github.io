@@ -119,11 +119,36 @@ const getDetailedClubStats = (club: SystemClub, tournamentsList: any[]) => {
   });
 
   tournamentsList.forEach(tour => {
-    const allAthletes = [
+    // To avoid double counting the same athlete (e.g. if present in both tour.athletes and tour.masterAthletes)
+    const uniqueAthletesMap = new Map<string, any>();
+    
+    // We process masterAthletes first, then overwrite/prefer inputAthletes and athletes which are the active ones with scores
+    const candidateAthletes = [
       ...(tour.masterAthletes || []),
       ...(tour.inputAthletes || []),
       ...(tour.athletes || [])
     ];
+    
+    candidateAthletes.forEach(ath => {
+      if (!ath) return;
+      const idKey = ath.id ? ath.id.trim().toLowerCase() : "";
+      const emailKey = ath.email ? ath.email.trim().toLowerCase() : "";
+      const key = idKey || emailKey || (ath.name ? ath.name.trim().toLowerCase() : "");
+      if (!key) return;
+      
+      const existing = uniqueAthletesMap.get(key);
+      if (!existing) {
+        uniqueAthletesMap.set(key, ath);
+      } else {
+        const existingScoreCount = existing.scores ? Object.keys(existing.scores).length : 0;
+        const currentScoreCount = ath.scores ? Object.keys(ath.scores).length : 0;
+        if (currentScoreCount >= existingScoreCount) {
+          uniqueAthletesMap.set(key, ath);
+        }
+      }
+    });
+    
+    const allAthletes = Array.from(uniqueAthletesMap.values());
 
     const tournamentMembers = allAthletes.filter(ath => {
       const emailMatch = ath.email && memberEmails.has(ath.email.toLowerCase().trim());
@@ -135,12 +160,24 @@ const getDetailedClubStats = (club: SystemClub, tournamentsList: any[]) => {
       const distances = tour.distances || [];
       distances.forEach((dist: any) => {
         const hits = ath.scores?.[dist.id] || [];
-        const hitCount = getHitCount(hits);
-        const shotsCount = tour.shotsCount || 10;
+        const wasShot = Array.isArray(hits) && hits.length > 0 && hits.some(v => v !== null && v !== undefined);
         
-        if (hits.length > 0) {
-          totalShots += shotsCount;
-          totalHits += hitCount;
+        if (wasShot) {
+          const hitCount = getHitCount(hits);
+          const shotsCount = tour.shotsCount || 10;
+          const isPointMode = shotsCount === 1 && tour.directMaxPoints !== undefined && tour.directMaxPoints > 0;
+          
+          let distShots = shotsCount;
+          let distHits = hitCount;
+          
+          if (isPointMode) {
+            const mult = dist.multiplier || 1;
+            distShots = (tour.directMaxPoints || 1) * mult;
+            distHits = hitCount * mult;
+          }
+          
+          totalShots += distShots;
+          totalHits += distHits;
 
           // Find the actual club member reference to add contributions
           const matchedMember = club.members?.find(m => 
@@ -150,8 +187,8 @@ const getDetailedClubStats = (club: SystemClub, tournamentsList: any[]) => {
 
           if (matchedMember) {
             const current = memberContributions[matchedMember.userId] || { shots: 0, hits: 0, accuracy: 0 };
-            current.shots += shotsCount;
-            current.hits += hitCount;
+            current.shots += distShots;
+            current.hits += distHits;
             memberContributions[matchedMember.userId] = current;
           }
         }
@@ -1251,101 +1288,125 @@ export const VscSystemClubsDirectory: React.FC<VscSystemClubsDirectoryProps> = (
                 onClick={(e) => e.stopPropagation()}
               >
                 
-                {/* Drawer Header Panel with Club Banner backdrop */}
-                <div className="relative overflow-hidden bg-slate-950 text-white p-6 pb-16 shrink-0 border-b border-slate-800">
-                  {/* Banner image as background watermark */}
-                  <div className="absolute inset-0">
-                    <img
-                      src={club.bannerUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80"}
-                      alt={`${club.name} Banner Background`}
-                      className="w-full h-full object-cover opacity-25"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-[#9c0c13]/35 to-slate-950 opacity-95"></div>
-                  </div>
-                  
-                  {/* Close button positioned overlaying the banner top-right corner */}
-                  <div className="absolute top-4 right-4 z-20">
-                    <button
-                      onClick={() => setSelectedClub(null)}
-                      className="p-1.5 bg-black/40 hover:bg-black/60 rounded-full transition-colors cursor-pointer text-white shadow-md border border-white/10"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                {/* Header Title bar at the very top */}
+                <div className="px-6 py-4 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    VSC OFFICIAL CLUB HUB
+                  </h3>
+                  <button
+                    onClick={() => setSelectedClub(null)}
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer text-slate-500 dark:text-slate-400"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Banner & Brand Area */}
+                <div className="relative bg-white dark:bg-slate-900 shrink-0">
+                  {/* Banner Image Container */}
+                  <div className="px-6 pt-3">
+                    <div className="relative h-32 sm:h-44 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-750/50 shadow-sm">
+                      <img
+                        src={club.bannerUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80"}
+                        alt={`${club.name} Banner Background`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80";
+                        }}
+                      />
+                      {/* Dark overlay just to make banner look cinematic */}
+                      <div className="absolute inset-0 bg-slate-950/15"></div>
+                    </div>
                   </div>
 
-                  {/* Close and Actions toolbar */}
-                  <div className="relative flex justify-between items-center z-10 mb-4">
-                    <span className="text-[10px] uppercase font-black tracking-widest text-yellow-300 bg-red-950/75 border border-red-500/20 px-2.5 py-0.5 rounded-full">
-                      VSC Official Club Hub
-                    </span>
-                  </div>
-
-                  {/* Club details banner */}
-                  <div className="relative flex items-center gap-5 z-10">
-                    <img
-                      src={club.logoUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150"}
-                      alt={club.name}
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white/20 bg-slate-950 shadow-md"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150";
-                      }}
-                    />
+                  {/* Info details space on the right of the overlapping logo */}
+                  <div className="relative px-6 pt-4 pb-3 flex gap-4 items-start">
+                    {/* Placeholder spacer so that text doesn't overlap the logo which floats from below */}
+                    <div className="w-20 sm:w-24 shrink-0"></div>
+                    
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <h2 className="text-lg sm:text-2xl font-black truncate text-white uppercase tracking-tight">
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-wider">
                           {club.name}
                         </h2>
-                        <span className="px-2 py-0.2 rounded-md bg-yellow-400 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded bg-yellow-400 text-slate-950 text-[9px] font-black uppercase tracking-wider">
                           {club.province}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1 flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-yellow-400" />
-                        Leader: <strong className="text-white font-extrabold">{club.leaderName}</strong> ({club.leaderEmail})
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-semibold flex items-center gap-1">
+                        Leader: <span className="text-slate-800 dark:text-slate-200 font-extrabold">{club.leaderName}</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Sub-tab Navigation dentro do drawer */}
-                  <div className="absolute bottom-0 left-0 right-0 flex border-t border-white/10 bg-black/15">
-                    <button
-                      onClick={() => setDrawerTab("overview")}
-                      className={`flex-1 py-3 text-center text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
-                        drawerTab === "overview" ? "border-yellow-400 text-yellow-400 bg-white/5 font-extrabold" : "border-transparent text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      <span className="flex items-center justify-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5" />
-                        {language === "en" ? "Overview" : "Hiệu Suất"}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setDrawerTab("roster")}
-                      className={`flex-1 py-3 text-center text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
-                        drawerTab === "roster" ? "border-yellow-400 text-yellow-400 bg-white/5 font-extrabold" : "border-transparent text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      <span className="flex items-center justify-center gap-1.5">
-                        <Users className="w-3.5 h-3.5" />
-                        {language === "en" ? "Roster & Rank" : "Thành Viên & Rank"}
-                      </span>
-                    </button>
-                    {isLeader && (
+                  {/* Dark navigation bar at the bottom with overlapping circular logo */}
+                  <div className="relative bg-[#0b0c10] text-white h-16 flex items-center shadow-md">
+                    {/* Overlapping circular logo */}
+                    <div className="absolute left-6 -top-12 sm:-top-14 z-20">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-1 border-[#E6E6E6] bg-[#FFFFFF] overflow-hidden shadow-lg">
+                        <img
+                          src={club.logoUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150"}
+                          alt={club.name}
+                          className="w-full h-full object-cover rounded-full"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150";
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Navigation Items (HIỆU SUẤT, THÀNH VIÊN & RANK, BẢNG QUẢN TRỊ) */}
+                    <div className="flex w-full h-full pl-[112px] sm:pl-[128px] pr-2 items-stretch bg-[#001751]">
+                      {/* Tab 1: Hiệu suất */}
                       <button
-                        onClick={() => setDrawerTab("admin")}
-                        className={`flex-1 py-3 text-center text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
-                          drawerTab === "admin" ? "border-yellow-400 text-yellow-400 bg-white/5 font-extrabold" : "border-transparent text-slate-400 hover:text-white"
-                        }`}
+                        onClick={() => setDrawerTab("overview")}
+                        className="relative flex-1 flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer group"
                       >
-                        <span className="flex items-center justify-center gap-1.5 text-amber-400">
-                          <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                          {language === "en" ? "Control Panel" : "Bảng Quản Trị"}
+                        <span className={`flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors ${
+                          drawerTab === "overview" ? "text-yellow-400 font-black" : "text-slate-400 group-hover:text-white"
+                        }`}>
+                          <Activity className="w-3.5 h-3.5 shrink-0" />
+                          <span>{language === "en" ? "Performance" : "HIỆU SUẤT"}</span>
                         </span>
+                        {drawerTab === "overview" && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-yellow-400 rounded-t-full"></div>
+                        )}
                       </button>
-                    )}
+
+                      {/* Tab 2: Thành viên & Rank */}
+                      <button
+                        onClick={() => setDrawerTab("roster")}
+                        className="relative flex-1 flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer group"
+                      >
+                        <span className={`flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors ${
+                          drawerTab === "roster" ? "text-yellow-400 font-black" : "text-slate-400 group-hover:text-white"
+                        }`}>
+                          <Users className="w-3.5 h-3.5 shrink-0" />
+                          <span>{language === "en" ? "Roster" : "THÀNH VIÊN & RANK"}</span>
+                        </span>
+                        {drawerTab === "roster" && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-yellow-400 rounded-t-full"></div>
+                        )}
+                      </button>
+
+                      {/* Tab 3: Bảng quản trị */}
+                      {isLeader && (
+                        <button
+                          onClick={() => setDrawerTab("admin")}
+                          className="relative flex-1 flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer group"
+                        >
+                          <span className={`flex items-center justify-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors ${
+                            drawerTab === "admin" ? "text-yellow-400 font-black" : "text-slate-400 group-hover:text-white"
+                          }`}>
+                            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                            <span>{language === "en" ? "Control" : "BẢNG QUẢN TRỊ"}</span>
+                          </span>
+                          {drawerTab === "admin" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-yellow-400 rounded-t-full"></div>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

@@ -138,12 +138,16 @@ export const AthleteProfileModal: React.FC<AthleteProfileModalProps> = ({
                   }
                 });
               }
-              return { id: ath.id, name: ath.name, hits };
+              return { id: ath.id, name: ath.name, email: ath.email, hits };
             })
             .sort((a: any, b: any) => b.hits - a.hits);
 
           const matchRankIdx = sortedScores.findIndex(
-            (x: any) => x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase()
+            (x: any) => {
+              const idMatch = x.id && targetAthleteData.id && x.id.trim().toLowerCase() === targetAthleteData.id.trim().toLowerCase();
+              const emailMatch = x.email && targetAthleteData.email && x.email.trim().toLowerCase() === targetAthleteData.email.trim().toLowerCase();
+              return idMatch || emailMatch;
+            }
           );
           if (matchRankIdx !== -1) {
             rank = matchRankIdx + 1;
