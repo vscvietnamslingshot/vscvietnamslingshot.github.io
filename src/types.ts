@@ -2,6 +2,8 @@ export interface DistanceConfig {
   id: string;
   distance: string; // e.g. "10 Met"
   multiplier: number; // e.g. 10
+  shotCount?: number; // Optional round-specific individual shot count
+  teamShotCount?: number; // Optional round-specific team shot count
   isCumulative?: boolean;
   isElimination?: boolean;
   isMaxRoundScore?: boolean;

@@ -318,64 +318,70 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
       </div>
 
       {/* Grid Container for the score sheets */}
-      <div 
-        ref={scrollContainerRef}
-        onScroll={(e) => {
-          const target = e.currentTarget;
-          try {
-            sessionStorage.setItem(`scroll-left-${athlete.id}`, String(target.scrollLeft));
-          } catch (err) {
-            // Ignore
-          }
-        }}
-        className="overflow-x-auto select-none rounded-lg border border-gray-200"
-      >
-        <table className="w-full border-collapse text-left text-sm table-fixed min-w-[700px]">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              {/* Diểm Tổng Column header */}
-              <th className="border-r border-gray-200 text-center font-bold text-gray-800 bg-gray-100/70 p-2 w-[110px]">
-                {language === "en" ? "TOTAL SCORE" : "ĐIỂM TỔNG"}
-              </th>
-              {/* Điểm Column header */}
-              <th className="border-r border-gray-200 text-center font-bold text-gray-800 p-2 w-[85px]">
-                {language === "en" ? "Score" : "Điểm"}
-              </th>
-              {/* Điểm nhân Column header */}
-              <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[85px]">
-                {language === "en" ? "Multiplier" : "Điểm nhân"}
-              </th>
-              {/* Cự ly Column header */}
-              <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[100px]">
-                {language === "en" ? "Distance" : "Cự ly"}
-              </th>
-              {/* Lượt bắn spanned header */}
-              <th 
-                colSpan={shotsCount} 
-                className="text-center font-semibold text-gray-700 p-2 bg-slate-50 border-b border-gray-200"
-              >
-                {language === "en" ? "Shots (Target)" : "Lượt bắn (Mục tiêu)"}
-              </th>
-            </tr>
-            <tr className="bg-slate-50 border-b border-gray-100 text-xs">
-              {/* Spanners */}
-              <th className="border-r border-gray-200"></th>
-              <th className="border-r border-gray-200"></th>
-              <th className="border-r border-gray-200"></th>
-              <th className="border-r border-gray-200"></th>
-              {/* Shot index row */}
-              {Array.from({ length: shotsCount }).map((_, idx) => (
-                <th 
-                  key={idx} 
-                  className={`text-center font-mono font-bold text-gray-500 border-r border-gray-100 py-1 bg-white ${
-                    idx === shotsCount - 1 ? "" : "border-r"
-                  }`}
-                >
-                  {idx + 1}
-                </th>
-              ))}
-            </tr>
-          </thead>
+      {(() => {
+        const maxShots = Math.max(shotsCount, ...(distances || []).map(d => 
+          d.shotCount !== undefined ? d.shotCount : (d.teamShotCount !== undefined ? d.teamShotCount : shotsCount)
+        ));
+
+        return (
+          <div 
+            ref={scrollContainerRef}
+            onScroll={(e) => {
+              const target = e.currentTarget;
+              try {
+                sessionStorage.setItem(`scroll-left-${athlete.id}`, String(target.scrollLeft));
+              } catch (err) {
+                // Ignore
+              }
+            }}
+            className="overflow-x-auto select-none rounded-lg border border-gray-200"
+          >
+            <table className="w-full border-collapse text-left text-sm table-fixed min-w-[700px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  {/* Diểm Tổng Column header */}
+                  <th className="border-r border-gray-200 text-center font-bold text-gray-800 bg-gray-100/70 p-2 w-[110px]">
+                    {language === "en" ? "TOTAL SCORE" : "ĐIỂM TỔNG"}
+                  </th>
+                  {/* Điểm Column header */}
+                  <th className="border-r border-gray-200 text-center font-bold text-gray-800 p-2 w-[85px]">
+                    {language === "en" ? "Score" : "Điểm"}
+                  </th>
+                  {/* Điểm nhân Column header */}
+                  <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[85px]">
+                    {language === "en" ? "Multiplier" : "Điểm nhân"}
+                  </th>
+                  {/* Cự ly Column header */}
+                  <th className="border-r border-gray-200 text-center font-semibold text-gray-700 p-2 w-[100px]">
+                    {language === "en" ? "Distance" : "Cự ly"}
+                  </th>
+                  {/* Lượt bắn spanned header */}
+                  <th 
+                    colSpan={maxShots} 
+                    className="text-center font-semibold text-gray-700 p-2 bg-slate-50 border-b border-gray-200"
+                  >
+                    {language === "en" ? "Shots (Target)" : "Lượt bắn (Mục tiêu)"}
+                  </th>
+                </tr>
+                <tr className="bg-slate-50 border-b border-gray-100 text-xs">
+                  {/* Spanners */}
+                  <th className="border-r border-gray-200"></th>
+                  <th className="border-r border-gray-200"></th>
+                  <th className="border-r border-gray-200"></th>
+                  <th className="border-r border-gray-200"></th>
+                  {/* Shot index row */}
+                  {Array.from({ length: maxShots }).map((_, idx) => (
+                    <th 
+                      key={idx} 
+                      className={`text-center font-mono font-bold text-gray-500 border-r border-gray-100 py-1 bg-white ${
+                        idx === maxShots - 1 ? "" : "border-r"
+                      }`}
+                    >
+                      {idx + 1}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
           <tbody>
             {(() => {
               const totalTableRows = distances.reduce((acc, dist) => {
@@ -389,8 +395,12 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
               }, 0);
 
               return distances.map((distance, distIdx) => {
+                const distShots = distance.shotCount !== undefined 
+                  ? distance.shotCount 
+                  : (distance.teamShotCount !== undefined ? distance.teamShotCount : shotsCount);
+
                 const rowScoreObj = rowScores.find((r) => r.distanceId === distance.id) || { hitCount: 0, score: 0 };
-                const hits = athlete.scores[distance.id] || Array(shotsCount).fill(null);
+                const hits = athlete.scores[distance.id] || Array(distShots).fill(null);
 
                 // Check if distance has pre-existing scores in main tournament ledger (Ghi Điểm)
                 const scoringAthlete = mainAthletes?.find((a) => a.id === athlete.id);
@@ -405,10 +415,10 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                   ? rawRoundsArr.map(r => {
                       if (Array.isArray(r)) return r;
                       if (r && typeof r === 'object') return Object.values(r) as (boolean | null)[];
-                      if (typeof r === 'number') return Array.from({ length: shotsCount }, (_, i) => i < r);
-                      return Array.from({ length: shotsCount }, () => null);
+                      if (typeof r === 'number') return Array.from({ length: distShots }, (_, i) => i < r);
+                      return Array.from({ length: distShots }, () => null);
                     })
-                  : [Array.from({ length: shotsCount }, () => null)];
+                  : [Array.from({ length: distShots }, () => null)];
 
                 return (
                   <React.Fragment key={distance.id}>
@@ -466,7 +476,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                        {/* Shots checkboxes or direct score TEXT input */}
                       {isDirectMode ? (
                         <td 
-                          colSpan={shotsCount}
+                          colSpan={maxShots}
                           className={`text-center p-2 border-r border-gray-100 ${
                             isDistancePreExisting 
                               ? "bg-slate-100/40 dark:bg-slate-900/10 cursor-not-allowed" 
@@ -517,58 +527,68 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                           </div>
                         </td>
                       ) : (
-                        Array.from({ length: shotsCount }).map((_, shotIdx) => {
-                          const shotVal = hits[shotIdx];
-                          const isHit = shotVal === true;
-                          const isMiss = shotVal === false;
-                          return (
-                            <td 
-                              key={shotIdx}
-                              onClick={() => {
-                                if (isLockedByOtherReferee) {
-                                  alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
-                                  return;
-                                }
-                                if (!isDistancePreExisting) {
-                                  onToggleScore(athlete.id, distance.id, shotIdx);
-                                }
-                              }}
-                              className={`text-center p-1 transition-colors relative border-r border-gray-100 ${
-                                isDistancePreExisting || isLockedByOtherReferee
-                                  ? "cursor-not-allowed bg-slate-100/40 dark:bg-slate-900/10" 
-                                  : "cursor-pointer hover:bg-blue-50/75"
-                              } ${
-                                shotIdx === shotsCount - 1 ? "" : "border-r"
-                              }`}
-                              title={isDistancePreExisting 
-                                ? `Điểm cự ly ${distance.distance} đã có sẵn. Muốn sửa, vui lòng chuyển qua tab Ghi Điểm & bật chế độ sửa.` 
-                                : `Cự ly: ${distance.distance}, Lượt: ${shotIdx + 1}`}
-                            >
-                              <div className="flex items-center justify-center py-2">
-                                <div 
-                                  className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-150 border-2 select-none ${
-                                    isHit 
-                                      ? isDistancePreExisting
-                                        ? "bg-slate-400 border-slate-400 shadow-sm opacity-60"
-                                        : "bg-blue-600 border-blue-600 shadow-sm" 
-                                      : isMiss
+                        <>
+                          {Array.from({ length: distShots }).map((_, shotIdx) => {
+                            const shotVal = hits[shotIdx];
+                            const isHit = shotVal === true;
+                            const isMiss = shotVal === false;
+                            return (
+                              <td 
+                                key={shotIdx}
+                                onClick={() => {
+                                  if (isLockedByOtherReferee) {
+                                    alert(language === "en" ? `Error: This athlete is being scored by another referee (${lockedByRefereeEmail}). You cannot edit!` : `Lỗi: Vận động viên này đang được ghi điểm bởi trọng tài khác (${lockedByRefereeEmail}). Bạn không được chỉnh sửa!`);
+                                    return;
+                                  }
+                                  if (!isDistancePreExisting) {
+                                    onToggleScore(athlete.id, distance.id, shotIdx);
+                                  }
+                                }}
+                                className={`text-center p-1 transition-colors relative border-r border-gray-100 ${
+                                  isDistancePreExisting || isLockedByOtherReferee
+                                    ? "cursor-not-allowed bg-slate-100/40 dark:bg-slate-900/10" 
+                                    : "cursor-pointer hover:bg-blue-50/75"
+                                } ${
+                                  shotIdx === distShots - 1 && distShots === maxShots ? "" : "border-r"
+                                }`}
+                                title={isDistancePreExisting 
+                                  ? `Điểm cự ly ${distance.distance} đã có sẵn. Muốn sửa, vui lòng chuyển qua tab Ghi Điểm & bật chế độ sửa.` 
+                                  : `Cự ly: ${distance.distance}, Lượt: ${shotIdx + 1}`}
+                              >
+                                <div className="flex items-center justify-center py-2">
+                                  <div 
+                                    className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-150 border-2 select-none ${
+                                      isHit 
                                         ? isDistancePreExisting
-                                          ? "bg-slate-350 border-slate-350 shadow-sm opacity-55"
-                                          : "bg-rose-600 border-rose-600 shadow-sm"
-                                        : "bg-white border-gray-300 hover:border-gray-500"
-                                  }`}
-                                >
-                                  {isHit && (
-                                    <Check className="w-4 h-4 text-white stroke-[3.5]" />
-                                  )}
-                                  {isMiss && (
-                                    <X className="w-4 h-4 text-white stroke-[3.5]" />
-                                  )}
+                                          ? "bg-slate-400 border-slate-400 shadow-sm opacity-60"
+                                          : "bg-blue-600 border-blue-600 shadow-sm" 
+                                        : isMiss
+                                          ? isDistancePreExisting
+                                            ? "bg-slate-350 border-slate-350 shadow-sm opacity-55"
+                                            : "bg-rose-600 border-rose-600 shadow-sm"
+                                          : "bg-white border-gray-300 hover:border-gray-500"
+                                    }`}
+                                  >
+                                    {isHit && (
+                                      <Check className="w-4 h-4 text-white stroke-[3.5]" />
+                                    )}
+                                    {isMiss && (
+                                      <X className="w-4 h-4 text-white stroke-[3.5]" />
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                          );
-                        })
+                              </td>
+                            );
+                          })}
+                          {distShots < maxShots && Array.from({ length: maxShots - distShots }).map((_, padIdx) => (
+                            <td 
+                              key={`pad-${padIdx}`}
+                              className={`bg-gray-100/30 dark:bg-slate-900/10 border-r border-gray-100 ${
+                                distShots + padIdx === maxShots - 1 ? "" : "border-r"
+                              }`}
+                            />
+                          ))}
+                        </>
                       )}
                     </tr>
 
@@ -675,7 +695,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                 {rIdx === rounds.length - 1 && !isLocked && (
                                   <button
                                     onClick={() => {
-                                      onUpdateSoloHits?.(athlete.id, distance.id, [...rounds, Array.from({ length: shotsCount }, () => null)]);
+                                      onUpdateSoloHits?.(athlete.id, distance.id, [...rounds, Array.from({ length: distShots }, () => null)]);
                                     }}
                                     className="px-1 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-[9px] font-bold transition cursor-pointer shadow-xs"
                                     title={language === "en" ? "Add solo round" : "Thêm lượt"}
@@ -701,11 +721,12 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                           </td>
 
                           {isLocked ? (
-                            <td colSpan={shotsCount} className="p-1.5 align-middle text-center bg-purple-50/20 dark:bg-purple-950/10 border-r border-purple-200 dark:border-purple-900/40">
+                            <td colSpan={maxShots} className="p-1.5 align-middle text-center bg-purple-50/20 dark:bg-purple-950/10 border-r border-purple-200 dark:border-purple-900/40">
                               {/* Hidden detail shots count cell when locked */}
                             </td>
                           ) : (
-                            Array.from({ length: shotsCount }).map((_, shotIdx) => {
+                            <>
+                              {Array.from({ length: distShots }).map((_, shotIdx) => {
                               const sVal = roundShots[shotIdx];
                               const isHit = sVal === true;
                               const isMiss = sVal === false;
@@ -729,7 +750,7 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                     onUpdateSoloHits?.(athlete.id, distance.id, newRounds);
                                   }}
                                   className={`text-center p-1 transition-colors relative border-r border-purple-200 dark:border-purple-900/40 bg-purple-50/20 dark:bg-purple-950/10 cursor-pointer hover:bg-purple-100/50 ${
-                                    shotIdx === shotsCount - 1 ? "" : "border-r"
+                                    shotIdx === distShots - 1 && distShots === maxShots ? "" : "border-r"
                                   }`}
                                   title={`L${rIdx + 1} - Phát ${shotIdx + 1}`}
                                 >
@@ -749,8 +770,17 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
                                   </div>
                                 </td>
                               );
-                            })
-                          )}
+                            })}
+                            {distShots < maxShots && Array.from({ length: maxShots - distShots }).map((_, padIdx) => (
+                              <td 
+                                key={`pad-solo-${padIdx}`}
+                                className={`bg-purple-50/5 dark:bg-purple-950/5 border-r border-purple-200 dark:border-purple-900/40 ${
+                                  distShots + padIdx === maxShots - 1 ? "" : "border-r"
+                                }`}
+                              />
+                            ))}
+                          </>
+                        )}
                         </tr>
                       );
                     })}
@@ -763,6 +793,8 @@ export const AthleteCard: React.FC<AthleteCardProps> = ({
           </tbody>
         </table>
       </div>
+    );
+  })()}
 
       {/* Simple Quick Summary of athlete accuracy */}
       {(() => {

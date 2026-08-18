@@ -178,6 +178,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // Individual fields
   const [newDistanceStr, setNewDistanceStr] = useState("");
   const [newMultiplierVal, setNewMultiplierVal] = useState(10);
+  const [newShotCount, setNewShotCount] = useState<number | "">(""); // Custom round shots (blank = default)
   const [newIsCumulative, setNewIsCumulative] = useState(false);
   const [newIsElimination, setNewIsElimination] = useState(false);
   const [newIsMaxRoundScore, setNewIsMaxRoundScore] = useState(false);
@@ -188,6 +189,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // Team fields
   const [newTeamDistanceStr, setNewTeamDistanceStr] = useState("");
   const [newTeamMultiplierVal, setNewTeamMultiplierVal] = useState(10);
+  const [newTeamShotCount, setNewTeamShotCount] = useState<number | "">(""); // Custom round team shots (blank = default)
   const [newTeamIsCumulative, setNewTeamIsCumulative] = useState(false);
   const [newTeamIsElimination, setNewTeamIsElimination] = useState(false);
   const [newTeamIsMaxRoundScore, setNewTeamIsMaxRoundScore] = useState(false);
@@ -199,6 +201,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [editingDistanceType, setEditingDistanceType] = useState<"individual" | "team" | null>(null);
   const [editingDistanceStr, setEditingDistanceStr] = useState("");
   const [editingMultiplierVal, setEditingMultiplierVal] = useState(10);
+  const [editingShotCount, setEditingShotCount] = useState<number | "">(""); // Custom round shots during editing
   const [editingIsCumulative, setEditingIsCumulative] = useState(false);
   const [editingIsElimination, setEditingIsElimination] = useState(false);
   const [editingIsMaxRoundScore, setEditingIsMaxRoundScore] = useState(false);
@@ -512,11 +515,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const handleAddDistance = () => {
     if (!newDistanceStr.trim()) return;
     
+    const targetShotCount = Number(newShotCount) > 0 ? Number(newShotCount) : undefined;
     const newId = `dist-${Date.now()}`;
     const newDist: DistanceConfig = {
       id: newId,
       distance: newDistanceStr.trim(),
       multiplier: Number(newMultiplierVal) || 10,
+      shotCount: targetShotCount,
       isCumulative: newIsCumulative,
       isElimination: newIsElimination,
       isMaxRoundScore: newIsMaxRoundScore,
@@ -530,7 +535,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
     const updatedAthletes = athletes.map((athlete) => {
       const newScores = { ...athlete.scores };
-      newScores[newId] = Array(shotsCount).fill(null);
+      newScores[newId] = Array(targetShotCount || shotsCount).fill(null);
       return {
         ...athlete,
         scores: newScores,
@@ -541,6 +546,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     // Clear form inputs
     setNewDistanceStr("");
     setNewMultiplierVal(10);
+    setNewShotCount("");
     setNewIsCumulative(false);
     setNewIsElimination(false);
     setNewIsMaxRoundScore(false);
@@ -553,11 +559,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const handleAddTeamDistance = () => {
     if (!newTeamDistanceStr.trim()) return;
     
+    const targetTeamShotCount = Number(newTeamShotCount) > 0 ? Number(newTeamShotCount) : undefined;
     const newId = `dist-team-${Date.now()}`;
     const newDist: DistanceConfig = {
       id: newId,
       distance: newTeamDistanceStr.trim(),
       multiplier: Number(newTeamMultiplierVal) || 10,
+      teamShotCount: targetTeamShotCount,
       isCumulative: newTeamIsCumulative,
       isElimination: newTeamIsElimination,
       isMaxRoundScore: newTeamIsMaxRoundScore,
@@ -571,7 +579,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
     const updatedAthletes = teamAthletes.map((athlete) => {
       const newScores = { ...athlete.scores };
-      newScores[newId] = Array(teamShotsCount).fill(null);
+      newScores[newId] = Array(targetTeamShotCount || teamShotsCount).fill(null);
       return {
         ...athlete,
         scores: newScores,
@@ -582,6 +590,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     // Clear form inputs
     setNewTeamDistanceStr("");
     setNewTeamMultiplierVal(10);
+    setNewTeamShotCount("");
     setNewTeamIsCumulative(false);
     setNewTeamIsElimination(false);
     setNewTeamIsMaxRoundScore(false);
@@ -1531,7 +1540,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                    <div className="text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                     ✏️ {language === "en" ? `Edit Individual Distance (Round ${distIdx + 1})` : `Sửa Cự Ly Cá Nhân (Vòng ${distIdx + 1})`}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
                       <input
@@ -1548,6 +1557,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         value={editingMultiplierVal}
                         onChange={(e) => setEditingMultiplierVal(Math.max(1, Number(e.target.value)))}
                         className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-705 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">
+                        {language === "en" ? "Shots (opt):" : "Số viên (t.chọn):"}
+                      </span>
+                      <input
+                        type="number"
+                        placeholder={language === "en" ? `Default (${shotsCount})` : `Mặc định (${shotsCount})`}
+                        value={editingShotCount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingShotCount(val === "" ? "" : Math.max(1, Number(val)));
+                        }}
+                        className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
                       />
                     </div>
                   </div>
@@ -1632,12 +1656,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         if (!editingDistanceStr.trim()) return;
                         const isIndiv = editingDistanceType === "individual";
                         if (isIndiv) {
+                          const targetShots = Number(editingShotCount) > 0 ? Number(editingShotCount) : undefined;
                           const updated = distances.map((d) => {
                             if (d.id === editingDistanceId) {
                               return {
                                 ...d,
                                 distance: editingDistanceStr.trim(),
                                 multiplier: editingMultiplierVal,
+                                shotCount: targetShots,
                                 isCumulative: editingIsCumulative,
                                 isElimination: editingIsElimination,
                                 eliminationType: editingEliminationType,
@@ -1649,13 +1675,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             return d;
                           });
                           setDistances(updated);
+
+                          // Adjust athlete score arrays
+                          const finalShotsCount = targetShots || shotsCount;
+                          const updatedAthletes = athletes.map((ath) => {
+                            const existingScores = ath.scores[editingDistanceId || ""] || [];
+                            let newScoreList = [...existingScores];
+                            if (newScoreList.length < finalShotsCount) {
+                              newScoreList = [...newScoreList, ...Array(finalShotsCount - newScoreList.length).fill(null)];
+                            } else if (newScoreList.length > finalShotsCount) {
+                              newScoreList = newScoreList.slice(0, finalShotsCount);
+                            }
+                            return {
+                              ...ath,
+                              scores: {
+                                ...ath.scores,
+                                [editingDistanceId || ""]: newScoreList
+                              }
+                            };
+                          });
+                          setAthletes(updatedAthletes);
                         } else {
+                          const targetShots = Number(editingShotCount) > 0 ? Number(editingShotCount) : undefined;
                           const updated = teamDistances.map((d) => {
                             if (d.id === editingDistanceId) {
                               return {
                                 ...d,
                                 distance: editingDistanceStr.trim(),
                                 multiplier: editingMultiplierVal,
+                                teamShotCount: targetShots,
                                 isCumulative: editingIsCumulative,
                                 isElimination: editingIsElimination,
                                 eliminationType: editingEliminationType,
@@ -1667,6 +1715,26 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             return d;
                           });
                           setTeamDistances(updated);
+
+                          // Adjust team athlete score arrays
+                          const finalShotsCount = targetShots || teamShotsCount;
+                          const updatedAthletes = teamAthletes.map((ath) => {
+                            const existingScores = ath.scores[editingDistanceId || ""] || [];
+                            let newScoreList = [...existingScores];
+                            if (newScoreList.length < finalShotsCount) {
+                              newScoreList = [...newScoreList, ...Array(finalShotsCount - newScoreList.length).fill(null)];
+                            } else if (newScoreList.length > finalShotsCount) {
+                              newScoreList = newScoreList.slice(0, finalShotsCount);
+                            }
+                            return {
+                              ...ath,
+                              scores: {
+                                ...ath.scores,
+                                [editingDistanceId || ""]: newScoreList
+                              }
+                            };
+                          });
+                          setTeamAthletes(updatedAthletes);
                         }
                         setEditingDistanceId(null);
                         setEditingDistanceType(null);
@@ -1700,6 +1768,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       <span className="text-[10px] px-1 bg-slate-100 dark:bg-slate-900 dark:text-slate-400 rounded text-slate-650 font-mono">
                         {language === "en" ? "Multiplier:" : "Hệ số:"} x{dist.multiplier}
                       </span>
+                      {dist.shotCount && (
+                        <span className="text-[10px] px-1 bg-blue-50 dark:bg-blue-950/25 text-blue-700 dark:text-blue-400 font-bold rounded font-mono border border-blue-200">
+                          🎯 {dist.shotCount} {language === "en" ? "shots" : "viên"}
+                        </span>
+                      )}
                       {dist.isCumulative && (
                         <span className="text-[9px] px-1 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 font-extrabold rounded uppercase border border-green-250 shrink-0">
                           {language === "en" ? "cumulative" : "cộng dồn"}
@@ -1726,6 +1799,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setEditingDistanceType("individual");
                         setEditingDistanceStr(dist.distance);
                         setEditingMultiplierVal(dist.multiplier);
+                        setEditingShotCount(dist.shotCount || "");
                         setEditingIsCumulative(!!dist.isCumulative);
                         setEditingIsElimination(!!dist.isElimination);
                         setEditingEliminationType(dist.eliminationType || "percent");
@@ -1763,7 +1837,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">
             {language === "en" ? "Add new individual distance" : "Thêm cự ly cá nhân mới"}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
               <input
@@ -1771,7 +1845,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 placeholder={language === "en" ? "e.g. 15 Meters" : "e.g. 15 Met"}
                 value={newDistanceStr}
                 onChange={(e) => setNewDistanceStr(e.target.value)}
-                className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
               />
             </div>
             <div>
@@ -1780,6 +1854,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 type="number"
                 value={newMultiplierVal}
                 onChange={(e) => setNewMultiplierVal(Math.max(1, Number(e.target.value)))}
+                className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+              />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-400 block mb-0.5">
+                {language === "en" ? "Shots (opt):" : "Số viên (t.chọn):"}
+              </span>
+              <input
+                type="number"
+                placeholder={language === "en" ? `Default (${shotsCount})` : `Mặc định (${shotsCount})`}
+                value={newShotCount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewShotCount(val === "" ? "" : Math.max(1, Number(val)));
+                }}
                 className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
               />
             </div>
@@ -1888,7 +1977,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                     ✏️ {language === "en" ? `Edit Team Distance (Round ${distIdx + 1})` : `Sửa Cự Ly Đồng Đội (Vòng ${distIdx + 1})`}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
                       <input
@@ -1904,6 +1993,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         type="number"
                         value={editingMultiplierVal}
                         onChange={(e) => setEditingMultiplierVal(Math.max(1, Number(e.target.value)))}
+                        className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-705 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">
+                        {language === "en" ? "Shots (opt):" : "Số viên (t.chọn):"}
+                      </span>
+                      <input
+                        type="number"
+                        placeholder={language === "en" ? `Default (${teamShotsCount})` : `Mặc định (${teamShotsCount})`}
+                        value={editingShotCount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingShotCount(val === "" ? "" : Math.max(1, Number(val)));
+                        }}
                         className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-705 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
                       />
                     </div>
@@ -1989,12 +2093,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         if (!editingDistanceStr.trim()) return;
                         const isIndiv = editingDistanceType === "individual";
                         if (isIndiv) {
+                          const targetShots = Number(editingShotCount) > 0 ? Number(editingShotCount) : undefined;
                           const updated = distances.map((d) => {
                             if (d.id === editingDistanceId) {
                               return {
                                 ...d,
                                 distance: editingDistanceStr.trim(),
                                 multiplier: editingMultiplierVal,
+                                shotCount: targetShots,
                                 isCumulative: editingIsCumulative,
                                 isElimination: editingIsElimination,
                                 eliminationType: editingEliminationType,
@@ -2006,13 +2112,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             return d;
                           });
                           setDistances(updated);
+
+                          // Adjust athlete score arrays
+                          const finalShotsCount = targetShots || shotsCount;
+                          const updatedAthletes = athletes.map((ath) => {
+                            const existingScores = ath.scores[editingDistanceId || ""] || [];
+                            let newScoreList = [...existingScores];
+                            if (newScoreList.length < finalShotsCount) {
+                              newScoreList = [...newScoreList, ...Array(finalShotsCount - newScoreList.length).fill(null)];
+                            } else if (newScoreList.length > finalShotsCount) {
+                              newScoreList = newScoreList.slice(0, finalShotsCount);
+                            }
+                            return {
+                              ...ath,
+                              scores: {
+                                ...ath.scores,
+                                [editingDistanceId || ""]: newScoreList
+                              }
+                            };
+                          });
+                          setAthletes(updatedAthletes);
                         } else {
+                          const targetShots = Number(editingShotCount) > 0 ? Number(editingShotCount) : undefined;
                           const updated = teamDistances.map((d) => {
                             if (d.id === editingDistanceId) {
                               return {
                                 ...d,
                                 distance: editingDistanceStr.trim(),
                                 multiplier: editingMultiplierVal,
+                                teamShotCount: targetShots,
                                 isCumulative: editingIsCumulative,
                                 isElimination: editingIsElimination,
                                 eliminationType: editingEliminationType,
@@ -2024,6 +2152,26 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             return d;
                           });
                           setTeamDistances(updated);
+
+                          // Adjust team athlete score arrays
+                          const finalShotsCount = targetShots || teamShotsCount;
+                          const updatedAthletes = teamAthletes.map((ath) => {
+                            const existingScores = ath.scores[editingDistanceId || ""] || [];
+                            let newScoreList = [...existingScores];
+                            if (newScoreList.length < finalShotsCount) {
+                              newScoreList = [...newScoreList, ...Array(finalShotsCount - newScoreList.length).fill(null)];
+                            } else if (newScoreList.length > finalShotsCount) {
+                              newScoreList = newScoreList.slice(0, finalShotsCount);
+                            }
+                            return {
+                              ...ath,
+                              scores: {
+                                ...ath.scores,
+                                [editingDistanceId || ""]: newScoreList
+                              }
+                            };
+                          });
+                          setTeamAthletes(updatedAthletes);
                         }
                         setEditingDistanceId(null);
                         setEditingDistanceType(null);
@@ -2057,6 +2205,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       <span className="text-[10px] px-1 bg-slate-100 dark:bg-slate-900 dark:text-slate-400 rounded text-slate-650 font-mono">
                         {language === "en" ? "Multiplier:" : "Hệ số:"} x{dist.multiplier}
                       </span>
+                      {dist.teamShotCount && (
+                        <span className="text-[10px] px-1 bg-blue-50 dark:bg-blue-955/25 text-blue-700 dark:text-blue-400 font-bold rounded font-mono border border-blue-200">
+                          🎯 {dist.teamShotCount} {language === "en" ? "shots" : "viên"}
+                        </span>
+                      )}
                       {dist.isCumulative && (
                         <span className="text-[9px] px-1 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 font-extrabold rounded uppercase border border-green-250 shrink-0">
                           {language === "en" ? "cumulative" : "cộng dồn"}
@@ -2083,6 +2236,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         setEditingDistanceType("team");
                         setEditingDistanceStr(dist.distance);
                         setEditingMultiplierVal(dist.multiplier);
+                        setEditingShotCount(dist.teamShotCount || "");
                         setEditingIsCumulative(!!dist.isCumulative);
                         setEditingIsElimination(!!dist.isElimination);
                         setEditingEliminationType(dist.eliminationType || "percent");
@@ -2120,7 +2274,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <div className="text-xs font-black text-gray-500 uppercase tracking-widest">
             {language === "en" ? "Add new team distance" : "Thêm cự ly đồng đội mới"}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <span className="text-[10px] text-gray-400 block mb-0.5">{language === "en" ? "Distance name:" : "Tên cự ly:"}</span>
               <input
@@ -2128,7 +2282,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 placeholder={language === "en" ? "e.g. 15 Meters Team" : "e.g. 15 Met Đồng Đội"}
                 value={newTeamDistanceStr}
                 onChange={(e) => setNewTeamDistanceStr(e.target.value)}
-                className="w-full px-2 py-1 text-xs bg-gray-55 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded"
+                className="w-full px-2 py-1 text-xs bg-gray-55 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded font-semibold"
               />
             </div>
             <div>
@@ -2137,6 +2291,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 type="number"
                 value={newTeamMultiplierVal}
                 onChange={(e) => setNewTeamMultiplierVal(Math.max(1, Number(e.target.value)))}
+                className="w-full px-2 py-1 text-xs bg-gray-55 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded font-mono"
+              />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-400 block mb-0.5">
+                {language === "en" ? "Shots (opt):" : "Số viên (t.chọn):"}
+              </span>
+              <input
+                type="number"
+                placeholder={language === "en" ? `Default (${teamShotsCount})` : `Mặc định (${teamShotsCount})`}
+                value={newTeamShotCount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewTeamShotCount(val === "" ? "" : Math.max(1, Number(val)));
+                }}
                 className="w-full px-2 py-1 text-xs bg-gray-55 dark:bg-slate-905 border border-gray-300 dark:border-slate-800 rounded font-mono"
               />
             </div>
