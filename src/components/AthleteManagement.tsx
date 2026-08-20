@@ -336,6 +336,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
   const [formStatus, setFormStatus] = useState("Thi đấu");
   const [formIsPrimaryTeam, setFormIsPrimaryTeam] = useState(false);
   const [formEmail, setFormEmail] = useState("");
+  const [formGearSlingName, setFormGearSlingName] = useState("");
+  const [formGearForkWidth, setFormGearForkWidth] = useState("");
+  const [formGearBandSpec, setFormGearBandSpec] = useState("");
+  const [formGearAmmoSize, setFormGearAmmoSize] = useState("");
+  const [formGearStance, setFormGearStance] = useState("");
   
   const [validationError, setValidationError] = useState("");
   const [duplicateSysMatch, setDuplicateSysMatch] = useState<Athlete | null>(null);
@@ -432,6 +437,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setFormStatus("Thi đấu");
     setFormIsPrimaryTeam(false);
     setFormEmail("");
+    setFormGearSlingName("");
+    setFormGearForkWidth("");
+    setFormGearBandSpec("");
+    setFormGearAmmoSize("");
+    setFormGearStance("");
   };
 
   const handleStartEdit = (athlete: Athlete) => {
@@ -454,6 +464,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
     setFormStatus(athlete.status || "Thi đấu");
     setFormIsPrimaryTeam(!!athlete.isPrimaryTeam);
     setFormEmail(athlete.email || "");
+    setFormGearSlingName(athlete.gearSlingName || "");
+    setFormGearForkWidth(athlete.gearForkWidth || "");
+    setFormGearBandSpec(athlete.gearBandSpec || "");
+    setFormGearAmmoSize(athlete.gearAmmoSize || "");
+    setFormGearStance(athlete.gearStance || "");
   };
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -486,6 +501,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         if (profile.avatarUrl || profile.photoURL) {
           setFormAvatarUrl(profile.avatarUrl || profile.photoURL);
         }
+        if (profile.gearSlingName) setFormGearSlingName(profile.gearSlingName);
+        if (profile.gearForkWidth) setFormGearForkWidth(profile.gearForkWidth);
+        if (profile.gearBandSpec) setFormGearBandSpec(profile.gearBandSpec);
+        if (profile.gearAmmoSize) setFormGearAmmoSize(profile.gearAmmoSize);
+        if (profile.gearStance) setFormGearStance(profile.gearStance);
         alert(language === "en" ? `Successfully found and auto-loaded profile of athlete "${profile.displayName || emailStr}" from Cloud!` : `Đã tìm thấy & tự động nạp thành công hồ sơ của vận động viên "${profile.displayName || emailStr}" từ đám mây Cloud!`);
       } else {
         alert(language === "en" ? `No profile found associated with email "${emailStr.trim()}" on Cloud.` : `Không tìm thấy hồ sơ cá nhân nào liên kết với email "${emailStr.trim()}" trên Cloud.`);
@@ -584,6 +604,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
         status: formStatus,
         isPrimaryTeam: formIsPrimaryTeam,
         email: formEmail.trim(),
+        gearSlingName: formGearSlingName.trim(),
+        gearForkWidth: formGearForkWidth.trim(),
+        gearBandSpec: formGearBandSpec.trim(),
+        gearAmmoSize: formGearAmmoSize.trim(),
+        gearStance: formGearStance.trim(),
       };
 
       if (isVscTab) {
@@ -613,6 +638,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               status: formStatus,
               isPrimaryTeam: formIsPrimaryTeam,
               email: formEmail.trim(),
+              gearSlingName: formGearSlingName.trim(),
+              gearForkWidth: formGearForkWidth.trim(),
+              gearBandSpec: formGearBandSpec.trim(),
+              gearAmmoSize: formGearAmmoSize.trim(),
+              gearStance: formGearStance.trim(),
             };
           }
           return a;
@@ -637,6 +667,11 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
               status: formStatus,
               isPrimaryTeam: formIsPrimaryTeam,
               email: formEmail.trim(),
+              gearSlingName: formGearSlingName.trim(),
+              gearForkWidth: formGearForkWidth.trim(),
+              gearBandSpec: formGearBandSpec.trim(),
+              gearAmmoSize: formGearAmmoSize.trim(),
+              gearStance: formGearStance.trim(),
             };
           }
           return a;
@@ -2596,6 +2631,81 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   </select>
                 </div>
 
+                {/* ----------------- Trang bị & Kỹ thuật ----------------- */}
+                <div className="col-span-1 sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                  <h5 className="text-[11px] font-black uppercase text-indigo-600 tracking-wider mb-2">🎯 Cấu hình Trang bị & Kỹ thuật (Gear & Tech)</h5>
+                </div>
+
+                {/* Tên loại ná */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                    Tên loại ná:
+                  </label>
+                  <input
+                    type="text"
+                    value={formGearSlingName}
+                    onChange={(e) => setFormGearSlingName(e.target.value)}
+                    placeholder="Vô cực, VIP, Hổ, CNC..."
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* Độ rộng chạc */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                    Độ rộng chạc:
+                  </label>
+                  <input
+                    type="text"
+                    value={formGearForkWidth}
+                    onChange={(e) => setFormGearForkWidth(e.target.value)}
+                    placeholder="7, 7.5, 8... (cm)"
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* Khổ thun sử dụng */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                    Khổ thun sử dụng:
+                  </label>
+                  <input
+                    type="text"
+                    value={formGearBandSpec}
+                    onChange={(e) => setFormGearBandSpec(e.target.value)}
+                    placeholder="10-20-150 dày 0.55mm..."
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* Bi sử dụng */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                    Bi sử dụng (Kích cỡ):
+                  </label>
+                  <input
+                    type="text"
+                    value={formGearAmmoSize}
+                    onChange={(e) => setFormGearAmmoSize(e.target.value)}
+                    placeholder="7, 8, 9... (mm)"
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* Tư thế bắn */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                    Tư thế bắn:
+                  </label>
+                  <input
+                    type="text"
+                    value={formGearStance}
+                    onChange={(e) => setFormGearStance(e.target.value)}
+                    placeholder="Tới má, Semi-butterfly, Full..."
+                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-800"
+                  />
+                </div>
+
               </div>
 
             </div>
@@ -2785,6 +2895,54 @@ export const AthleteManagement: React.FC<AthleteManagementProps> = ({
                   </div>
                 </div>
 
+              </div>
+            </div>
+
+            {/* Cấu hình Trang bị & Kỹ thuật */}
+            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                🎯 Cấu hình Trang bị & Kỹ thuật (Gear & Tech)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                {/* Tên loại ná */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wide">Tên loại ná</span>
+                  <span className="text-sm text-indigo-600 dark:text-indigo-400 font-bold">
+                    {selectedAthlete.gearSlingName || <span className="text-gray-300 italic font-normal">Chưa cập nhật</span>}
+                  </span>
+                </div>
+
+                {/* Độ rộng chạc */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wide">Độ rộng chạc</span>
+                  <span className="text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                    {selectedAthlete.gearForkWidth ? `${selectedAthlete.gearForkWidth} cm` : <span className="text-gray-300 italic font-normal">Chưa cập nhật</span>}
+                  </span>
+                </div>
+
+                {/* Khổ thun sử dụng */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wide">Khổ thun sử dụng</span>
+                  <span className="text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                    {selectedAthlete.gearBandSpec || <span className="text-gray-300 italic font-normal">Chưa cập nhật</span>}
+                  </span>
+                </div>
+
+                {/* Bi sử dụng */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wide">Bi sử dụng</span>
+                  <span className="text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                    {selectedAthlete.gearAmmoSize ? `${selectedAthlete.gearAmmoSize} mm` : <span className="text-gray-300 italic font-normal">Chưa cập nhật</span>}
+                  </span>
+                </div>
+
+                {/* Tư thế bắn */}
+                <div className="sm:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wide">Tư thế bắn</span>
+                  <span className="text-sm text-slate-800 dark:text-slate-200 font-semibold">
+                    {selectedAthlete.gearStance || <span className="text-gray-300 italic font-normal">Chưa cập nhật</span>}
+                  </span>
+                </div>
               </div>
             </div>
 

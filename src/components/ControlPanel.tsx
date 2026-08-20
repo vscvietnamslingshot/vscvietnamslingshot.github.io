@@ -369,6 +369,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [clubName, setClubName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
 
+  // Gear & Tech Profile fields state
+  const [gearSlingName, setGearSlingName] = useState("");
+  const [gearForkWidth, setGearForkWidth] = useState("");
+  const [gearBandSpec, setGearBandSpec] = useState("");
+  const [gearAmmoSize, setGearAmmoSize] = useState("");
+  const [gearStance, setGearStance] = useState("");
+
   // Club Memos and Stats Engine
   const myClub = useMemo(() => {
     if (!currentUser) return null;
@@ -422,11 +429,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           setProvince(fetched.province || "");
           setClubName(fetched.club || "");
           setAvatarUrl(fetched.avatarUrl || fetched.photoURL || "");
+          setGearSlingName(fetched.gearSlingName || "");
+          setGearForkWidth(fetched.gearForkWidth || "");
+          setGearBandSpec(fetched.gearBandSpec || "");
+          setGearAmmoSize(fetched.gearAmmoSize || "");
+          setGearStance(fetched.gearStance || "");
         } else {
           // Fallback init profile
           const defName = currentUser.email ? currentUser.email.split("@")[0] : "Người dùng";
           setDispName(defName);
           setAvatarUrl(currentUser.photoURL || "");
+          setGearSlingName("");
+          setGearForkWidth("");
+          setGearBandSpec("");
+          setGearAmmoSize("");
+          setGearStance("");
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -662,7 +679,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         address: address.trim(),
         province: province.trim(),
         club: clubName.trim(),
-        avatarUrl
+        avatarUrl,
+        gearSlingName: gearSlingName.trim(),
+        gearForkWidth: gearForkWidth.trim(),
+        gearBandSpec: gearBandSpec.trim(),
+        gearAmmoSize: gearAmmoSize.trim(),
+        gearStance: gearStance.trim(),
       };
 
       if (isNameChanged) {
@@ -699,7 +721,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               province: province.trim(),
               team: clubName.trim() || existingAthlete.team || (language === "en" ? "Independent" : "Tự do"),
               avatarUrl: avatarUrl,
-              nameEditCount: finalNameEditCount
+              nameEditCount: finalNameEditCount,
+              gearSlingName: gearSlingName.trim(),
+              gearForkWidth: gearForkWidth.trim(),
+              gearBandSpec: gearBandSpec.trim(),
+              gearAmmoSize: gearAmmoSize.trim(),
+              gearStance: gearStance.trim(),
             };
             await saveVscSystemAthletes(athletes);
           }
@@ -1250,6 +1277,83 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                               onChange={(e) => setAddress(e.target.value)}
                               placeholder="Số nhà, ngõ/ngách, xã phường..."
                               className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-white"
+                            />
+                          </div>
+
+                          {/* ----------------- Trang bị & Kỹ thuật ----------------- */}
+                          <div className="sm:col-span-2 border-t border-slate-100 dark:border-slate-850 pt-4 mt-2">
+                            <h5 className="text-[11px] font-black uppercase text-indigo-650 dark:text-indigo-400 tracking-wider mb-1 flex items-center gap-1.5">
+                              <span>🎯</span> {language === "en" ? "Gear & Technical Profile" : "Cấu hình Trang bị & Kỹ thuật VĐV"}
+                            </h5>
+                          </div>
+
+                          {/* Tên loại ná */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                              {language === "en" ? "Slingshot Model:" : "Tên loại ná:"}
+                            </label>
+                            <input
+                              type="text"
+                              value={gearSlingName}
+                              onChange={(e) => setGearSlingName(e.target.value)}
+                              placeholder="Vô cực, VIP, Hổ, CNC..."
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-850 dark:text-white"
+                            />
+                          </div>
+
+                          {/* Độ rộng chạc */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                              {language === "en" ? "Fork Width:" : "Độ rộng chạc:"}
+                            </label>
+                            <input
+                              type="text"
+                              value={gearForkWidth}
+                              onChange={(e) => setGearForkWidth(e.target.value)}
+                              placeholder="7, 7.5, 8... (cm)"
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-855 dark:text-white"
+                            />
+                          </div>
+
+                          {/* Khổ thun sử dụng */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                              {language === "en" ? "Band Specs:" : "Khổ thun sử dụng:"}
+                            </label>
+                            <input
+                              type="text"
+                              value={gearBandSpec}
+                              onChange={(e) => setGearBandSpec(e.target.value)}
+                              placeholder="10-20-150 dày 0.55mm..."
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-855 dark:text-white"
+                            />
+                          </div>
+
+                          {/* Bi sử dụng */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                              {language === "en" ? "Ammo Size:" : "Bi sử dụng (Kích cỡ):"}
+                            </label>
+                            <input
+                              type="text"
+                              value={gearAmmoSize}
+                              onChange={(e) => setGearAmmoSize(e.target.value)}
+                              placeholder="7, 8, 9... (mm)"
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-855 dark:text-white"
+                            />
+                          </div>
+
+                          {/* Tư thế bắn */}
+                          <div className="sm:col-span-2">
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                              {language === "en" ? "Shooting Stance:" : "Tư thế bắn:"}
+                            </label>
+                            <input
+                              type="text"
+                              value={gearStance}
+                              onChange={(e) => setGearStance(e.target.value)}
+                              placeholder="Tới má, Semi-butterfly, Full..."
+                              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-955 border border-gray-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-855 dark:text-white"
                             />
                           </div>
                         </div>

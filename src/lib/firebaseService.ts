@@ -421,6 +421,11 @@ export async function updateUserProfile(uid: string, profileData: {
   province?: string;
   club?: string;
   lastDisplayNameUpdate?: string;
+  gearSlingName?: string;
+  gearForkWidth?: string;
+  gearBandSpec?: string;
+  gearAmmoSize?: string;
+  gearStance?: string;
 }) {
   try {
     const userRef = doc(db, "users", uid);

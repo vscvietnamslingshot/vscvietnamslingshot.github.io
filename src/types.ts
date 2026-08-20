@@ -37,6 +37,11 @@ export interface Athlete {
   email?: string; // Cloud Account email
   calledBy?: string; // Email of referee who called / is scoring this athlete
   nameEditCount?: number; // Number of times the name has been edited in system
+  gearSlingName?: string; // Tên loại ná (Vô cực, Vip, Hổ, CNC, ...)
+  gearForkWidth?: string; // Độ rộng chạc (7, 7.5, 8, ...)
+  gearBandSpec?: string;  // Khổ thun sử dụng (10-20-150 dày 0.55mm, ...)
+  gearAmmoSize?: string;  // Bi sử dụng (7mm, 8mm, ...)
+  gearStance?: string;    // Tư thế bắn (Tới má, Semi, Full, ...)
 }
 
 export interface MatchHistoryItem {

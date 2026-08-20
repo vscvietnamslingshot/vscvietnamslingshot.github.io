@@ -2454,7 +2454,12 @@ export default function App() {
             activeAth.province !== masterAth.province ||
             activeAth.country !== masterAth.country ||
             activeAth.countryCode !== masterAth.countryCode ||
-            activeAth.status !== masterAth.status
+            activeAth.status !== masterAth.status ||
+            activeAth.gearSlingName !== masterAth.gearSlingName ||
+            activeAth.gearForkWidth !== masterAth.gearForkWidth ||
+            activeAth.gearBandSpec !== masterAth.gearBandSpec ||
+            activeAth.gearAmmoSize !== masterAth.gearAmmoSize ||
+            activeAth.gearStance !== masterAth.gearStance
           ) {
             changed = true;
             return {
@@ -2470,6 +2475,11 @@ export default function App() {
               country: masterAth.country,
               countryCode: masterAth.countryCode,
               status: masterAth.status,
+              gearSlingName: masterAth.gearSlingName || "",
+              gearForkWidth: masterAth.gearForkWidth || "",
+              gearBandSpec: masterAth.gearBandSpec || "",
+              gearAmmoSize: masterAth.gearAmmoSize || "",
+              gearStance: masterAth.gearStance || "",
             };
           }
         }
@@ -2494,7 +2504,12 @@ export default function App() {
             activeAth.province !== masterAth.province ||
             activeAth.country !== masterAth.country ||
             activeAth.countryCode !== masterAth.countryCode ||
-            activeAth.status !== masterAth.status
+            activeAth.status !== masterAth.status ||
+            activeAth.gearSlingName !== masterAth.gearSlingName ||
+            activeAth.gearForkWidth !== masterAth.gearForkWidth ||
+            activeAth.gearBandSpec !== masterAth.gearBandSpec ||
+            activeAth.gearAmmoSize !== masterAth.gearAmmoSize ||
+            activeAth.gearStance !== masterAth.gearStance
           ) {
             changed = true;
             return {
@@ -2510,6 +2525,11 @@ export default function App() {
               country: masterAth.country,
               countryCode: masterAth.countryCode,
               status: masterAth.status,
+              gearSlingName: masterAth.gearSlingName || "",
+              gearForkWidth: masterAth.gearForkWidth || "",
+              gearBandSpec: masterAth.gearBandSpec || "",
+              gearAmmoSize: masterAth.gearAmmoSize || "",
+              gearStance: masterAth.gearStance || "",
             };
           }
         }

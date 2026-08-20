@@ -313,6 +313,58 @@ export const AthleteProfileModal: React.FC<AthleteProfileModalProps> = ({
             </div>
           </div>
 
+          {/* Gear & Tech Profile Block */}
+          {(athlete.gearSlingName || athlete.gearForkWidth || athlete.gearBandSpec || athlete.gearAmmoSize || athlete.gearStance) && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm">
+              <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-2 mb-4 flex items-center gap-2">
+                <span className="text-base">🎯</span>
+                {language === "en" ? "Gear & Technical Profile" : "Cấu hình Trang bị & Kỹ thuật"}
+              </h4>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs">
+                {athlete.gearSlingName && (
+                  <div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">
+                      {language === "en" ? "Slingshot Model" : "Tên loại ná"}
+                    </div>
+                    <div className="font-extrabold text-[#9c0c13] dark:text-red-400">{athlete.gearSlingName}</div>
+                  </div>
+                )}
+                {athlete.gearForkWidth && (
+                  <div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">
+                      {language === "en" ? "Fork Width" : "Độ rộng chạc"}
+                    </div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{athlete.gearForkWidth}</div>
+                  </div>
+                )}
+                {athlete.gearBandSpec && (
+                  <div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">
+                      {language === "en" ? "Band Specs" : "Khổ thun sử dụng"}
+                    </div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{athlete.gearBandSpec}</div>
+                  </div>
+                )}
+                {athlete.gearAmmoSize && (
+                  <div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">
+                      {language === "en" ? "Ammo Size" : "Bi sử dụng"}
+                    </div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{athlete.gearAmmoSize}</div>
+                  </div>
+                )}
+                {athlete.gearStance && (
+                  <div className="col-span-2">
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">
+                      {language === "en" ? "Shooting Stance" : "Tư thế bắn"}
+                    </div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-200">{athlete.gearStance}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Stats and historical achievements */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm">
             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-2 mb-4 flex items-center gap-2">
